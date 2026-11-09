@@ -1013,9 +1013,16 @@ function drawBase(m){
     L.tooltip({permanent:true,direction:"right",className:"st-label",offset:[4,0]}).setLatLng([a,b]).setContent(esc(n)).addTo(stl)});
   const showSt=()=>{m.getZoom()>=14?stl.addTo(m):stl.remove()};m.on("zoomend",showSt);showSt();
 }
+function todayHours(d){
+  if(!d.oh||!Object.keys(d.oh).length)return "";
+  const k=String((new Date().getDay()+6)%7),sp=d.oh[k];
+  if(sp===undefined)return "";
+  const f=m=>{m=m%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
+  return sp.length?"오늘 "+sp.map(([a,b])=>f(a)+"~"+f(b)).join(", "):"오늘 휴무";
+}
 function pop(d){
-  const ph=phImg(d,0);
-  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div>${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div style="margin-top:6px">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 길찾기</a>`:""} · <a href="#" data-add="${esc(d.id)}">＋ 일정에 넣기</a></div></div>`;
+  const ph=phImg(d,0),th=todayHours(d);
+  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div style="margin-top:6px">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 길찾기</a>`:""} · <a href="#" data-add="${esc(d.id)}">＋ 일정에 넣기</a></div></div>`;
 }
 function renderMap(arr){
   initMap(); if(!map)return;
@@ -1266,7 +1273,7 @@ function loadGoogle(){
 loadGoogle();
 const useG = ()=> gReady && !gFail && window.google && google.maps;
 
-const OPTS = {mapTypeControl:false, streetViewControl:false, fullscreenControl:false, clickableIcons:false,
+const OPTS = {mapTypeControl:false, streetViewControl:true, fullscreenControl:true, clickableIcons:true,
               gestureHandling:"greedy", zoomControl:true};
 function circle(color, scale, stroke){
   return {path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: stroke || "#fff", strokeWeight: 2, scale};
@@ -1318,6 +1325,7 @@ window.initPlanMap = function(){
   addLocateBtn(gPmap, "plan");
   gPmap.addListener("click", e=>{
     if(!picking) return;
+    if(e.placeId) e.stop();
     const day = plan.days[cur];
     day.start = e.latLng.lat().toFixed(5) + "," + e.latLng.lng().toFixed(5); day.startName = "숙소";
     picking = false; $("pickStart").classList.remove("on"); toast("숙소 위치를 출발지로 정했어요"); changed();
