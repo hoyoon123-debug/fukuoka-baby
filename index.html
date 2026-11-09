@@ -790,6 +790,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .hrs.bad{color:var(--milk);font-weight:700}
 .hrs.warn{color:var(--warn);font-weight:600}
 .strip img[src^="data:image/gif"]{background:var(--ph)}
+.pop.addr .btn{font-size:12px;padding:5px 8px}
+.pop .ja{user-select:all}
 .why{font-size:11.5px;color:var(--muted);margin-top:1px}
 /* plan view */
 body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,body.planmode #feats,body.planmode .bar{display:none}
@@ -1292,12 +1294,43 @@ function addLocateBtn(m, key){
   m.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(b);
 }
 
+
+/* ---------- 아무 곳이나 눌러 주소 보기 (Geocoding, 월 1만 건 무료) ---------- */
+let geocoder = null, addrMk = null;
+function showAddress(m, latLng, isPlan){
+  if(!geocoder) geocoder = new google.maps.Geocoder();
+  const w = info();
+  const lat = latLng.lat().toFixed(6), lng = latLng.lng().toFixed(6);
+  if(addrMk) addrMk.setMap(null);
+  addrMk = new google.maps.Marker({map: m, position: latLng, icon: circle("#b4456a", 6), zIndex: 997});
+  const box = document.createElement("div"); box.className = "pop addr";
+  box.innerHTML = `<b>이 위치</b><div class="meta">주소 찾는 중…</div>`;
+  w.setContent(box); w.open({map: m, anchor: addrMk});
+  const one = lang => geocoder.geocode({location: latLng, language: lang}).then(r=>r.results[0]?.formatted_address || "").catch(()=>"");
+  Promise.all([one("ko"), one("ja")]).then(([ko, ja])=>{
+    const gurl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    box.innerHTML = `<b>이 위치</b>
+      <div class="meta" style="margin-top:3px">📍 ${esc(ko || "주소를 찾지 못했어요")}</div>
+      ${ja ? `<div class="meta">🇯🇵 <span class="ja">${esc(ja)}</span></div>` : ""}
+      <div class="btnrow" style="margin-top:6px">
+        ${ja ? `<button class="btn" type="button" data-copy="1">일본어 주소 복사</button>` : ""}
+        ${isPlan ? `<button class="btn" type="button" data-start="1">여기를 출발지로</button>` : ""}
+        <a class="btn" href="${gurl}" target="_blank" rel="noopener">구글맵에서 보기</a>
+      </div>`;
+    const cp = box.querySelector("[data-copy]");
+    if(cp) cp.onclick = async ()=>{ try{ await navigator.clipboard.writeText(ja); toast("일본어 주소를 복사했어요 · 택시 기사님께 보여주세요"); }catch(e){ window.prompt("복사해 주세요", ja); } };
+    const sb = box.querySelector("[data-start]");
+    if(sb) sb.onclick = ()=>{ const day = plan.days[cur]; day.start = lat.slice(0,8) + "," + lng.slice(0,9); day.startName = (ko || "선택한 위치").replace(/^일본\s*/, "").slice(0, 30); w.close(); addrMk.setMap(null); changed(); toast("출발지로 정했어요"); };
+  });
+}
+
 /* ---------- 목록 지도 ---------- */
 window.initMap = function(){
   if(!useG()) return LEAF.initMap();
   if(gMap) return;
   gMap = new google.maps.Map($("map"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 14});
   addLocateBtn(gMap, "list");
+  gMap.addListener("click", e=>{ if(e.placeId) return; showAddress(gMap, e.latLng, false); });
 };
 window.renderMap = function(arr){
   if(!useG()) return LEAF.renderMap(arr);
@@ -1324,7 +1357,7 @@ window.initPlanMap = function(){
   gPmap = new google.maps.Map($("planmap"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 13});
   addLocateBtn(gPmap, "plan");
   gPmap.addListener("click", e=>{
-    if(!picking) return;
+    if(!picking){ if(!e.placeId) showAddress(gPmap, e.latLng, true); return; }
     if(e.placeId) e.stop();
     const day = plan.days[cur];
     day.start = e.latLng.lat().toFixed(5) + "," + e.latLng.lng().toFixed(5); day.startName = "숙소";
