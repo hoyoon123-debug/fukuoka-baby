@@ -79,6 +79,7 @@ main .wrap{padding-block:0 32px}
 .lv-추천{background:var(--good-soft);color:var(--good)}
 .lv-가능{background:var(--ok-soft);color:var(--ok)}
 .lv-주의{background:var(--warn-soft);color:var(--warn)}
+.lv-직접{background:var(--sea-soft);color:var(--sea)}
 .lv-정보부족{background:var(--none-soft);color:var(--none)}
 .sum{font-weight:600}
 .tags{display:flex;flex-wrap:wrap;gap:5px}
@@ -883,6 +884,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
       <div id="planmap"></div>
       <div class="plansum" id="plansum"></div>
       <div class="stops" id="stops"></div>
+      <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
       <div class="btnrow"><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync" id="sync"></div>
     </div>
@@ -903,7 +905,7 @@ const BM = {"coast":[[[33.60485,130.36741],[33.60485,130.36741]],[[33.6895,130.3
 const CATS=[["all","전체"],["restaurant","식당"],["cafe","카페"],["mall","쇼핑몰·수유실"],["play","놀이·체험"],["fav","★ 찜"]];
 const AREAS=[["all","모든 지역"],["hakata","하카타역"],["canal","캐널시티·나카스"],["tenjin","텐진·다이묘"],["ohori","오호리·롯폰마츠"],["momochi","모모치·니시진"],["airport","공항·하카타 남부"],["meinohama","메이노하마"],["kashii","가시이·아일랜드시티"],["dazaifu","다자이후"],["itoshima","이토시마"],["city","시내 그 외"],["suburb","근교 그 외"]];
 const FEATS=["후기 많은 곳","유모차 가능","수유실","기저귀교환대","유아의자","좌식/소파석","개별룸","키즈메뉴","키즈스페이스","아이식기","엘리베이터"];
-const CAT_LABEL={restaurant:"식당",cafe:"카페",mall:"쇼핑몰",play:"놀이·체험"};
+const CAT_LABEL={restaurant:"식당",cafe:"카페",mall:"쇼핑몰",play:"놀이·체험",custom:"직접 추가"};
 const ORDER={"추천":3,"가능":2,"주의":1,"정보부족":0};
 const PAGE=25;
 const TR={"높음":3,"보통":2,"낮음":1};
@@ -1074,18 +1076,28 @@ $("vPlan").addEventListener("click",()=>setView("plan"));
 
 /* ---------- 일정(동선) ---------- */
 const BYID=IDX;
+/* 직접 추가한 장소 (구글맵 링크·검색) */
+function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:"",rating:null,reviews:0,
+  url:c.gid?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}&query_place_id=${c.gid}`:`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`,
+  gid:c.gid||"",hours:[],oh:{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
+function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
 const STARTS=[...$("here").options].map(o=>[o.value,o.textContent]);
 const uid=()=>Math.random().toString(36).slice(2,9);
-let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}]};
+let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[]};
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
 const pt=s=>s.split(",").map(Number);
 function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1800)}
 function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
+  p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
+  regCustom(p.custom);
   p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>({id:x.id,memo:x.memo||""}))}));
-  return p;
+  const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
+  p.custom=p.custom.filter(c=>used.has(c.id));
+  return {days:p.days,custom:p.custom};
 }
+function addCustom(c){if(!plan.custom)plan.custom=[];if(!plan.custom.some(x=>x.id===c.id))plan.custom.push(c);regCustom([c])}
 function persist(){
   const js=JSON.stringify(plan);
   try{localStorage.setItem("fk_plan",js)}catch(e){}
@@ -1093,7 +1105,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({days:plan.days,custom:plan.custom||[],updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1110,8 +1122,8 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days})){plan={days:p.days};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+      const js=JSON.stringify({days:p.days,custom:p.custom});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
+      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[]})){plan={days:p.days,custom:p.custom};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1178,7 +1190,7 @@ function renderPlan(){
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
     <div class="stop"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"></span>`}
-      <div class="info"><div class="nm">${esc(d.name)}</div><div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>
+      <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
       ${hoursNote(d,day.date,day.stops[i].memo)}
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
@@ -1396,7 +1408,8 @@ const shareBtn = document.createElement("button");
 shareBtn.className = "btn"; shareBtn.type = "button"; shareBtn.textContent = "🔗 일정 공유 링크 복사";
 $("delDay").parentNode.insertBefore(shareBtn, $("delDay"));
 shareBtn.addEventListener("click", async ()=>{
-  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)}))};
+  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)})),
+                c: (plan.custom || []).map(c=>[c.id, c.name, +c.lat.toFixed(6), +c.lng.toFixed(6), c.addr || "", c.gid || ""])};
   const url = location.origin + location.pathname + "#plan=" + enc(slim);
   try{ await navigator.clipboard.writeText(url); toast("링크를 복사했어요 · 카톡으로 보내세요"); }
   catch(e){ window.prompt("이 링크를 복사해서 보내세요", url); }
@@ -1415,8 +1428,10 @@ function importFromHash(){
   const done = ()=>{ bar.remove(); history.replaceState(null, "", location.pathname); };
   bar.querySelector("#impN").onclick = done;
   bar.querySelector("#impY").onclick = ()=>{
+    const custom = (got.c || []).map(c=>({id: c[0], name: c[1], lat: c[2], lng: c[3], addr: c[4], gid: c[5]}));
+    regCustom(custom);
     plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지",
-      stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])}))};
+      stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])})), custom};
     cur = 0; persist(); done(); setView("plan"); toast("일정을 불러왔어요");
   };
 }
@@ -1560,6 +1575,89 @@ $("optRoute").addEventListener("click", async () => {
   }catch(e){ toast("최적 동선을 계산하지 못했어요"); }
   btn.disabled = false; btn.textContent = "🧭 최적 동선 계산";
 });
+})();
+
+/* ===== 장소 직접 추가: 구글맵 공유 링크·문구·이름으로 찾기 ===== */
+(function(){
+const btn = $("addPlace");
+const ready = () => typeof google !== "undefined" && google.maps && google.maps.importLibrary && !window.__gmFailed;
+setInterval(() => { btn.hidden = !ready(); }, 1500);
+
+const sheet = document.createElement("div");
+sheet.className = "sheet"; sheet.hidden = true;
+sheet.innerHTML = `<div class="wrap2">
+  <h3>장소 직접 추가</h3>
+  <div class="plansum">구글맵에서 <b>공유 → 링크 복사</b>한 내용을 붙여넣거나, 가게 이름을 입력하세요.</div>
+  <textarea id="apIn" rows="3" placeholder="예) 이치란 라멘 하카타점&#10;또는 https://maps.app.goo.gl/… 공유 문구 전체" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit"></textarea>
+  <div class="btnrow"><button class="btn primary" id="apGo" type="button">찾기</button><button class="btn" id="apClose" type="button">닫기</button></div>
+  <div id="apRes" style="display:grid;gap:6px;max-height:40vh;overflow:auto"></div>
+</div>`;
+document.body.appendChild(sheet);
+const $in = sheet.querySelector("#apIn"), $res = sheet.querySelector("#apRes");
+btn.addEventListener("click", () => { sheet.hidden = false; $res.innerHTML = ""; $in.value = ""; $in.focus(); });
+sheet.querySelector("#apClose").onclick = () => { sheet.hidden = true; };
+
+function coordsFrom(t){
+  let m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+          t.match(/[?&](?:query|q|ll|destination)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i) || t.match(/^\s*(-?\d{1,2}\.\d{3,}),\s*(-?\d{2,3}\.\d{3,})\s*$/);
+  return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+}
+function nameFrom(t){
+  let q = t.replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+  const m = t.match(/\/maps\/place\/([^/@?]+)/); if(!q && m) q = decodeURIComponent(m[1].replace(/\+/g, " "));
+  return q.slice(0, 80);
+}
+function addToPlan(c){
+  if(IDX[c.id] && IDX[c.id].cat !== "custom"){            // 가이드에 이미 있는 가게면 가이드 정보로
+    c = null;
+  }
+  const id = c ? c.id : arguments[1];
+  if(c) addCustom(c);
+  const day = plan.days[cur];
+  if(day.stops.some(x => x.id === id)){ toast("이미 이 날 일정에 있어요"); return; }
+  day.stops.push({id, memo: ""});
+  sheet.hidden = true; changed();
+  toast(`${cur+1}일차에 넣었어요 · 🧭 최적 동선 계산으로 순서를 정리해 보세요`);
+}
+function resultRow(name, addr, onPick, tag){
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "btn"; b.style.textAlign = "left"; b.style.whiteSpace = "normal";
+  b.innerHTML = `<b>${esc(name)}</b>${tag ? ` <span class="lv lv-추천" style="padding:0 6px">${tag}</span>` : ""}<div class="meta">${esc(addr || "")}</div>`;
+  b.onclick = onPick; $res.appendChild(b);
+}
+sheet.querySelector("#apGo").onclick = async () => {
+  const t = $in.value.trim(); if(!t) return;
+  $res.innerHTML = `<div class="plansum">찾는 중…</div>`;
+  try{
+    const c = coordsFrom(t);
+    if(c){
+      const geo = new google.maps.Geocoder();
+      const r = await geo.geocode({location: {lat: c[0], lng: c[1]}, language: "ko"}).catch(() => null);
+      const addr = r && r.results[0] ? r.results[0].formatted_address : "";
+      const name = nameFrom(t) || addr.replace(/^일본\s*/, "").slice(0, 30) || "지정한 위치";
+      $res.innerHTML = "";
+      resultRow(name, addr, () => addToPlan({id: "c_" + c[0].toFixed(5) + "_" + c[1].toFixed(5), name, lat: c[0], lng: c[1], addr}));
+      return;
+    }
+    const q = nameFrom(t);
+    if(!q){ $res.innerHTML = `<div class="plansum">짧은 링크만으로는 위치를 알 수 없어요. 구글맵 공유 문구 전체(가게 이름 포함)를 붙여넣거나 이름을 입력해 주세요.</div>`; return; }
+    const {Place} = await google.maps.importLibrary("places");
+    const here = (typeof hereLL === "function" ? hereLL() : [33.5902, 130.4017]);
+    const {places} = await Place.searchByText({textQuery: q, fields: ["id", "displayName", "location", "formattedAddress"],
+      locationBias: {center: {lat: here[0], lng: here[1]}, radius: 50000}, maxResultCount: 6, language: "ko", region: "jp"});
+    $res.innerHTML = "";
+    if(!places || !places.length){ $res.innerHTML = `<div class="plansum">찾지 못했어요. 이름을 조금 다르게(일본어 이름 등) 입력해 보세요.</div>`; return; }
+    places.forEach(pl => {
+      const inGuide = IDX[pl.id] && IDX[pl.id].cat !== "custom";
+      const lat = pl.location.lat(), lng = pl.location.lng();
+      resultRow(pl.displayName, pl.formattedAddress,
+        () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}),
+        inGuide ? "가이드에 있음" : "");
+    });
+  }catch(e){
+    $res.innerHTML = `<div class="plansum">검색하지 못했어요. 잠시 뒤 다시 시도하거나 이름을 바꿔 보세요.</div>`;
+  }
+};
 })();
 
 </script>
