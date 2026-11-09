@@ -873,7 +873,9 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
         <label>날짜 <input type="date" id="pdate"></label>
         <label>출발 <select id="pstart"></select> <button class="btn" id="pickStart" type="button">지도에서 숙소 찍기</button></label>
         <div class="btnrow">
+          <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선 계산</button>
           <button class="btn" id="autoOrder" type="button">가까운 순으로 자동 정렬</button>
+          <label class="btn" id="rtBack" hidden style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="roundTrip"> 출발지로 돌아오기</label>
           <a class="btn primary" id="gdir" target="_blank" rel="noopener">구글맵으로 동선 열기</a>
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">도보</option><option value="transit">대중교통</option><option value="driving">차량</option></select>
         </div>
@@ -1174,7 +1176,7 @@ function renderPlan(){
   let total=0,html=`<div class="startrow"><span class="no">출</span>${esc(day.startName||"출발지")}에서 출발</div>`;
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
-    html+=`<div class="leg${L1.k>2?" far":""}">${L1.txt}</div>
+    html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
     <div class="stop"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"></span>`}
       <div class="info"><div class="nm">${esc(d.name)}</div><div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>
       ${hoursNote(d,day.date,day.stops[i].memo)}
@@ -1195,6 +1197,7 @@ function renderPlan(){
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
   }else{$("gdir").removeAttribute("href");$("gdir").style.opacity=".5"}
   drawPlanMap(S,pts,ds,day);
+  if(window.afterPlanRender)window.afterPlanRender(day,ds,S);
 }
 function drawPlanMap(S,pts,ds,day){
   initPlanMap();if(!pmap)return;setTimeout(()=>pmap.invalidateSize(),0);
@@ -1259,7 +1262,7 @@ hereSel.addEventListener("change", ()=>{ if(hereSel.value === "gps") locate(()=>
 /* ---------- 구글 지도 불러오기 ---------- */
 window.gm_authFailure = function(){ gFail = true; fallback("구글 지도 키가 이 주소에서 허용되지 않았어요"); };
 function fallback(msg){
-  gFail = true;
+  gFail = true; window.__gmFailed = true;
   Object.assign(window, LEAF);
   toast(msg + " · 기본 지도로 보여드려요");
   if(view === "map") render(); else if(view === "plan") renderPlan();
@@ -1296,7 +1299,7 @@ function addLocateBtn(m, key){
 
 
 /* ---------- 아무 곳이나 눌러 주소 보기 (Geocoding, 월 1만 건 무료) ---------- */
-let geocoder = null, addrMk = null;
+var geocoder = null, addrMk = null;
 function showAddress(m, latLng, isPlan){
   if(!geocoder) geocoder = new google.maps.Geocoder();
   const w = info();
@@ -1355,6 +1358,7 @@ window.initPlanMap = function(){
   if(!useG()) return LEAF.initPlanMap();
   if(gPmap) return;
   gPmap = new google.maps.Map($("planmap"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 13});
+  window.__gPmap = gPmap;
   addLocateBtn(gPmap, "plan");
   gPmap.addListener("click", e=>{
     if(!picking){ if(!e.placeId) showAddress(gPmap, e.latLng, true); return; }
@@ -1372,7 +1376,7 @@ window.drawPlanMap = function(S, pts, ds, day){
   const sm = new google.maps.Marker({map: gPmap, position: {lat: S[0], lng: S[1]}, icon: circle("#ffffff", 9, "#b4456a"), title: day.startName || "출발지"});
   gPlan.push(sm); bounds.extend(sm.getPosition());
   if(pts.length > 1){
-    gPlan.push(new google.maps.Polyline({map: gPmap, path: pts.map(([a,b])=>({lat: a, lng: b})), strokeOpacity: 0,
+    gPlan.push(window.gPlanStraight = new google.maps.Polyline({map: gPmap, path: pts.map(([a,b])=>({lat: a, lng: b})), strokeOpacity: 0,
       icons: [{icon: {path: "M 0,-1 0,1", strokeOpacity: .9, strokeColor: "#1f5f8b", scale: 3}, offset: "0", repeat: "14px"}]}));
   }
   ds.forEach((d,i)=>{
@@ -1422,6 +1426,140 @@ importFromHash();
 if("serviceWorker" in navigator && location.protocol === "https:"){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
+})();
+
+/* ===== 실제 길 기준 동선 (Routes API) ===== */
+(function(){
+const KEY = window.GMAPS_KEY || "";
+if(!KEY) return;
+const cache = {};
+let gRoute = [], lastSig = "";
+const MODE = {walking: "WALK", driving: "DRIVE", transit: "TRANSIT"};
+const ICON = {WALK: "🚶", DRIVE: "🚗", TRANSIT: "🚇"};
+const ll = p => ({location: {latLng: {latitude: p[0], longitude: p[1]}}});
+const mins = s => { const m = Math.round(parseInt(s) / 60); return m >= 60 ? `${Math.floor(m/60)}시간 ${m%60}분` : `${m}분`; };
+const dist = m => m >= 1000 ? (m/1000).toFixed(1) + "km" : Math.round(m) + "m";
+function decode(str){
+  let i = 0, lat = 0, lng = 0; const out = [];
+  while(i < str.length){
+    for(const k of [0,1]){
+      let b, shift = 0, res = 0;
+      do{ b = str.charCodeAt(i++) - 63; res |= (b & 31) << shift; shift += 5; }while(b >= 32);
+      const d = (res & 1) ? ~(res >> 1) : (res >> 1);
+      if(k === 0) lat += d; else lng += d;
+    }
+    out.push({lat: lat / 1e5, lng: lng / 1e5});
+  }
+  return out;
+}
+async function call(body){
+  const r = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {method: "POST",
+    headers: {"Content-Type": "application/json", "X-Goog-Api-Key": KEY,
+      "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration,routes.legs.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex"},
+    body: JSON.stringify({languageCode: "ko", units: "METRIC", ...body})});
+  const j = await r.json();
+  if(!r.ok || !j.routes || !j.routes.length) throw new Error((j.error && j.error.message) || "no route");
+  return j.routes[0];
+}
+/* points: [start, ...stops, (end)] -> {legs:[{d,m,poly}], order?} */
+async function route(points, mode, optimize){
+  const sig = mode + "|" + (optimize ? "o|" : "") + points.map(p => p[0].toFixed(5) + "," + p[1].toFixed(5)).join(";");
+  if(cache[sig]) return cache[sig];
+  let res;
+  if(mode === "TRANSIT"){
+    const legs = [];
+    for(let i = 0; i < points.length - 1; i++){
+      const pk = "T|" + points[i].join(",") + ">" + points[i+1].join(",");
+      if(cache[pk]){ legs.push(cache[pk]); continue; }
+      try{
+        const r = await call({origin: ll(points[i]), destination: ll(points[i+1]), travelMode: "TRANSIT"});
+        legs.push(cache[pk] = {d: r.legs[0].duration, m: r.legs[0].distanceMeters, poly: r.legs[0].polyline.encodedPolyline});
+      }catch(e){                                   // 대중교통이 없으면(가까운 거리 등) 도보로
+        const r = await call({origin: ll(points[i]), destination: ll(points[i+1]), travelMode: "WALK"});
+        legs.push(cache[pk] = {d: r.legs[0].duration, m: r.legs[0].distanceMeters, poly: r.legs[0].polyline.encodedPolyline, walk: true});
+      }
+    }
+    res = {legs};
+  }else{
+    const body = {origin: ll(points[0]), destination: ll(points[points.length-1]),
+      intermediates: points.slice(1, -1).map(ll), travelMode: mode};
+    if(optimize && points.length > 3) body.optimizeWaypointOrder = true;
+    const r = await call(body);
+    res = {legs: r.legs.map(l => ({d: l.duration, m: l.distanceMeters, poly: l.polyline.encodedPolyline})),
+           order: r.optimizedIntermediateWaypointIndex};
+  }
+  cache[sig] = res;
+  return res;
+}
+function clearRoute(){ gRoute.forEach(o => o.setMap(null)); gRoute = []; }
+
+/* 화면: 일정이 바뀔 때마다 실제 경로로 다시 계산해서 표시 */
+window.afterPlanRender = async function(day, ds, S){
+  const on = typeof google !== "undefined" && google.maps && !window.__gmFailed;
+  $("optRoute").hidden = !on || ds.length < 2; $("rtBack").hidden = !on || !ds.length;
+  if(!on || !ds.length){ clearRoute(); return; }
+  const mode = MODE[$("gmode").value] || "WALK";
+  const back = $("roundTrip").checked;
+  const pts = [S, ...ds.map(d => [d.lat, d.lng])]; if(back) pts.push(S);
+  const sig = mode + JSON.stringify(pts); lastSig = sig;
+  const sum = $("plansum"), base = sum.textContent.replace(/^.*?km \(실제 길은 더 길어요\)/, "");
+  sum.textContent = `${ds.length}곳 · 실제 경로 계산 중…` + base;
+  let r;
+  try{ r = await route(pts, mode, false); }
+  catch(e){ sum.textContent = `${ds.length}곳 · 경로를 계산하지 못해 직선 거리로 보여드려요` + base; return; }
+  if(sig !== lastSig) return;                        // 그새 순서가 또 바뀜
+  let tot = 0, totm = 0;
+  r.legs.forEach((l, i) => {
+    tot += parseInt(l.d); totm += l.m;
+    const el = document.querySelector(`.leg[data-leg="${i}"]`);
+    const ic = l.walk ? "🚶" : ICON[mode];
+    const txt = `${ic} ${mins(l.d)} · ${dist(l.m)}${mode === "WALK" && l.m > 2000 ? " · 지하철·택시 추천" : ""}`;
+    if(el){ el.textContent = txt; el.classList.toggle("far", mode === "WALK" && l.m > 2000); }
+    else if(back && i === r.legs.length - 1){
+      const end = document.createElement("div"); end.className = "leg"; end.textContent = txt + " · 출발지로 돌아오기";
+      $("stops").appendChild(end);
+    }
+  });
+  sum.textContent = `${ds.length}곳 · 실제 경로 기준 이동 ${mins(tot)} · ${dist(totm)}` + base;
+  /* 지도: 직선 대신 실제 길 */
+  if(typeof gPlanStraight !== "undefined" && gPlanStraight) gPlanStraight.setMap(null);
+  clearRoute();
+  const map = window.__gPmap;
+  if(!map) return;
+  r.legs.forEach((l, i) => {
+    gRoute.push(new google.maps.Polyline({map, path: decode(l.poly), strokeColor: l.walk ? "#5f6f7a" : (mode === "TRANSIT" ? "#d0473b" : "#1f5f8b"),
+      strokeOpacity: .85, strokeWeight: 5, zIndex: 5}));
+  });
+};
+$("roundTrip").addEventListener("change", () => renderPlan());
+
+/* 최적 동선: 구글이 이동 시간이 가장 짧은 순서를 계산 */
+$("optRoute").addEventListener("click", async () => {
+  const day = plan.days[cur], ds = day.stops.map(x => BYID[x.id]);
+  if(ds.length < 2) return;
+  if(ds.length > 25){ toast("한 날에 25곳까지만 최적화할 수 있어요"); return; }
+  const S = pt(day.start), back = $("roundTrip").checked;
+  const mode = MODE[$("gmode").value] === "DRIVE" ? "DRIVE" : "WALK";   // 대중교통은 도보 기준으로 순서를 정해요
+  const btn = $("optRoute"); btn.disabled = true; btn.textContent = "계산 중…";
+  try{
+    let stops = day.stops.slice(), endStop = null;
+    if(!back){                                       // 끝 장소: 출발지에서 가장 먼 곳
+      let fi = 0, fk = -1; ds.forEach((d, i) => { const k = kmOf(S, [d.lat, d.lng]); if(k > fk){ fk = k; fi = i; } });
+      endStop = stops.splice(fi, 1)[0];
+    }
+    const mids = stops.map(x => BYID[x.id]);
+    const pts = [S, ...mids.map(d => [d.lat, d.lng]), back ? S : [BYID[endStop.id].lat, BYID[endStop.id].lng]];
+    const before = await route([S, ...ds.map(d => [d.lat, d.lng]), ...(back ? [S] : [])], mode, false).catch(() => null);
+    const r = await route(pts, mode, true);
+    const order = r.order && r.order.length === stops.length ? r.order : stops.map((_, i) => i);
+    day.stops = order.map(i => stops[i]).concat(endStop ? [endStop] : []);
+    const t0 = before ? before.legs.reduce((a, l) => a + parseInt(l.d), 0) : 0;
+    const t1 = r.legs.reduce((a, l) => a + parseInt(l.d), 0);
+    changed();
+    toast(t0 && t1 < t0 ? `동선을 바꿨어요 · 이동 ${Math.round((t0 - t1) / 60)}분 단축` : "지금 순서가 이미 가장 빨라요");
+  }catch(e){ toast("최적 동선을 계산하지 못했어요"); }
+  btn.disabled = false; btn.textContent = "🧭 최적 동선 계산";
+});
 })();
 
 </script>
