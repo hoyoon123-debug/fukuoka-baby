@@ -793,6 +793,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .strip img[src^="data:image/gif"]{background:var(--ph)}
 .pop.addr .btn{font-size:12px;padding:5px 8px}
 .pop .ja{user-select:all}
+.inplan{font-size:12px;color:var(--sea);font-weight:600}
+.toast{display:flex;gap:10px;align-items:center}
+.toastbtn{border:0;background:var(--bg);color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+#nearby{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+#nearby:empty{display:none}
+.nearhead{font-size:14px}
+.neartip{font-size:13px;background:var(--milk-soft);border-radius:8px;padding:6px 10px}
+.near{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:8px}
+.near img,.near .noimg{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--ph);display:block}
+.near .info{min-width:0}.near .nm{font-weight:700;font-size:14px}
 .why{font-size:11.5px;color:var(--muted);margin-top:1px}
 /* plan view */
 body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,body.planmode #feats,body.planmode .bar{display:none}
@@ -884,6 +894,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
       <div id="planmap"></div>
       <div class="plansum" id="plansum"></div>
       <div class="stops" id="stops"></div>
+      <div id="nearby"></div>
       <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
       <div class="btnrow"><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync" id="sync"></div>
@@ -966,6 +977,8 @@ function list(){
     (ORDER[b.lv]-ORDER[a.lv])||(TR[b.trust]-TR[a.trust])||(b.kidn-a.kidn)||((b.rating||0)-(a.rating||0)));
   return arr;
 }
+function inPlan(id){const out=[];plan.days.forEach((x,i)=>{if(x.stops.some(y=>y.id===id))out.push(i+1)});return out}
+function planBadge(d){const ds=inPlan(d.id);return ds.length?`<div class="inplan">📅 ${ds.map(n=>n+"일차").join(", ")} 일정에 있음</div>`:""}
 function card(d){
   const n=d.np;
   const strip=n?`<div class="strip n${n}">${[0,1].map(i=>phImg(d,i)).join("")}</div>
@@ -988,7 +1001,8 @@ function card(d){
     ${d.hours.length?`<details><summary>영업시간</summary>${d.hours.map(esc).join("<br>")}</details>`:""}
     <div class="acts">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 보기</a>`:""}
       <button class="fav" data-fav="${esc(d.id)}" aria-pressed="${on}">${on?"★ 찜함":"☆ 찜하기"}</button>
-      <button class="addbtn" data-add="${esc(d.id)}">＋ 일정에 넣기</button></div>
+      <button class="addbtn" data-add="${esc(d.id)}">${inPlan(d.id).length?"＋ 다른 날에도 넣기":"＋ 일정에 넣기"}</button></div>
+    ${planBadge(d)}
   </div></article>`;
 }
 function hereLL(){return $("here").value.split(",").map(Number)}
@@ -1028,7 +1042,7 @@ function todayHours(d){
 }
 function pop(d){
   const ph=phImg(d,0),th=todayHours(d);
-  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div style="margin-top:6px">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 길찾기</a>`:""} · <a href="#" data-add="${esc(d.id)}">＋ 일정에 넣기</a></div></div>`;
+  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div style="margin-top:6px">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 길찾기</a>`:""} · <a href="#" data-add="${esc(d.id)}">＋ 일정에 넣기</a></div>${planBadge(d)}</div>`;
 }
 function renderMap(arr){
   initMap(); if(!map)return;
@@ -1087,7 +1101,9 @@ let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stop
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
 const pt=s=>s.split(",").map(Number);
-function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1800)}
+function toast(t,act){const el=$("toast");el.textContent=t;
+  if(act){const b=document.createElement("button");b.type="button";b.className="toastbtn";b.textContent=act.label;b.onclick=()=>{el.hidden=true;act.fn()};el.appendChild(b)}
+  el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,act?4000:1800)}
 function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
@@ -1140,8 +1156,9 @@ $("sheetDays").addEventListener("click",e=>{
   let i=b.dataset.sday;
   if(i==="new"){plan.days.push({id:uid(),date:"",start:plan.days[plan.days.length-1].start,startName:plan.days[plan.days.length-1].startName,stops:[]});i=plan.days.length-1}else i=+i;
   const id=$("sheet").dataset.id,day=plan.days[i];
-  if(day.stops.some(x=>x.id===id)){toast(`${i+1}일차에 이미 있어요`)}else{day.stops.push({id,memo:""});toast(`${i+1}일차에 넣었어요`)}
-  $("sheet").hidden=true;cur=i;changed();
+  const go={label:"일정 보기",fn:()=>{cur=i;setView("plan")}};
+  if(day.stops.some(x=>x.id===id)){toast(`${i+1}일차에 이미 있어요`,go)}else{day.stops.push({id,memo:""});toast(`${i+1}일차에 넣었어요`,view==="plan"?null:go)}
+  $("sheet").hidden=true;cur=i;changed();if(view!=="plan")render();
 });
 function initPlanMap(){
   if(pmap||typeof L==="undefined")return;
@@ -1208,6 +1225,7 @@ function renderPlan(){
     u.searchParams.set("travelmode",$("gmode").value);
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
   }else{$("gdir").removeAttribute("href");$("gdir").style.opacity=".5"}
+  renderNearby(day,S,ds);
   drawPlanMap(S,pts,ds,day);
   if(window.afterPlanRender)window.afterPlanRender(day,ds,S);
 }
@@ -1238,6 +1256,49 @@ $("delDay").addEventListener("click",()=>{
   const b=$("delDay");if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="한 번 더 누르면 삭제돼요";setTimeout(()=>{b.dataset.armed="";b.textContent="이 날 삭제"},2500);return}
   b.dataset.armed="";b.textContent="이 날 삭제";
   if(plan.days.length===1){plan.days[0].stops=[];plan.days[0].date=""}else{plan.days.splice(cur,1);cur=Math.max(0,cur-1)}changed()});
+
+/* ---------- 동선 근처 추천 ---------- */
+let nearCat="all";
+function segKm(p,a,b){ // 점 p와 선분 a-b 사이 거리(km, 평면 근사)
+  const ax=a[1]*92.5,ay=a[0]*111,bx=b[1]*92.5,by=b[0]*111,px=p[1]*92.5,py=p[0]*111;
+  const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+function renderNearby(day,S,ds){
+  const box=$("nearby");
+  if(!ds.length){box.innerHTML="";return}
+  const pts=[S,...ds.map(d=>[d.lat,d.lng])],have=new Set(day.stops.map(x=>x.id));
+  const R=0.6,cands=[];
+  D.forEach(d=>{
+    if(have.has(d.id))return;
+    const p=[d.lat,d.lng];let best=9,after=0;
+    for(let i=0;i<pts.length;i++){const k=kmOf(p,pts[i]);if(k<best){best=k;after=i}}
+    for(let i=0;i<pts.length-1;i++){const k=segKm(p,pts[i],pts[i+1]);if(k<best){best=k;after=i+1}}
+    if(best<=R)cands.push({d,km:best,after});
+  });
+  const CATS2=[["all","전체"],["nurse","🍼 수유실"],["restaurant","🍽 식당"],["cafe","☕ 카페"],["play","🎠 놀이"],["mall","🛍 쇼핑몰"]];
+  const pick=c=>nearCat==="all"||(nearCat==="nurse"?(c.d.f.includes("수유실")||c.d.f.includes("기저귀교환대")||!!c.d.nurse):c.d.cat===nearCat);
+  const sorted=cands.filter(pick).sort((a,b)=>(ORDER[b.d.lv]-ORDER[a.d.lv])||(TR[b.d.trust]-TR[a.d.trust])||(a.km-b.km)).slice(0,6);
+  const hasNurse=ds.some(d=>d.f.includes("수유실")||d.f.includes("기저귀교환대")||d.nurse);
+  const nurseNear=cands.filter(c=>c.d.f.includes("수유실")||c.d.nurse).sort((a,b)=>a.km-b.km)[0];
+  const tip=!hasNurse&&ds.length>=2&&nurseNear?`<div class="neartip">🍼 이 날 동선엔 수유실이 확인된 곳이 없어요. 가까운 곳: <b>${esc(nurseNear.d.name)}</b> (${nurseNear.after?nurseNear.after+"번":"출발지"} 근처 ${Math.round(nurseNear.km*1000)}m)</div>`:"";
+  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 동선에서 ${R*1000}m 안</span></div>${tip}
+   <div class="row">${CATS2.map(([k,v])=>`<button class="chip" data-ncat="${k}" aria-pressed="${nearCat===k}">${v}</button>`).join("")}</div>
+   ${sorted.length?sorted.map(c=>`<div class="near">
+      ${c.d.np?phImg(c.d,0):`<span class="noimg"></span>`}
+      <div class="info"><div class="nm">${esc(c.d.name)}</div>
+        <div class="meta"><span class="lv lv-${esc(c.d.lv)}" style="padding:0 6px">${esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.after?c.after+"번":"출발지"} 근처 ${Math.round(c.km*1000)}m${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
+        ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
+      <button class="btn" data-nadd="${esc(c.d.id)}" data-after="${c.after}">넣기</button></div>`).join(""):`<div class="meta" style="padding:8px 0">이 조건으로 가까운 곳이 없어요.</div>`}`;
+  hydrate(box);
+}
+$("nearby").addEventListener("click",e=>{
+  const c=e.target.closest("[data-ncat]");if(c){nearCat=c.dataset.ncat;renderPlan();return}
+  const a=e.target.closest("[data-nadd]");if(!a)return;
+  const day=plan.days[cur],at=Math.min(+a.dataset.after,day.stops.length);
+  day.stops.splice(at,0,{id:a.dataset.nadd,memo:""});
+  toast(`${at+1}번째에 넣었어요 · 경로를 다시 계산해요`);changed();
+});
 
 render();
 </script>
