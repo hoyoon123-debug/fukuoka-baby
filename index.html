@@ -1695,7 +1695,13 @@ function fallback(msg){
 }
 function loadGoogle(){
   if(!KEY){ gFail = true; return; }
-  window.__gmReady = ()=>{ gReady = true; if(view === "map" || view === "plan") render(); };
+  window.__gmReady = ()=>{
+    gReady = true;
+    // 구글 지도가 늦게 도착해서 기본 지도가 먼저 떠 있었다면 걷어내고 구글 지도로 바꾸기
+    try{ if(typeof map !== "undefined" && map){ map.remove(); map = null; } }catch(e){}
+    try{ if(typeof pmap !== "undefined" && pmap){ pmap.remove(); pmap = null; } }catch(e){}
+    if(view === "map" || view === "plan") render();
+  };
   const sc = document.createElement("script");
   sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(KEY)}&v=weekly&language=ko&region=JP&callback=__gmReady`;
   sc.async = true; sc.onerror = ()=>fallback("구글 지도를 불러오지 못했어요");
