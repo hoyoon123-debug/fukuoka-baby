@@ -1545,7 +1545,15 @@ function circle(color, scale, stroke){
   return {path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: stroke || "#fff", strokeWeight: 2, scale};
 }
 function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 260}); gInfo.addListener("domready", ()=>hydrate(document.querySelector(".gm-style-iw"))); } return gInfo; }
-function openPop(m, mk, d){ const w = info(); w.setContent(`<div class="pop">${pop(d)}</div>`); w.open({map: m, anchor: mk}); }
+function openPop(m, mk, d){ const w = info(); w.setContent(`<div class="pop">${pop(d)}</div>`); w.open({map: m, anchor: mk}); popOpen = true; }
+let popOpen = false, lpAt = 0;
+function closePops(){   // 빈 지도를 한 번 누르면 열린 정보창 닫기
+  if(Date.now() - lpAt < 800) return true;            // 방금 길게 눌러 연 창은 유지
+  const was = popOpen; popOpen = false;
+  if(gInfo) gInfo.close();
+  if(addrMk){ addrMk.setMap(null); addrMk = null; }
+  return was;
+}
 function addLocateBtn(m, key){
   const b = document.createElement("button");
   b.type = "button"; b.className = "btn"; b.textContent = "📍 내 위치"; b.style.margin = "10px";
@@ -1569,7 +1577,7 @@ function showAddress(m, latLng, isPlan){
   addrMk = new google.maps.Marker({map: m, position: latLng, icon: circle("#b4456a", 6), zIndex: 997});
   const box = document.createElement("div"); box.className = "pop addr";
   box.innerHTML = `<b>이 위치</b><div class="meta">주소 찾는 중…</div>`;
-  w.setContent(box); w.open({map: m, anchor: addrMk});
+  w.setContent(box); w.open({map: m, anchor: addrMk}); popOpen = true;
   const one = lang => geocoder.geocode({location: latLng, language: lang}).then(r=>r.results[0]?.formatted_address || "").catch(()=>"");
   Promise.all([one("ko"), one("ja")]).then(([ko, ja])=>{
     const gurl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
@@ -1597,7 +1605,7 @@ function showAddress(m, latLng, isPlan){
 /* ---------- 길게 눌러 주소 보기 ---------- */
 function onLongPress(map, cb){
   let t = null, at = null, last = 0, moved = false;
-  const fire = ll => { const now = Date.now(); if(now - last < 900) return; last = now; cb(ll); };
+  const fire = ll => { const now = Date.now(); if(now - last < 900) return; last = now; lpAt = now; cb(ll); };
   const cancel = () => { clearTimeout(t); t = null; };
   map.addListener("contextmenu", e => { cancel(); if(e.latLng) fire(e.latLng); });   // PC 우클릭 · 일부 폰 길게 누르기
   map.addListener("mousedown", e => { cancel(); moved = false; at = e.latLng; t = setTimeout(() => { if(!moved) fire(at); }, 600); });
@@ -1615,7 +1623,7 @@ window.initMap = function(){
   if(gMap) return;
   gMap = new google.maps.Map($("map"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 14});
   addLocateBtn(gMap, "list");
-  gMap.addListener("click", e=>{ if(!e.placeId) tapHint(); });
+  gMap.addListener("click", e=>{ if(!e.placeId && !closePops()) tapHint(); });
   onLongPress(gMap, ll => showAddress(gMap, ll, false));
 };
 window.renderMap = function(arr){
@@ -1645,7 +1653,7 @@ window.initPlanMap = function(){
   addLocateBtn(gPmap, "plan");
   onLongPress(gPmap, ll => { if(!picking) showAddress(gPmap, ll, true); });
   gPmap.addListener("click", e=>{
-    if(!picking){ if(!e.placeId) tapHint(); return; }
+    if(!picking){ if(!e.placeId && !closePops()) tapHint(); return; }
     if(e.placeId) e.stop();
     const h = addHotel({name: "숙소", lat: +e.latLng.lat().toFixed(5), lng: +e.latLng.lng().toFixed(5)});
     if(h){ useHotel(h, cur); window.fillHotelJa && window.fillHotelJa(h, true); }
