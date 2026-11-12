@@ -771,21 +771,22 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-container{font-family:var(--body);background:var(--land)}
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.45;color:var(--ink)}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink)}
-/* 지도 말풍선은 배경이 늘 흰색이라 다크 모드에서도 진한 글씨로 */
-.gm-style-iw,.gm-style-iw-d,.leaflet-popup-content-wrapper{--ink:#1d2a33;--muted:#4f5f6a;--sea:#1f5f8b;--milk:#b4456a;--line:#dbe3e8;--ph:#e6ecef;color:#1d2a33}
-.gm-style .gm-style-iw-c,.gm-style .gm-style-iw-d,.gm-style .gm-style-iw-chr{background:#fff!important;color:#1d2a33!important}
-.gm-style .gm-style-iw-tc::after{background:#fff!important}
-.gm-style .gm-style-iw-chr button span{background-color:#333!important}
-.pop{font-size:13.5px;line-height:1.5;color:#1d2a33!important;min-width:210px;background:#fff}
+/* 지도 말풍선: 앱 테마(라이트/다크)를 그대로 따라감 */
+.gm-style .gm-style-iw-c,.gm-style .gm-style-iw-d,.gm-style .gm-style-iw-chr{background:var(--surface)!important;color:var(--ink)!important}
+.gm-style .gm-style-iw-tc::after{background:var(--surface)!important}
+.gm-style .gm-style-iw-chr button span{background-color:var(--ink)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface)!important;color:var(--ink)!important}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+.pop{font-size:13.5px;line-height:1.5;color:var(--ink)!important;min-width:210px}
 .pop>div,.pop>b{color:inherit}
-.pop .meta{color:#4f5f6a!important}
-.pop img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;max-width:100%;background:#e6ecef}
+.pop .meta{color:var(--muted)!important}
+.pop img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;max-width:100%;background:var(--ph)}
 .pop img[src^="data:image/gif"]{display:none}
-.pop b{font-size:15.5px;display:block;margin-bottom:2px}.pop .meta{margin:2px 0 4px;color:#4f5f6a;font-size:12.5px}
-.pop a{color:#1f5f8b;font-weight:600}
+.pop b{font-size:15.5px;display:block;margin-bottom:2px}.pop .meta{margin:2px 0 4px;font-size:12.5px}
+.pop a{color:var(--sea);font-weight:600}
 .pop .pbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.pop .pbtn{flex:1 1 auto;text-align:center;text-decoration:none;border:1px solid #c9d6de;border-radius:9px;padding:7px 8px;font-size:13px;font-weight:700;color:#1f5f8b;background:#fff;white-space:nowrap}
-.pop .pbtn.pri{background:#1f5f8b;color:#fff;border-color:#1f5f8b}
+.pop .pbtn{flex:1 1 auto;text-align:center;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 8px;font-size:13px;font-weight:700;color:var(--sea);background:var(--surface);white-space:nowrap}
+.pop .pbtn.pri{background:var(--sea);color:var(--surface);border-color:var(--sea)}
 .st-label{background:transparent;border:0;box-shadow:none;color:var(--muted);font-size:11px;font-weight:600;padding:0;text-shadow:0 0 3px var(--land),0 0 3px var(--land)}
 .st-label::before{display:none}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding-top:8px}
