@@ -771,9 +771,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-container{font-family:var(--body);background:var(--land)}
 .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.45;color:var(--ink)}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink)}
-.pop img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px;max-width:100%}
-.pop b{font-size:14px}.pop .meta{margin:2px 0 4px}
-.pop a{color:var(--sea);font-weight:600}
+/* 지도 말풍선은 배경이 늘 흰색이라 다크 모드에서도 진한 글씨로 */
+.gm-style-iw,.gm-style-iw-d,.leaflet-popup-content-wrapper{--ink:#1d2a33;--muted:#4f5f6a;--sea:#1f5f8b;--milk:#b4456a;--line:#dbe3e8;--ph:#e6ecef;color:#1d2a33}
+.pop{font-size:13.5px;line-height:1.5;color:#1d2a33;min-width:210px}
+.pop img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;max-width:100%;background:#e6ecef}
+.pop img[src^="data:image/gif"]{display:none}
+.pop b{font-size:15.5px;display:block;margin-bottom:2px}.pop .meta{margin:2px 0 4px;color:#4f5f6a;font-size:12.5px}
+.pop a{color:#1f5f8b;font-weight:600}
+.pop .pbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pop .pbtn{flex:1 1 auto;text-align:center;text-decoration:none;border:1px solid #c9d6de;border-radius:9px;padding:7px 8px;font-size:13px;font-weight:700;color:#1f5f8b;background:#fff;white-space:nowrap}
+.pop .pbtn.pri{background:#1f5f8b;color:#fff;border-color:#1f5f8b}
 .st-label{background:transparent;border:0;box-shadow:none;color:var(--muted);font-size:11px;font-weight:600;padding:0;text-shadow:0 0 3px var(--land),0 0 3px var(--land)}
 .st-label::before{display:none}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding-top:8px}
@@ -1102,7 +1109,7 @@ function todayHours(d){
 }
 function pop(d){
   const ph=phImg(d,0),th=todayHours(d);
-  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div style="margin-top:6px">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 길찾기</a>`:""} · <a href="#" data-add="${esc(d.id)}">＋ 일정에 넣기</a></div>${planBadge(d)}</div>`;
+  return `<div class="pop">${ph}<b>${esc(d.name)}</b><div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${d.nurse?`<div style="margin-top:4px">🍼 ${esc(d.nurse)}</div>`:""}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div class="pbtns">${d.url?`<a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a>`:""}<a class="pbtn" href="${dirUrl(d,"transit")}" target="_blank" rel="noopener">🚇 길찾기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${d.url?`<div class="meta" style="font-size:11.5px;margin-top:4px">구글맵에서 리뷰·사진·전화번호를 직접 볼 수 있어요</div>`:""}${planBadge(d)}</div>`;
 }
 function renderMap(arr){
   initMap(); if(!map)return;
@@ -1715,8 +1722,14 @@ const OPTS = {mapTypeControl:false, streetViewControl:true, fullscreenControl:tr
 function circle(color, scale, stroke){
   return {path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: stroke || "#fff", strokeWeight: 2, scale};
 }
-function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 260}); gInfo.addListener("domready", ()=>hydrate(document.querySelector(".gm-style-iw"))); } return gInfo; }
-function openPop(m, mk, d){ const w = info(); w.setContent(`<div class="pop">${pop(d)}</div>`); w.open({map: m, anchor: mk}); popOpen = true; }
+function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 290}); } return gInfo; }
+function openPop(m, mk, d){
+  const w = info(), el = document.createElement("div");
+  el.innerHTML = pop(d);
+  w.setContent(el); w.open({map: m, anchor: mk}); popOpen = true;
+  hydrate(el);                                   // 모아 둔 사진 채우기 (사진 파일이 오면 자동으로 들어감)
+  el.querySelectorAll("img").forEach(im => im.addEventListener("load", () => { try{ w.setContent(el); }catch(e){} }, {once: true}));
+}
 let popOpen = false, lpAt = 0;
 function closePops(){   // 빈 지도를 한 번 누르면 열린 정보창 닫기
   if(Date.now() - lpAt < 800) return true;            // 방금 길게 눌러 연 창은 유지
