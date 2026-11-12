@@ -773,7 +773,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink)}
 /* 지도 말풍선은 배경이 늘 흰색이라 다크 모드에서도 진한 글씨로 */
 .gm-style-iw,.gm-style-iw-d,.leaflet-popup-content-wrapper{--ink:#1d2a33;--muted:#4f5f6a;--sea:#1f5f8b;--milk:#b4456a;--line:#dbe3e8;--ph:#e6ecef;color:#1d2a33}
-.pop{font-size:13.5px;line-height:1.5;color:#1d2a33;min-width:210px}
+.gm-style .gm-style-iw-c,.gm-style .gm-style-iw-d,.gm-style .gm-style-iw-chr{background:#fff!important;color:#1d2a33!important}
+.gm-style .gm-style-iw-tc::after{background:#fff!important}
+.gm-style .gm-style-iw-chr button span{background-color:#333!important}
+.pop{font-size:13.5px;line-height:1.5;color:#1d2a33!important;min-width:210px;background:#fff}
+.pop>div,.pop>b{color:inherit}
+.pop .meta{color:#4f5f6a!important}
 .pop img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;max-width:100%;background:#e6ecef}
 .pop img[src^="data:image/gif"]{display:none}
 .pop b{font-size:15.5px;display:block;margin-bottom:2px}.pop .meta{margin:2px 0 4px;color:#4f5f6a;font-size:12.5px}
