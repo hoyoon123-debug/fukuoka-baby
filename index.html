@@ -804,6 +804,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .near img,.near .noimg{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--ph);display:block}
 .near .info{min-width:0}.near .nm{font-weight:700;font-size:14px}
 .hotelrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.triprow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.triprow .hl{font-size:13px;font-weight:700}
+.triprow input[type=date]{font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.sheetdate{display:flex;gap:8px;align-items:center;font-size:13px}
+.sheetdate input{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);flex:1}
 .hotelrow .hl{font-size:13px;font-weight:700}
 .hchip{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--bg)}
 .hchip button{border:0;background:none;color:var(--ink);font:inherit;font-size:13px;padding:5px 10px;cursor:pointer}
@@ -886,6 +891,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
     </div>
     <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span><i style="background:#23825a"></i>추천</span><span><i style="background:#2f6fb5"></i>가능</span><span><i style="background:#c98a1c"></i>주의</span><span>◎ 기준 위치</span></div></div>
     <div id="planwrap" hidden>
+      <div class="triprow"><span class="hl">🗓 여행 기간</span><input type="date" id="tFrom" aria-label="여행 시작일"> ~ <input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">기간 적용</button><span class="meta" id="tInfo"></span></div>
       <div class="days" id="days"></div>
       <div class="dayhead">
         <label>날짜 <input type="date" id="pdate"></label>
@@ -915,7 +921,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
     </div>
   </div>
 </main>
-<div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><div class="btnrow" id="sheetDays"></div><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
+<div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><div class="btnrow" id="sheetDays"></div><label class="sheetdate">📅 다른 날짜 고르기 <input type="date" id="sheetDate"></label><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
 <div class="toast" id="toast" hidden></div>
 <button class="fab" id="goHotel" type="button" hidden>🏨 숙소 가는 길</button>
 <div class="sheet" id="hsheet" hidden><div class="wrap2" id="hsheetIn"></div></div>
@@ -1108,7 +1114,8 @@ function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr
 function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
 const STARTS=[...$("here").options].map(o=>[o.value,o.textContent]);
 const uid=()=>Math.random().toString(36).slice(2,9);
-let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[]};
+let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[],trip:null};
+const ISO=/^\d{4}-\d\d-\d\d$/;
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
 const pt=s=>s.split(",").map(Number);
@@ -1124,7 +1131,8 @@ function fixPlan(p){
   p.custom=p.custom.filter(c=>used.has(c.id));
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
     .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
-  return {days:p.days,custom:p.custom,hotels:p.hotels};
+  p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
+  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];if(!plan.custom.some(x=>x.id===c.id))plan.custom.push(c);regCustom([c])}
 function persist(){
@@ -1134,7 +1142,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1151,8 +1159,8 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[]})){plan={days:p.days,custom:p.custom,hotels:p.hotels};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
+      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1160,19 +1168,53 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
 function openSheet(id){
   const d=BYID[id];if(!d)return;
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
-  $("sheetDays").innerHTML=plan.days.map((x,i)=>`<button class="btn" data-sday="${i}">${i+1}일차${x.date?" · "+x.date.slice(5).replace("-","/"):""}</button>`).join("")+`<button class="btn primary" data-sday="new">＋ 새 날</button>`;
+  $("sheetDays").innerHTML=plan.days.map((x,i)=>`<button class="btn" data-sday="${i}">${esc(dLabel(x,i))}${x.stops.some(y=>y.id===id)?" ✓":""}</button>`).join("")+(plan.trip?"":`<button class="btn primary" data-sday="new">＋ 새 날</button>`);
+  $("sheetDate").value="";
   $("sheet").dataset.id=id;$("sheet").hidden=false;
+}
+function addStopTo(i,id){
+  const day=plan.days[i];
+  const go={label:"일정 보기",fn:()=>{cur=plan.days.indexOf(day);setView("plan")}};
+  if(day.stops.some(x=>x.id===id)){toast(`${dLabel(day,i)}에 이미 있어요`,go)}else{day.stops.push({id,memo:""});toast(`${dLabel(day,i)}에 넣었어요`,view==="plan"?null:go)}
+  $("sheet").hidden=true;cur=plan.days.indexOf(day);changed();if(view!=="plan")render();
 }
 $("sheetClose").addEventListener("click",()=>$("sheet").hidden=true);
 $("sheetDays").addEventListener("click",e=>{
   const b=e.target.closest("[data-sday]");if(!b)return;
   let i=b.dataset.sday;
   if(i==="new"){plan.days.push(newDay());i=plan.days.length-1}else i=+i;
-  const id=$("sheet").dataset.id,day=plan.days[i];
-  const go={label:"일정 보기",fn:()=>{cur=i;setView("plan")}};
-  if(day.stops.some(x=>x.id===id)){toast(`${i+1}일차에 이미 있어요`,go)}else{day.stops.push({id,memo:""});toast(`${i+1}일차에 넣었어요`,view==="plan"?null:go)}
-  $("sheet").hidden=true;cur=i;changed();if(view!=="plan")render();
+  addStopTo(i,$("sheet").dataset.id);
 });
+$("sheetDate").addEventListener("change",e=>{
+  const iso=e.target.value;if(!ISO.test(iso))return;
+  let day=plan.days.find(x=>x.date===iso);
+  if(!day){day=plan.days.find(x=>!x.date&&!x.stops.length);if(day)day.date=iso;else{day=newDay();day.date=iso;plan.days.push(day)}
+    if(plan.trip){if(iso<plan.trip.from)plan.trip.from=iso;if(iso>plan.trip.to)plan.trip.to=iso}sortDays();fillTrip()}
+  addStopTo(plan.days.indexOf(day),$("sheet").dataset.id);
+});
+/* ---------- 여행 기간 ---------- */
+function dLabel(x,i){if(!x.date)return `${i+1}일차`;const d=new Date(x.date+"T00:00");return `${i+1}일차 · ${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`}
+function addDays(iso,n){const d=new Date(iso+"T00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fillTrip(){if(!plan.trip)return;const n=Math.round((new Date(plan.trip.to+"T00:00")-new Date(plan.trip.from+"T00:00"))/864e5)+1;
+  for(let k=0;k<n&&k<31;k++){const iso=addDays(plan.trip.from,k);if(!plan.days.some(d=>d.date===iso)){const d=newDay0((plan.hotels||[])[0],plan.days[plan.days.length-1]);d.date=iso;plan.days.push(d)}}sortDays()}
+function sortDays(){const id=plan.days[cur]&&plan.days[cur].id;plan.days.sort((a,b)=>{const x=a.date||"9999",y=b.date||"9999";return x<y?-1:x>y?1:0});cur=Math.max(0,plan.days.findIndex(d=>d.id===id))}
+function applyTrip(from,to){
+  if(!ISO.test(from)||!ISO.test(to)){toast("시작일과 마지막 날을 모두 골라 주세요");return}
+  if(to<from)[from,to]=[to,from];
+  const n=Math.round((new Date(to+"T00:00")-new Date(from+"T00:00"))/864e5)+1;
+  if(n>21){toast("기간은 21일까지 정할 수 있어요");return}
+  const byDate={};plan.days.forEach(d=>{if(d.date&&!byDate[d.date])byDate[d.date]=d});
+  const undated=plan.days.filter(d=>!d.date&&d.stops.length),used=new Set(),out=[];
+  for(let k=0;k<n;k++){const iso=addDays(from,k);let d=byDate[iso];
+    if(!d&&undated.length){d=undated.shift();d.date=iso}
+    if(!d){d=newDay(true);d.date=iso}
+    used.add(d.id);out.push(d)}
+  const extra=plan.days.filter(d=>!used.has(d.id)&&d.stops.length);
+  plan.days=out.concat(extra);plan.trip={from,to};cur=0;changed();
+  toast(`${n}일 일정을 만들었어요`+(extra.length?` · 기간 밖 ${extra.length}일은 맨 뒤에 남겨 뒀어요`:""));
+}
+$("tApply").addEventListener("click",()=>applyTrip($("tFrom").value,$("tTo").value));
+$("tFrom").addEventListener("change",()=>{if(!$("tTo").value||$("tTo").value<$("tFrom").value)$("tTo").value=$("tFrom").value});
 function initPlanMap(){
   if(pmap||typeof L==="undefined")return;
   pmap=L.map("planmap",{preferCanvas:true,minZoom:11,maxZoom:18,attributionControl:true}).setView([33.5902,130.4017],13);
@@ -1209,7 +1251,9 @@ function hoursNote(d,date,memo){
 function dayWarnings(day){return day.stops.filter(x=>{const d=BYID[x.id];const sp=d&&hoursOn(d,day.date);return sp&&!sp.length}).length}
 function renderPlan(){
   const day=plan.days[cur]||plan.days[0];
-  $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${i+1}일차${x.date?" · "+x.date.slice(5).replace("-","/"):""} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
+  if(document.activeElement!==$("tFrom")&&document.activeElement!==$("tTo")){$("tFrom").value=plan.trip?plan.trip.from:"";$("tTo").value=plan.trip?plan.trip.to:""}
+  $("tInfo").textContent=plan.trip?`${plan.days.filter(d=>d.date>=plan.trip.from&&d.date<=plan.trip.to).length}일 · 장소를 넣을 때 날짜를 골라요`:"기간을 정하면 날짜별 일차가 한 번에 만들어져요";
+  $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
   $("pdate").value=day.date||"";
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
   const opts=[...hopts,...STARTS];if(!opts.some(([v])=>v===day.start))opts.unshift([day.start,day.startName||"숙소"]);
@@ -1260,7 +1304,8 @@ $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed()}});
 $("stops").addEventListener("input",e=>{const m=e.target.closest("[data-memo]");if(!m)return;plan.days[cur].stops[+m.dataset.memo].memo=m.value.slice(0,120);saveSoon()});
 $("stops").addEventListener("change",e=>{if(e.target.closest("[data-memo]"))renderPlan()});
-$("pdate").addEventListener("change",e=>{plan.days[cur].date=e.target.value;changed()});
+$("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
+  plan.days[cur].date=v;if(plan.trip&&v){if(v<plan.trip.from)plan.trip.from=v;if(v>plan.trip.to)plan.trip.to=v}sortDays();fillTrip();changed()});
 $("pstart").addEventListener("change",e=>{const day=plan.days[cur];day.start=e.target.value;day.startName=e.target.selectedOptions[0].textContent;changed()});
 $("pickStart").addEventListener("click",()=>{picking=!picking;renderPlan();if(picking)toast("지도에서 숙소 위치를 눌러 주세요")});
 $("gmode").addEventListener("change",()=>renderPlan());
@@ -1273,8 +1318,13 @@ $("delDay").addEventListener("click",()=>{
   if(plan.days.length===1){plan.days[0].stops=[];plan.days[0].date=""}else{plan.days.splice(cur,1);cur=Math.max(0,cur-1)}changed()});
 
 /* ---------- 내 숙소 ---------- */
-function newDay(){
+function newDay(noDate){
   const h=(plan.hotels||[])[0],l=plan.days[plan.days.length-1];
+  const ld=[...plan.days].reverse().find(d=>d.date),date=!noDate&&plan.trip&&ld?addDays(ld.date,1):"";
+  if(date&&date>plan.trip.to)plan.trip.to=date;
+  const nd=newDay0(h,l);nd.date=date;return nd;
+}
+function newDay0(h,l){
   return h?{id:uid(),date:"",start:h.lat.toFixed(5)+","+h.lng.toFixed(5),startName:"🏨 "+h.name,stops:[]}
           :{id:uid(),date:"",start:l?l.start:STARTS[0][0],startName:l?l.startName:STARTS[0][1],stops:[]};
 }
@@ -1566,7 +1616,8 @@ $("delDay").parentNode.insertBefore(shareBtn, $("delDay"));
 shareBtn.addEventListener("click", async ()=>{
   const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)})),
                 c: (plan.custom || []).map(c=>[c.id, c.name, +c.lat.toFixed(6), +c.lng.toFixed(6), c.addr || "", c.gid || ""]),
-                h: (plan.hotels || []).map(h=>[h.id, h.name, h.lat, h.lng, h.addr || "", h.addrJa || ""])};
+                h: (plan.hotels || []).map(h=>[h.id, h.name, h.lat, h.lng, h.addr || "", h.addrJa || ""]),
+                r: plan.trip ? [plan.trip.from, plan.trip.to] : 0};
   const url = location.origin + location.pathname + "#plan=" + enc(slim);
   try{ await navigator.clipboard.writeText(url); toast("링크를 복사했어요 · 카톡으로 보내세요"); }
   catch(e){ window.prompt("이 링크를 복사해서 보내세요", url); }
@@ -1589,7 +1640,8 @@ function importFromHash(){
     regCustom(custom);
     plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지",
       stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])})), custom,
-      hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]}))};
+      hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})),
+      trip: Array.isArray(got.r) ? {from: got.r[0], to: got.r[1]} : null};
     cur = 0; persist(); done(); setView("plan"); toast("일정을 불러왔어요");
   };
 }
@@ -1792,6 +1844,7 @@ function addToPlan(c){
   }
   const id = c ? c.id : arguments[1];
   if(c) addCustom(c);
+  sheet.hidden = true; openSheet(id); return;
   const day = plan.days[cur];
   if(day.stops.some(x => x.id === id)){ toast("이미 이 날 일정에 있어요"); return; }
   day.stops.push({id, memo: ""});
