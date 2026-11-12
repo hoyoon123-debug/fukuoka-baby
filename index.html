@@ -1594,13 +1594,29 @@ function showAddress(m, latLng, isPlan){
   });
 }
 
+/* ---------- 길게 눌러 주소 보기 ---------- */
+function onLongPress(map, cb){
+  let t = null, at = null, last = 0, moved = false;
+  const fire = ll => { const now = Date.now(); if(now - last < 900) return; last = now; cb(ll); };
+  const cancel = () => { clearTimeout(t); t = null; };
+  map.addListener("contextmenu", e => { cancel(); if(e.latLng) fire(e.latLng); });   // PC 우클릭 · 일부 폰 길게 누르기
+  map.addListener("mousedown", e => { cancel(); moved = false; at = e.latLng; t = setTimeout(() => { if(!moved) fire(at); }, 600); });
+  map.addListener("mouseup", cancel);
+  ["dragstart", "zoom_changed"].forEach(ev => map.addListener(ev, () => { moved = true; cancel(); }));
+}
+function tapHint(){
+  try{ if(localStorage.getItem("fk_lp_hint")) return; localStorage.setItem("fk_lp_hint", "1"); }catch(e){}
+  toast("주소가 궁금한 곳은 지도를 길게 누르세요");
+}
+
 /* ---------- 목록 지도 ---------- */
 window.initMap = function(){
   if(!useG()) return LEAF.initMap();
   if(gMap) return;
   gMap = new google.maps.Map($("map"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 14});
   addLocateBtn(gMap, "list");
-  gMap.addListener("click", e=>{ if(e.placeId) return; showAddress(gMap, e.latLng, false); });
+  gMap.addListener("click", e=>{ if(!e.placeId) tapHint(); });
+  onLongPress(gMap, ll => showAddress(gMap, ll, false));
 };
 window.renderMap = function(arr){
   if(!useG()) return LEAF.renderMap(arr);
@@ -1627,8 +1643,9 @@ window.initPlanMap = function(){
   gPmap = new google.maps.Map($("planmap"), {...OPTS, center: {lat: 33.5902, lng: 130.4017}, zoom: 13});
   window.__gPmap = gPmap;
   addLocateBtn(gPmap, "plan");
+  onLongPress(gPmap, ll => { if(!picking) showAddress(gPmap, ll, true); });
   gPmap.addListener("click", e=>{
-    if(!picking){ if(!e.placeId) showAddress(gPmap, e.latLng, true); return; }
+    if(!picking){ if(!e.placeId) tapHint(); return; }
     if(e.placeId) e.stop();
     const h = addHotel({name: "숙소", lat: +e.latLng.lat().toFixed(5), lng: +e.latLng.lng().toFixed(5)});
     if(h){ useHotel(h, cur); window.fillHotelJa && window.fillHotelJa(h, true); }
