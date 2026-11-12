@@ -815,6 +815,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .hchip.on{border-color:var(--sea);background:var(--sea-soft)}.hchip.on button{color:var(--sea);font-weight:700}
 .hchip .x{padding:5px 8px;color:var(--muted)}
 .fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:1500;border:0;border-radius:999px;background:var(--sea);color:var(--surface);font:inherit;font-weight:700;font-size:14px;padding:11px 16px;box-shadow:0 4px 16px rgba(0,0,0,.22);cursor:pointer}
+.sosmenu{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sosmenu button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:16px 8px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;display:grid;gap:4px;justify-items:center}
+.sosmenu button span{font-size:26px}
+.callrow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px}
+.callrow b{font-size:15px}.callrow .meta{margin:0}
+.callrow a{white-space:nowrap}
+.phr{border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:4px}
+.phr .ko{font-size:12.5px;color:var(--muted)}
+.phr .jp{font-size:19px;font-weight:700;line-height:1.4}
+.phr .btnrow{margin:0}
+.kidin{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.kidin input{width:64px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+#bigjp{position:fixed;inset:0;z-index:3000;background:#fff;color:#111;display:grid;place-items:center;padding:24px;text-align:center;font-size:clamp(28px,8vw,56px);font-weight:800;line-height:1.35}
+#bigjp small{display:block;font-size:16px;font-weight:400;color:#666;margin-top:18px}
+.today{border:2px solid var(--sea);border-radius:14px;padding:12px;margin-bottom:10px;display:grid;gap:6px;background:var(--surface)}
+.today .ttl{font-weight:800;font-size:15px}
+.today .nx{font-size:17px;font-weight:700}
+.today .warn{font-size:12.5px;color:#9b2c2c}
+.stop.done{opacity:.45}
 .fab.nurse{right:auto;left:max(16px,env(safe-area-inset-left,0px));background:#c4456a}
 .nrow{border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:4px}
 .nrow .nm{font-weight:700}
@@ -899,6 +918,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
     </div>
     <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span><i style="background:#23825a"></i>추천</span><span><i style="background:#2f6fb5"></i>가능</span><span><i style="background:#c98a1c"></i>주의</span><span>◎ 기준 위치</span></div></div>
     <div id="planwrap" hidden>
+      <div id="today"></div>
       <div class="triprow"><span class="hl">🗓 여행 기간</span><input type="date" id="tFrom" aria-label="여행 시작일"> ~ <input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">기간 적용</button><span class="meta" id="tInfo"></span></div>
       <div class="days" id="days"></div>
       <div class="dayhead">
@@ -932,8 +952,22 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 <div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><div class="btnrow" id="sheetDays"></div><label class="sheetdate">📅 다른 날짜 고르기 <input type="date" id="sheetDate"></label><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
 <div class="toast" id="toast" hidden></div>
 <button class="fab" id="goHotel" type="button" hidden>🏨 숙소 가는 길</button>
-<button class="fab nurse" id="goNurse" type="button">🍼 긴급 수유실</button>
-<div class="sheet" id="nsheet" hidden><div class="wrap2"><h3>🍼 가까운 수유실</h3><div class="meta" id="nwhere"></div><div id="nlist"></div><div id="nmore"></div><button class="btn" type="button" id="nClose">닫기</button></div></div>
+<button class="fab nurse" id="goSOS" type="button">🆘 긴급·일본어</button>
+<div class="sheet" id="sossheet" hidden><div class="wrap2"><h3>🆘 무엇이 필요하세요?</h3>
+  <div class="sosmenu">
+    <button type="button" id="sNurse"><span>🍼</span>수유실 찾기</button>
+    <button type="button" id="sShop"><span>🧷</span>기저귀·분유 사기</button>
+    <button type="button" id="sSick"><span>🏥</span>아이가 아파요</button>
+    <button type="button" id="sPhrase"><span>💬</span>일본어 카드</button>
+  </div>
+  <button class="btn" type="button" id="sosClose">닫기</button></div></div>
+<div class="sheet" id="psheet" hidden><div class="wrap2"><h3>💬 보여 주는 일본어 카드</h3>
+  <div class="row" id="pcats"></div>
+  <div class="kidin">아이 <input type="number" id="kidM" min="0" max="72" inputmode="numeric"> 개월 · 체온 <input type="number" id="kidT" step="0.1" min="34" max="43" inputmode="decimal"> ℃ <span class="meta">(병원 카드에 들어가요)</span></div>
+  <div id="plist" style="display:grid;gap:8px;max-height:56vh;overflow:auto"></div>
+  <button class="btn" type="button" id="pClose">닫기</button></div></div>
+<div id="bigjp" hidden></div>
+<div class="sheet" id="nsheet" hidden><div class="wrap2"><h3 id="ntitle">🍼 가까운 수유실</h3><div class="meta" id="nwhere"></div><div id="nlist"></div><div id="nmore"></div><button class="btn" type="button" id="nClose">닫기</button></div></div>
 <div class="sheet" id="hsheet" hidden><div class="wrap2" id="hsheetIn"></div></div>
 
 <script>
@@ -1136,7 +1170,7 @@ function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
   regCustom(p.custom);
-  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>({id:x.id,memo:x.memo||""}))}));
+  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>x.done?{id:x.id,memo:x.memo||"",done:true}:{id:x.id,memo:x.memo||""})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom=p.custom.filter(c=>used.has(c.id));
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
@@ -1260,7 +1294,9 @@ function hoursNote(d,date,memo){
 }
 function dayWarnings(day){return day.stops.filter(x=>{const d=BYID[x.id];const sp=d&&hoursOn(d,day.date);return sp&&!sp.length}).length}
 function renderPlan(){
+  if(!window.__todaySel){window.__todaySel=1;const ti=plan.days.findIndex(d=>d.date===jstISO());if(ti>=0)cur=ti}
   const day=plan.days[cur]||plan.days[0];
+  renderToday();
   if(document.activeElement!==$("tFrom")&&document.activeElement!==$("tTo")){$("tFrom").value=plan.trip?plan.trip.from:"";$("tTo").value=plan.trip?plan.trip.to:""}
   $("tInfo").textContent=plan.trip?`${plan.days.filter(d=>d.date>=plan.trip.from&&d.date<=plan.trip.to).length}일 · 장소를 넣을 때 날짜를 골라요`:"기간을 정하면 날짜별 일차가 한 번에 만들어져요";
   $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
@@ -1275,7 +1311,7 @@ function renderPlan(){
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
-    <div class="stop"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"></span>`}
+    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"></span>`}
       <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
       ${hoursNote(d,day.date,day.stops[i].memo)}
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
@@ -1436,12 +1472,141 @@ function showNurse(here,label){
   $("nmore").innerHTML="";if(window.nurseMore)window.nurseMore($("nmore"),here);
   $("nsheet").hidden=false;
 }
-$("goNurse").addEventListener("click",()=>{
-  const fb=()=>{const h=hereLL();showNurse(h,`기준: ${$("here").selectedOptions[0]?.textContent||"선택한 위치"} (내 위치를 못 가져왔어요)`)};
+function getHere(cb){
+  const fb=()=>cb(hereLL(),`기준: ${$("here").selectedOptions[0]?.textContent||"선택한 위치"} (내 위치를 못 가져왔어요)`);
   if(!navigator.geolocation)return fb();
-  $("nwhere").textContent="내 위치 찾는 중…";$("nlist").innerHTML="";$("nmore").innerHTML="";$("nsheet").hidden=false;
   navigator.geolocation.getCurrentPosition(p=>{const h=[p.coords.latitude,p.coords.longitude];if(typeof myLoc!=="undefined")try{myLoc=h}catch(e){}
-    showNurse(h,kmOf(h,[33.59,130.40])>80?"지금 후쿠오카 밖이라 후쿠오카 기준 거리예요":"📍 지금 내 위치 기준")},fb,{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+    cb(h,kmOf(h,[33.59,130.40])>80?"지금 후쿠오카 밖이라 후쿠오카 기준 거리예요":"📍 지금 내 위치 기준")},fb,{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+}
+function openN(title){$("ntitle").textContent=title;$("nwhere").textContent="내 위치 찾는 중…";$("nlist").innerHTML="";$("nmore").innerHTML="";$("sossheet").hidden=true;$("nsheet").hidden=false}
+const gmSearch=(q,h)=>`https://www.google.com/maps/search/${encodeURIComponent(q)}/@${h[0]},${h[1]},16z`;
+function searchBtns(box,here,items){   // [라벨, 일본어 검색어]
+  box.innerHTML=`<div class="btnrow">${items.map(([l,q],i)=>`<button class="btn" type="button" data-ns="${i}">${l}</button>`).join("")}</div>
+    <label class="meta" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nsOpen" checked> 지금 영업 중인 곳만</label><div id="nsRes" style="display:grid;gap:8px"></div>`;
+  box.onclick=e=>{const b=e.target.closest("[data-ns]");if(!b)return;const [l,q]=items[+b.dataset.ns];
+    if(window.nearSearch)window.nearSearch($("nsRes"),here,q,$("nsOpen").checked,l);
+    else window.open(gmSearch(q,here),"_blank","noopener")};
+}
+$("goSOS").addEventListener("click",()=>$("sossheet").hidden=false);
+$("sosClose").addEventListener("click",()=>$("sossheet").hidden=true);
+$("sNurse").addEventListener("click",()=>{openN("🍼 가까운 수유실");getHere((h,l)=>showNurse(h,l))});
+$("sShop").addEventListener("click",()=>{openN("🧷 기저귀·분유 사기");getHere((h,l)=>{
+  $("nwhere").textContent=l;
+  $("nlist").innerHTML=`<div class="meta">· <b>드럭스토어</b>(マツキヨ·コスモス·サンドラッグ 등): 기저귀·분유·액상 분유·이유식이 대부분 있어요.<br>· <b>편의점</b>: 기저귀 소포장은 있는 경우가 많지만 분유는 없을 수 있어요.<br>· <b>아기용품점</b>(アカチャンホンポ·西松屋): 종류가 가장 많아요.<br>· 일본 기저귀 사이즈: 新生児(~5kg) · S(4~8kg) · M(6~11kg) · L(9~14kg) · ビッグ(12~22kg) — 브랜드마다 조금 달라요.</div>
+    <button class="btn" type="button" data-pj="shop">💬 "기저귀 어디 있어요?" 일본어 카드</button>`;
+  searchBtns($("nmore"),h,[["💊 드럭스토어","ドラッグストア"],["🏪 편의점","コンビニ"],["👶 아기용품점","ベビー用品店 アカチャンホンポ 西松屋"]]);
+})});
+$("sSick").addEventListener("click",()=>{openN("🏥 아이가 아플 때");getHere((h,l)=>{
+  $("nwhere").textContent="숨쉬기 힘들어함 · 의식이 흐림 · 경련이 멈추지 않음 · 입술이 파래짐 → 바로 119";
+  const call=(t,num,tel,sub)=>`<div class="callrow"><div><b>${t}</b><div class="meta">${sub}</div></div><a class="btn primary" href="tel:${tel}">📞 ${num}</a></div>`;
+  $("nlist").innerHTML=call("🚑 구급차","119","119","무료 · 말이 안 통하면 아래 일본어 카드를 주변에 보여 주세요")
+    +call("👶 소아 의료 전화상담 (일본어)","#8000","%238000","후쿠오카현 · 평일 19시~다음 날 7시, 토 12시~, 일·공휴일 하루 종일 · 안 걸리면 092-731-4119")
+    +call("🌐 일본 관광객 콜센터 (한국어)","050-3816-2787","05038162787","24시간 · 병원 찾기·통역 안내")
+    +call("🇰🇷 영사콜센터","+82-2-3210-0404","+82232100404","24시간 · 사고·분실 등 도움")
+    +`<button class="btn" type="button" data-pj="sick">💬 증상 일본어 카드 (병원·약국에서 보여 주기)</button>
+    <div class="meta">여권과 여행자 보험 증서(보험사 긴급 번호)를 같이 챙기세요.</div>`;
+  searchBtns($("nmore"),h,[["🏥 근처 소아과","小児科"],["🌙 야간·휴일 진료","夜間 休日 診療所 小児"],["💊 약국","薬局"]]);
+})});
+$("sPhrase").addEventListener("click",()=>{$("sossheet").hidden=true;openPhrases("food")});
+$("nlist").addEventListener("click",e=>{const b=e.target.closest("[data-pj]");if(b){$("nsheet").hidden=true;openPhrases(b.dataset.pj)}});
+$("nClose").addEventListener("click",()=>$("nsheet").hidden=true);
+
+/* ---------- 일본어 카드 ---------- */
+const PHR={
+ food:["🍽 식당",[
+  ["어른 2명, 아기 1명이에요.","大人2人と赤ちゃん1人です。"],
+  ["유아용 의자 있나요?","子ども用の椅子はありますか？"],
+  ["유모차 그대로 들어가도 되나요?","ベビーカーのまま入店できますか？"],
+  ["좌식(다다미)이나 소파 자리 있나요?","座敷かソファー席はありますか？"],
+  ["아이용 그릇·숟가락 주실 수 있나요?","子ども用の食器をいただけますか？"],
+  ["키즈 메뉴 있나요?","キッズメニューはありますか？"],
+  ["가져온 이유식 먹여도 될까요?","持参した離乳食を食べさせてもいいですか？"],
+  ["이유식을 데워 주실 수 있나요?","離乳食を温めていただけますか？"],
+  ["분유 탈 뜨거운 물 조금 주실 수 있나요?","ミルク用のお湯を少しいただけますか？"],
+  ["아이가 먹을 거라 맵지 않게 해 주세요.","子どもが食べるので、辛くしないでください。"],
+  ["계산해 주세요.","お会計をお願いします。"]]],
+ place:["🚻 시설",[
+  ["기저귀 교환대 어디 있나요?","おむつ交換台はどこですか？"],
+  ["수유실 어디 있나요?","授乳室はどこですか？"],
+  ["엘리베이터 어디 있나요?","エレベーターはどこですか？"],
+  ["다목적 화장실 어디 있나요?","多目的トイレはどこですか？"],
+  ["유모차 맡길 수 있나요?","ベビーカーを預けられますか？"],
+  ["유모차 빌릴 수 있나요?","ベビーカーを借りられますか？"]]],
+ shop:["🧷 쇼핑",[
+  ["기저귀 어디 있나요?","おむつはどこにありますか？"],
+  ["분유 어디 있나요?","粉ミルクはどこにありますか？"],
+  ["액상 분유 있나요?","液体ミルクはありますか？"],
+  ["이유식 어디 있나요?","離乳食はどこにありますか？"],
+  ["물티슈 어디 있나요?","おしりふきはどこにありますか？"]]],
+ sick:["🏥 병원·약국",[
+  ["아이가 아파요. 소아과 진료를 받고 싶어요.","子どもの具合が悪いです。小児科を受診したいです。"],
+  ["생후 {m}개월이에요.","生後{m}か月です。"],
+  ["열이 {t}도 있어요.","熱が{t}度あります。"],
+  ["토했어요.","吐きました。"],
+  ["설사를 해요.","下痢をしています。"],
+  ["기침과 콧물이 나요.","咳と鼻水が出ています。"],
+  ["발진이 났어요.","発疹が出ています。"],
+  ["경련을 했어요.","けいれんを起こしました。"],
+  ["넘어져서 머리를 부딪혔어요.","転んで頭を打ちました。"],
+  ["음식 알레르기가 있어요.","食物アレルギーがあります。"],
+  ["구급차를 불러 주세요.","救急車を呼んでください。"],
+  ["한국인 관광객이에요. 여행자 보험이 있어요.","韓国からの旅行者です。海外旅行保険に入っています。"],
+  ["한국어나 영어 통역이 가능한가요?","韓国語か英語の通訳はできますか？"]]]
+};
+let pcat="food";
+function kid(){try{return JSON.parse(localStorage.getItem("fk_kid")||"{}")}catch(e){return {}}}
+function fillKid(t){const k=kid();return t.replace("{m}",k.m||"○").replace("{t}",k.t||"○")}
+function renderPhr(){
+  $("pcats").innerHTML=Object.entries(PHR).map(([k,[l]])=>`<button class="seg" type="button" data-pc="${k}" aria-pressed="${k===pcat}">${l}</button>`).join("");
+  $("plist").innerHTML=PHR[pcat][1].map(([ko,jp],i)=>`<div class="phr"><div class="ko">${esc(fillKid(ko))}</div><div class="jp">${esc(fillKid(jp))}</div>
+    <div class="btnrow"><button class="btn" type="button" data-say="${i}">🔊 들려주기</button><button class="btn" type="button" data-big="${i}">⛶ 크게 보여 주기</button></div></div>`).join("");
+}
+function openPhrases(c){pcat=PHR[c]?c:"food";const k=kid();$("kidM").value=k.m||"";$("kidT").value=k.t||"";renderPhr();$("psheet").hidden=false}
+function say(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=.9;
+  const v=speechSynthesis.getVoices().find(v=>/^ja/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){toast("이 기기에서는 소리를 낼 수 없어요")}}
+$("psheet").addEventListener("click",e=>{
+  const c=e.target.closest("[data-pc]");if(c){pcat=c.dataset.pc;renderPhr();return}
+  const sy=e.target.closest("[data-say]");if(sy){say(fillKid(PHR[pcat][1][+sy.dataset.say][1]));return}
+  const bg=e.target.closest("[data-big]");if(bg){const [ko,jp]=PHR[pcat][1][+bg.dataset.big];$("bigjp").innerHTML=`<div>${esc(fillKid(jp))}<small>${esc(fillKid(ko))} · 화면을 누르면 닫혀요</small></div>`;$("bigjp").hidden=false}
+});
+$("bigjp").addEventListener("click",()=>$("bigjp").hidden=true);
+["kidM","kidT"].forEach(id=>$(id).addEventListener("input",()=>{try{localStorage.setItem("fk_kid",JSON.stringify({m:$("kidM").value,t:$("kidT").value}))}catch(e){}renderPhr()}));
+$("pClose").addEventListener("click",()=>$("psheet").hidden=true);
+
+/* ---------- 오늘 모드 ---------- */
+function jstISO(){return new Date(Date.now()+9*3600e3).toISOString().slice(0,10)}
+function hoursNow(d){
+  if(!d.oh||!Object.keys(d.oh).length)return {st:"unk"};
+  const {k,m}=jstNow(),sp=d.oh[k];if(sp===undefined)return {st:"unk"};
+  if(!sp.length)return {st:"off"};
+  const c=sp.find(([a,b])=>m>=a&&m<b);if(c)return {st:c[1]-m<=60?"soon":"open",close:c[1],left:c[1]-m};
+  const nx=sp.find(([a])=>a>m);return nx?{st:"before",open:nx[0]}:{st:"closed"};
+}
+const hm=n=>n>=60?`${Math.floor(n/60)}시간 ${n%60}분`:`${n}분`;
+function hoursLine(d){const h=hoursNow(d);
+  return h.st==="open"?`🟢 영업 중 · ${fmt(h.close)} 마감 (${hm(h.left)} 남음)`:h.st==="soon"?`🟠 곧 마감 · ${fmt(h.close)}까지 (${hm(h.left)} 남음)`:
+    h.st==="before"?`🔵 아직 준비 중 · ${fmt(h.open)} 오픈`:h.st==="off"?`🔴 오늘 휴무`:h.st==="closed"?`🔴 오늘 영업 끝`:`⚪ 영업시간 정보 없음`}
+function renderToday(){
+  const box=$("today"),t=jstISO(),i=plan.days.findIndex(d=>d.date===t);
+  if(i<0){
+    if(plan.trip&&plan.trip.from>t){const n=Math.round((new Date(plan.trip.from+"T00:00")-new Date(t+"T00:00"))/864e5);box.innerHTML=`<div class="meta" style="margin-bottom:6px">✈ 여행까지 D-${n} · 여행 당일에는 여기에 '오늘 할 일'이 떠요</div>`}
+    else box.innerHTML="";return}
+  const day=plan.days[i],st=day.stops.map((x,j)=>({x,j,d:BYID[x.id]})).filter(o=>o.d),left=st.filter(o=>!o.x.done),nx=left[0];
+  const warns=left.slice(nx?1:0).map(o=>{const h=hoursNow(o.d);return h.st==="off"?`⚠ ${o.d.name}: 오늘 휴무`:h.st==="closed"?`⚠ ${o.d.name}: 오늘 영업 끝`:h.st==="soon"?`⏰ ${o.d.name}: ${fmt(h.close)} 마감`:""}).filter(Boolean);
+  box.innerHTML=`<div class="today"><div class="ttl">📍 오늘 · ${esc(dLabel(day,i))} — ${st.length-left.length}/${st.length}곳 다녀옴${i!==cur?` <button class="btn" type="button" id="tdGo">오늘 일정 보기</button>`:""}</div>
+    ${nx?`<div class="nx">다음: ${nx.j+1}. ${esc(nx.d.name)}</div><div class="meta">${hoursLine(nx.d)}${myLocNow()?` · 여기서 ${(()=>{const k=kmOf(myLocNow(),[nx.d.lat,nx.d.lng]);return k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"})()}`:""}</div>
+      ${nx.x.memo?`<div class="meta">📝 ${esc(nx.x.memo)}</div>`:""}
+      <div class="btnrow"><a class="btn primary" href="${dirUrl(nx.d,"transit")}" target="_blank" rel="noopener">🚇 길찾기</a><a class="btn" href="${dirUrl(nx.d,"walking")}" target="_blank" rel="noopener">🚶 도보</a><button class="btn" type="button" data-tdone="${nx.j}">✓ 다녀왔어요</button></div>`
+    :st.length?`<div class="nx">오늘 일정을 다 다녀왔어요 🎉</div>`:`<div class="meta">오늘 일정에 장소가 없어요.</div>`}
+    ${warns.map(w=>`<div class="warn">${esc(w)}</div>`).join("")}
+    ${st.length-left.length?`<button class="btn" type="button" id="tdUndo" style="justify-self:start">↩ 다녀옴 표시 되돌리기</button>`:""}</div>`;
+}
+function myLocNow(){try{return typeof myLoc!=="undefined"&&myLoc?myLoc:null}catch(e){return null}}
+$("today").addEventListener("click",e=>{
+  const t=jstISO(),i=plan.days.findIndex(d=>d.date===t);if(i<0)return;const day=plan.days[i];
+  const dn=e.target.closest("[data-tdone]");if(dn){day.stops[+dn.dataset.tdone].done=true;changed();toast("다녀옴으로 표시했어요");return}
+  if(e.target.closest("#tdUndo")){const last=[...day.stops].reverse().find(x=>x.done);if(last)delete last.done;changed();return}
+  if(e.target.closest("#tdGo")){cur=i;renderPlan()}
 });
 $("nClose").addEventListener("click",()=>$("nsheet").hidden=true);
 
@@ -1884,23 +2049,29 @@ function openFinder(m){ mode = m; $title.textContent = m === "hotel" ? "숙소 �
   $in.placeholder = m === "hotel" ? "예) 호텔 닛코 후쿠오카 / 에어비앤비 주소\n또는 구글맵 공유 문구 전체" : "예) 이치란 라멘 하카타점\n또는 https://maps.app.goo.gl/… 공유 문구 전체";
   sheet.hidden = false; $res.innerHTML = ""; $in.value = ""; $in.focus(); }
 btn.addEventListener("click", () => openFinder("stop"));
+window.nearSearch = async (box, here, q, openNow, label) => {
+  if(!ready()){ window.open(gmSearch(q, here), "_blank", "noopener"); return; }
+  box.innerHTML = `<div class="meta">${esc(label || "")} 찾는 중…</div>`;
+  try{
+    const {Place} = await google.maps.importLibrary("places");
+    const req = {textQuery: q, fields: ["displayName", "location", "formattedAddress", "googleMapsURI"],
+      locationBias: {center: {lat: here[0], lng: here[1]}, radius: 2000}, maxResultCount: 8, language: "ko", region: "jp"};
+    if(openNow) req.isOpenNow = true;
+    const {places} = await Place.searchByText(req);
+    const rows = (places || []).map(pl => ({pl, km: kmOf(here, [pl.location.lat(), pl.location.lng()])})).filter(x => x.km < 8).sort((a, b) => a.km - b.km);
+    box.innerHTML = (rows.length ? rows.map(({pl, km}) =>
+      `<div class="nrow"><div class="nm">${esc(pl.displayName || "")}${openNow ? `<span class="ntag ok">지금 영업 중</span>` : ""}</div>
+       <div class="meta">${km < 1 ? Math.round(km * 1000) + "m" : km.toFixed(1) + "km"} · 걸어서 약 ${Math.max(1, Math.round(km * 1.3 * 1000 / 70))}분 · ${esc(pl.formattedAddress || "")}</div>
+       <div class="btnrow"><a class="btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${pl.location.lat()},${pl.location.lng()}&travelmode=walking" target="_blank" rel="noopener">🚶 길찾기</a>
+       ${pl.googleMapsURI ? `<a class="btn" href="${esc(pl.googleMapsURI)}" target="_blank" rel="noopener">구글맵</a>` : ""}</div></div>`).join("")
+      : `<div class="meta">근처에서 ${openNow ? "지금 영업 중인 곳을 " : ""}찾지 못했어요.</div>`)
+      + `<a class="btn" href="${gmSearch(q, here)}" target="_blank" rel="noopener">구글맵 앱에서 더 보기</a>`;
+  }catch(e){ box.innerHTML = `<a class="btn" href="${gmSearch(q, here)}" target="_blank" rel="noopener">구글맵에서 찾기</a>`; }
+};
 window.nurseMore = (box, here) => {
   if(!ready()) return;
-  box.innerHTML = `<button class="btn" type="button" id="nGo">📡 구글에서 근처 수유실 더 찾기</button>`;
-  box.querySelector("#nGo").onclick = async () => {
-    box.innerHTML = `<div class="meta">구글에서 찾는 중…</div>`;
-    try{
-      const {Place} = await google.maps.importLibrary("places");
-      const {places} = await Place.searchByText({textQuery: "授乳室 ベビールーム", fields: ["displayName", "location", "formattedAddress", "googleMapsURI"],
-        locationBias: {center: {lat: here[0], lng: here[1]}, radius: 1500}, maxResultCount: 8, language: "ko"});
-      const rows = (places || []).map(pl => ({pl, km: kmOf(here, [pl.location.lat(), pl.location.lng()])})).filter(x => x.km < 5).sort((a, b) => a.km - b.km);
-      box.innerHTML = rows.length ? `<div class="meta" style="margin:6px 0">구글 검색 결과 (리뷰 검증 전 정보예요)</div>` + rows.map(({pl, km}) =>
-        `<div class="nrow"><div class="nm">${esc(pl.displayName || "")}</div><div class="meta">${km < 1 ? Math.round(km * 1000) + "m" : km.toFixed(1) + "km"} · ${esc(pl.formattedAddress || "")}</div>
-         <div class="btnrow"><a class="btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${pl.location.lat()},${pl.location.lng()}&travelmode=walking" target="_blank" rel="noopener">🚶 길찾기</a>
-         ${pl.googleMapsURI ? `<a class="btn" href="${esc(pl.googleMapsURI)}" target="_blank" rel="noopener">구글맵</a>` : ""}</div></div>`).join("")
-        : `<div class="meta">근처 5km 안에서 더 찾지 못했어요.</div>`;
-    }catch(e){ box.innerHTML = `<div class="meta">구글 검색에 실패했어요. 잠시 뒤 다시 해 주세요.</div>`; }
-  };
+  box.innerHTML = `<button class="btn" type="button" id="nGo">📡 구글에서 근처 수유실 더 찾기</button><div id="nGoRes" style="display:grid;gap:8px"></div>`;
+  box.querySelector("#nGo").onclick = () => window.nearSearch(box.querySelector("#nGoRes"), here, "授乳室 ベビールーム", false, "수유실");
 };
 window.onHotelRow = () => { const f = $("hFind"); if(f){ f.hidden = !ready(); f.onclick = () => openFinder("hotel"); } };
 window.fillHotelJa = async (h, rename) => {
