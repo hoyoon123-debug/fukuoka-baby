@@ -928,7 +928,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
         <option value="33.5866,130.3964">니시테츠 텐진역</option>
         <option value="33.5862,130.3762">오호리공원</option>
         <option value="33.5951,130.3621">페이페이돔·모모치</option>
-        <option value="33.5869,130.4508">후쿠오카공항 국제선</option>
+        <option value="33.5869,130.4508">✈ 후쿠오카공항 국제선</option>
         <option value="33.5737,130.4200">라라포트 후쿠오카</option>
       </select>
     </div>
@@ -941,10 +941,10 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
         <label>날짜 <input type="date" id="pdate"></label>
         <div class="hotelrow" id="hotelrow"></div>
         <label>출발 <select id="pstart"></select> <button class="btn" id="pickStart" type="button">지도에서 숙소 찍기</button></label>
+        <label>도착 <select id="pend"></select></label>
         <div class="btnrow">
           <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선 계산</button>
           <button class="btn" id="autoOrder" type="button">가까운 순으로 자동 정렬</button>
-          <label class="btn" id="rtBack" hidden style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="roundTrip"> 출발지로 돌아오기</label>
           <a class="btn primary" id="gdir" target="_blank" rel="noopener">구글맵으로 동선 열기</a>
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">도보</option><option value="transit">대중교통</option><option value="driving">차량</option></select>
         </div>
@@ -1182,6 +1182,9 @@ const ISO=/^\d{4}-\d\d-\d\d$/;
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
 const pt=s=>s.split(",").map(Number);
+function endPt(day,S){return day.end==="__back"?S:(day.end&&/^-?\d/.test(day.end)?pt(day.end):null)}
+function endName(day){return day.end==="__back"?(day.startName||"출발지"):(day.endName||"도착지")}
+const AIRPORT=STARTS.find(([v,t])=>/공항/.test(t));
 function toast(t,act){const el=$("toast");el.textContent=t;
   if(act){const b=document.createElement("button");b.type="button";b.className="toastbtn";b.textContent=act.label;b.onclick=()=>{el.hidden=true;act.fn()};el.appendChild(b)}
   el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,act?4000:1800)}
@@ -1189,7 +1192,7 @@ function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
   regCustom(p.custom);
-  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>x.done?{id:x.id,memo:x.memo||"",done:true}:{id:x.id,memo:x.memo||""})}));
+  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>x.done?{id:x.id,memo:x.memo||"",done:true}:{id:x.id,memo:x.memo||""})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom=p.custom.filter(c=>used.has(c.id));
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
@@ -1273,6 +1276,9 @@ function applyTrip(from,to){
     if(!d){d=newDay(true);d.date=iso}
     used.add(d.id);out.push(d)}
   const extra=plan.days.filter(d=>!used.has(d.id)&&d.stops.length);
+  if(AIRPORT&&out.length){const f=out[0],l=out[out.length-1];
+    if(!f.stops.length&&!f.__u){f.start=AIRPORT[0];f.startName=AIRPORT[1]}
+    if(!l.stops.length&&!l.end){l.end=AIRPORT[0];l.endName=AIRPORT[1]}}
   plan.days=out.concat(extra);plan.trip={from,to};cur=0;changed();
   toast(`${n}일 일정을 만들었어요`+(extra.length?` · 기간 밖 ${extra.length}일은 맨 뒤에 남겨 뒀어요`:""));
 }
@@ -1323,6 +1329,8 @@ function renderPlan(){
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
   const opts=[...hopts,...STARTS];if(!opts.some(([v])=>v===day.start))opts.unshift([day.start,day.startName||"숙소"]);
   $("pstart").innerHTML=opts.map(([v,t])=>`<option value="${v}"${v===day.start?" selected":""}>${esc(t)}</option>`).join("");
+  const eopts=[["","마지막 장소에서 끝"],["__back","↩ 출발지로 돌아오기"],...hopts,...STARTS];if(day.end&&!eopts.some(([v])=>v===day.end))eopts.push([day.end,day.endName||"도착지"]);
+  $("pend").innerHTML=eopts.map(([v,t])=>`<option value="${v}"${v===(day.end||"")?" selected":""}>${esc(t)}</option>`).join("");
   renderHotels();
   $("pickStart").classList.toggle("on",picking);$("pickStart").textContent=picking?"지도를 눌러 주세요…":"지도에서 숙소 찍기";
   const S=pt(day.start),pts=[S],ds=day.stops.map(x=>BYID[x.id]);
@@ -1330,21 +1338,24 @@ function renderPlan(){
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
-    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"></span>`}
+    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}
       <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
       ${hoursNote(d,day.date,day.stops[i].memo)}
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
   });
+  const E=endPt(day,S);
+  if(E&&ds.length){const L1=legInfo(pts[pts.length-1],E);total+=L1.k;pts.push(E);
+    html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${ds.length}">${L1.txt}</div><div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
   const wn=dayWarnings(day);
   $("plansum").textContent=ds.length?`${ds.length}곳 · 이동 거리 합계 직선 약 ${total.toFixed(1)}km (실제 길은 더 길어요)${day.date?(wn?` · ⚠ 휴무인 곳 ${wn}곳`:" · 휴무인 곳 없음"):" · 날짜를 넣으면 휴무일을 확인해 드려요"}`:"";
   // google directions
   if(ds.length){
-    const last=ds[ds.length-1],mid=ds.slice(0,-1).slice(0,9);
+    const last=ds[ds.length-1],mid=E?ds.slice(0,9):ds.slice(0,-1).slice(0,9);
     const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",day.start);
-    u.searchParams.set("destination",last.name);u.searchParams.set("destination_place_id",last.id);
+    if(E)u.searchParams.set("destination",E.join(","));else{u.searchParams.set("destination",last.name);if(last.cat!=="custom")u.searchParams.set("destination_place_id",last.id)}
     if(mid.length){u.searchParams.set("waypoints",mid.map(d=>d.name).join("|"));u.searchParams.set("waypoint_place_ids",mid.map(d=>d.id).join("|"))}
     u.searchParams.set("travelmode",$("gmode").value);
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
@@ -1358,6 +1369,7 @@ function drawPlanMap(S,pts,ds,day){
   pLayer.clearLayers();
   L.marker(S,{icon:L.divIcon({className:"pinstart",html:""})}).bindTooltip(esc(day.startName||"출발지")).addTo(pLayer);
   if(pts.length>1)L.polyline(pts,{color:css("--sea"),weight:3,dashArray:"6 6"}).addTo(pLayer);
+  if(day.end&&day.end!=="__back"&&pts.length>1)L.marker(pts[pts.length-1],{icon:L.divIcon({className:"pinstart",html:""})}).bindTooltip("도착: "+esc(endName(day))).addTo(pLayer);
   ds.forEach((d,i)=>L.marker([d.lat,d.lng],{icon:L.divIcon({className:"pinno",html:String(i+1)})}).bindPopup(pop(d),{maxWidth:240}).addTo(pLayer));
   pmap.fitBounds(L.latLngBounds(pts).pad(0.25),{maxZoom:16});
 }
@@ -1372,6 +1384,7 @@ $("stops").addEventListener("change",e=>{if(e.target.closest("[data-memo]"))rend
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
   plan.days[cur].date=v;if(plan.trip&&v){if(v<plan.trip.from)plan.trip.from=v;if(v>plan.trip.to)plan.trip.to=v}sortDays();fillTrip();changed()});
 $("pstart").addEventListener("change",e=>{const day=plan.days[cur];day.start=e.target.value;day.startName=e.target.selectedOptions[0].textContent;changed()});
+$("pend").addEventListener("change",e=>{const day=plan.days[cur];day.end=e.target.value;day.endName=e.target.value&&e.target.value!=="__back"?e.target.selectedOptions[0].textContent:"";changed()});
 $("pickStart").addEventListener("click",()=>{picking=!picking;renderPlan();if(picking)toast("지도에서 숙소 위치를 눌러 주세요")});
 $("gmode").addEventListener("change",()=>renderPlan());
 $("autoOrder").addEventListener("click",()=>{const day=plan.days[cur];let p=pt(day.start),left=[...day.stops],out=[];
@@ -1755,6 +1768,7 @@ const OPTS = {mapTypeControl:false, streetViewControl:true, fullscreenControl:tr
 function circle(color, scale, stroke){
   return {path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: stroke || "#fff", strokeWeight: 2, scale};
 }
+window.gCircle = circle;
 function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 290}); } return gInfo; }
 function openPop(m, mk, d){
   const w = info(), el = document.createElement("div");
@@ -1893,6 +1907,11 @@ window.drawPlanMap = function(S, pts, ds, day){
     gPlan.push(window.gPlanStraight = new google.maps.Polyline({map: gPmap, path: pts.map(([a,b])=>({lat: a, lng: b})), strokeOpacity: 0,
       icons: [{icon: {path: "M 0,-1 0,1", strokeOpacity: .9, strokeColor: "#1f5f8b", scale: 3}, offset: "0", repeat: "14px"}]}));
   }
+  if(day.end && day.end !== "__back" && pts.length > 1){
+    const E = pts[pts.length - 1];
+    const em = new google.maps.Marker({map: gPmap, position: {lat: E[0], lng: E[1]}, icon: circle("#ffffff", 9, "#1f5f8b"), title: "도착: " + endName(day)});
+    gPlan.push(em); bounds.extend(em.getPosition());
+  }
   ds.forEach((d,i)=>{
     const mk = new google.maps.Marker({map: gPmap, position: {lat: d.lat, lng: d.lng}, title: d.name, zIndex: 100 + i,
       icon: circle("#1f5f8b", 13), label: {text: String(i+1), color: "#fff", fontWeight: "700", fontSize: "13px"}});
@@ -1910,7 +1929,7 @@ const shareBtn = document.createElement("button");
 shareBtn.className = "btn"; shareBtn.type = "button"; shareBtn.textContent = "🔗 일정 공유 링크 복사";
 $("delDay").parentNode.insertBefore(shareBtn, $("delDay"));
 shareBtn.addEventListener("click", async ()=>{
-  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)})),
+  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, ...(x.end ? {e: x.end, en: x.endName} : {}), p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)})),
                 c: (plan.custom || []).map(c=>[c.id, c.name, +c.lat.toFixed(6), +c.lng.toFixed(6), c.addr || "", c.gid || ""]),
                 h: (plan.hotels || []).map(h=>[h.id, h.name, h.lat, h.lng, h.addr || "", h.addrJa || ""]),
                 r: plan.trip ? [plan.trip.from, plan.trip.to] : 0};
@@ -1934,7 +1953,7 @@ function importFromHash(){
   bar.querySelector("#impY").onclick = ()=>{
     const custom = (got.c || []).map(c=>({id: c[0], name: c[1], lat: c[2], lng: c[3], addr: c[4], gid: c[5]}));
     regCustom(custom);
-    plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지",
+    plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지", end: x.e || "", endName: x.en || "",
       stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])})), custom,
       hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})),
       trip: Array.isArray(got.r) ? {from: got.r[0], to: got.r[1]} : null};
@@ -2012,16 +2031,38 @@ async function route(points, mode, optimize){
   cache[sig] = res;
   return res;
 }
+/* 직접 추가한 장소 사진: 구글 장소 사진 1장 (한 번 받으면 이 기기에 기억) */
+const GPH_KEY = "fk_gph";
+let gph = {}; try{ gph = JSON.parse(localStorage.getItem(GPH_KEY) || "{}"); }catch(e){}
+async function fillCustomPhotos(root){
+  if(!root || typeof google === "undefined" || !google.maps || !google.maps.importLibrary) return;
+  for(const el of root.querySelectorAll("[data-gph]")){
+    const id = el.dataset.gph; el.removeAttribute("data-gph");
+    const put = u => { const im = document.createElement("img"); im.src = u; im.alt = ""; im.loading = "lazy";
+      im.onerror = () => { delete gph[id]; try{ localStorage.setItem(GPH_KEY, JSON.stringify(gph)); }catch(e){} }; el.replaceWith(im); };
+    if(gph[id]){ put(gph[id]); continue; }
+    try{
+      const {Place} = await google.maps.importLibrary("places");
+      const pl = new Place({id}); await pl.fetchFields({fields: ["photos"]});
+      const ph = pl.photos && pl.photos[0]; if(!ph) continue;
+      const u = ph.getURI({maxWidth: 240, maxHeight: 240});
+      gph[id] = u; try{ localStorage.setItem(GPH_KEY, JSON.stringify(gph)); }catch(e){}
+      put(u);
+    }catch(e){}
+  }
+}
+window.fillCustomPhotos = fillCustomPhotos;
 function clearRoute(){ gRoute.forEach(o => o.setMap(null)); gRoute = []; }
 
 /* 화면: 일정이 바뀔 때마다 실제 경로로 다시 계산해서 표시 */
 window.afterPlanRender = async function(day, ds, S){
   const on = typeof google !== "undefined" && google.maps && !window.__gmFailed;
-  $("optRoute").hidden = !on || ds.length < 2; $("rtBack").hidden = !on || !ds.length;
+  $("optRoute").hidden = !on || ds.length < 2;
+  fillCustomPhotos($("stops"));
   if(!on || !ds.length){ clearRoute(); return; }
   const mode = MODE[$("gmode").value] || "WALK";
-  const back = $("roundTrip").checked;
-  const pts = [S, ...ds.map(d => [d.lat, d.lng])]; if(back) pts.push(S);
+  const E = endPt(day, S);
+  const pts = [S, ...ds.map(d => [d.lat, d.lng])]; if(E) pts.push(E);
   const sig = mode + JSON.stringify(pts); lastSig = sig;
   const sum = $("plansum"), base = sum.textContent.replace(/^.*?km \(실제 길은 더 길어요\)/, "");
   sum.textContent = `${ds.length}곳 · 실제 경로 계산 중…` + base;
@@ -2036,10 +2077,6 @@ window.afterPlanRender = async function(day, ds, S){
     const ic = l.walk ? "🚶" : ICON[mode];
     const txt = `${ic} ${mins(l.d)} · ${dist(l.m)}${mode === "WALK" && l.m > 2000 ? " · 지하철·택시 추천" : ""}`;
     if(el){ el.textContent = txt; el.classList.toggle("far", mode === "WALK" && l.m > 2000); }
-    else if(back && i === r.legs.length - 1){
-      const end = document.createElement("div"); end.className = "leg"; end.textContent = txt + " · 출발지로 돌아오기";
-      $("stops").appendChild(end);
-    }
   });
   sum.textContent = `${ds.length}곳 · 실제 경로 기준 이동 ${mins(tot)} · ${dist(totm)}` + base;
   /* 지도: 직선 대신 실제 길 */
@@ -2052,25 +2089,24 @@ window.afterPlanRender = async function(day, ds, S){
       strokeOpacity: .85, strokeWeight: 5, zIndex: 5}));
   });
 };
-$("roundTrip").addEventListener("change", () => renderPlan());
 
 /* 최적 동선: 구글이 이동 시간이 가장 짧은 순서를 계산 */
 $("optRoute").addEventListener("click", async () => {
   const day = plan.days[cur], ds = day.stops.map(x => BYID[x.id]);
   if(ds.length < 2) return;
   if(ds.length > 25){ toast("한 날에 25곳까지만 최적화할 수 있어요"); return; }
-  const S = pt(day.start), back = $("roundTrip").checked;
+  const S = pt(day.start), E = endPt(day, S);
   const mode = MODE[$("gmode").value] === "DRIVE" ? "DRIVE" : "WALK";   // 대중교통은 도보 기준으로 순서를 정해요
   const btn = $("optRoute"); btn.disabled = true; btn.textContent = "계산 중…";
   try{
     let stops = day.stops.slice(), endStop = null;
-    if(!back){                                       // 끝 장소: 출발지에서 가장 먼 곳
+    if(!E){                                          // 도착지가 없으면 끝 장소: 출발지에서 가장 먼 곳
       let fi = 0, fk = -1; ds.forEach((d, i) => { const k = kmOf(S, [d.lat, d.lng]); if(k > fk){ fk = k; fi = i; } });
       endStop = stops.splice(fi, 1)[0];
     }
     const mids = stops.map(x => BYID[x.id]);
-    const pts = [S, ...mids.map(d => [d.lat, d.lng]), back ? S : [BYID[endStop.id].lat, BYID[endStop.id].lng]];
-    const before = await route([S, ...ds.map(d => [d.lat, d.lng]), ...(back ? [S] : [])], mode, false).catch(() => null);
+    const pts = [S, ...mids.map(d => [d.lat, d.lng]), E ? E : [BYID[endStop.id].lat, BYID[endStop.id].lng]];
+    const before = await route([S, ...ds.map(d => [d.lat, d.lng]), ...(E ? [E] : [])], mode, false).catch(() => null);
     const r = await route(pts, mode, true);
     const order = r.order && r.order.length === stops.length ? r.order : stops.map((_, i) => i);
     day.stops = order.map(i => stops[i]).concat(endStop ? [endStop] : []);
@@ -2085,6 +2121,7 @@ $("optRoute").addEventListener("click", async () => {
 
 /* ===== 장소 직접 추가: 구글맵 공유 링크·문구·이름으로 찾기 ===== */
 (function(){
+const circle = (...a) => window.gCircle(...a);
 const btn = $("addPlace");
 const ready = () => typeof google !== "undefined" && google.maps && google.maps.importLibrary && !window.__gmFailed;
 setInterval(() => { btn.hidden = !ready(); const f = $("hFind"); if(f) f.hidden = !ready(); }, 1500);
@@ -2096,7 +2133,8 @@ sheet.innerHTML = `<div class="wrap2">
   <div class="plansum">구글맵에서 <b>공유 → 링크 복사</b>한 내용을 붙여넣거나, 가게 이름을 입력하세요.</div>
   <textarea id="apIn" rows="3" placeholder="예) 이치란 라멘 하카타점&#10;또는 https://maps.app.goo.gl/… 공유 문구 전체" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit"></textarea>
   <div class="btnrow"><button class="btn primary" id="apGo" type="button">찾기</button><button class="btn" id="apClose" type="button">닫기</button></div>
-  <div id="apRes" style="display:grid;gap:6px;max-height:40vh;overflow:auto"></div>
+  <div id="apMap" style="height:210px;border-radius:12px;overflow:hidden;margin:4px 0" hidden></div>
+  <div id="apRes" style="display:grid;gap:6px;max-height:34vh;overflow:auto"></div>
 </div>`;
 document.body.appendChild(sheet);
 const $in = sheet.querySelector("#apIn"), $res = sheet.querySelector("#apRes");
@@ -2141,13 +2179,14 @@ window.fillHotelJa = async (h, rename) => {
 };
 sheet.querySelector("#apClose").onclick = () => { sheet.hidden = true; };
 
+
 function coordsFrom(t){
-  let m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+  let m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || t.match(/center=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i) ||
           t.match(/[?&](?:query|q|ll|destination)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i) || t.match(/^\s*(-?\d{1,2}\.\d{3,}),\s*(-?\d{2,3}\.\d{3,})\s*$/);
   return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
 }
 function nameFrom(t){
-  let q = t.replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+  let q = t.replace(/https?:\/\/\S+/g, " ").replace(/@-?\d+\.\d+,-?\d+\.\d+/g, " ").replace(/\s+/g, " ").trim();
   const m = t.match(/\/maps\/place\/([^/@?]+)/); if(!q && m) q = decodeURIComponent(m[1].replace(/\+/g, " "));
   return q.slice(0, 80);
 }
@@ -2171,32 +2210,113 @@ function addToPlan(c){
   sheet.hidden = true; changed();
   toast(`${cur+1}일차에 넣었어요 · 🧭 최적 동선 계산으로 순서를 정리해 보세요`);
 }
-function resultRow(name, addr, onPick, tag){
+/* 검색 결과를 작은 지도에 번호로 표시 · 숙소/그날 일정과의 거리도 함께 */
+let apMap = null, apMks = [];
+const $apMap = sheet.querySelector("#apMap");
+function refPoints(){
+  const day = plan.days[cur], out = [];
+  if(day){ out.push({p: pt(day.start), n: (day.startName || "출발지").replace(/^🏨\s*/, ""), k: "start"});
+    day.stops.forEach((x, i) => { const d = BYID[x.id]; if(d) out.push({p: [d.lat, d.lng], n: `${i + 1}. ${d.name}`, k: "stop", i}); }); }
+  return out;
+}
+function nearestRef(lat, lng){
+  let best = null; refPoints().forEach(r => { const k = kmOf([lat, lng], r.p); if(!best || k < best.k) best = {k, n: r.n}; });
+  return best;
+}
+function showOnMap(items){
+  apMks.forEach(m => m.setMap(null)); apMks = [];
+  if(!items.length){ $apMap.hidden = true; return; }
+  $apMap.hidden = false;
+  if(!apMap) apMap = new google.maps.Map($apMap, {center: {lat: items[0].lat, lng: items[0].lng}, zoom: 14, disableDefaultUI: true, zoomControl: true, clickableIcons: false, gestureHandling: "greedy"});
+  const b = new google.maps.LatLngBounds();
+  refPoints().forEach(r => { const m = new google.maps.Marker({map: apMap, position: {lat: r.p[0], lng: r.p[1]}, title: r.n, zIndex: 1,
+      icon: circle(r.k === "start" ? "#ffffff" : "#8a99a6", r.k === "start" ? 8 : 9, r.k === "start" ? "#b4456a" : "#fff"),
+      label: r.k === "stop" ? {text: String(r.i + 1), color: "#fff", fontSize: "11px", fontWeight: "700"} : undefined});
+    apMks.push(m); b.extend(m.getPosition()); });
+  items.forEach((it, i) => { const m = new google.maps.Marker({map: apMap, position: {lat: it.lat, lng: it.lng}, title: it.name, zIndex: 10,
+      icon: circle("#c4456a", 12), label: {text: String.fromCharCode(65 + i), color: "#fff", fontSize: "12px", fontWeight: "800"}});
+    m.addListener("click", () => { const el = $res.querySelector(`[data-ri="${i}"]`); if(el){ el.scrollIntoView({block: "nearest", behavior: "smooth"}); el.style.outline = "3px solid #c4456a"; setTimeout(() => el.style.outline = "", 1500); } });
+    apMks.push(m); b.extend(m.getPosition()); });
+  apMap.fitBounds(b, 30);
+  google.maps.event.addListenerOnce(apMap, "idle", () => { if(apMap.getZoom() > 16) apMap.setZoom(16); });
+}
+let rowN = 0;
+function resultRow(name, addr, onPick, tag, lat, lng){
   const b = document.createElement("button");
   b.type = "button"; b.className = "btn"; b.style.textAlign = "left"; b.style.whiteSpace = "normal";
-  b.innerHTML = `<b>${esc(name)}</b>${tag ? ` <span class="lv lv-추천" style="padding:0 6px">${tag}</span>` : ""}<div class="meta">${esc(addr || "")}</div>`;
+  const i = rowN++, nr = typeof lat === "number" ? nearestRef(lat, lng) : null;
+  b.dataset.ri = i;
+  b.innerHTML = `<b><span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#c4456a;color:#fff;font-size:11px;margin-right:4px">${String.fromCharCode(65 + i)}</span>${esc(name)}</b>${tag ? ` <span class="lv lv-추천" style="padding:0 6px">${tag}</span>` : ""}<div class="meta">${esc(addr || "")}</div>${nr ? `<div class="meta">📍 ${esc(nr.n)}에서 ${nr.k < 1 ? Math.round(nr.k * 1000) + "m" : nr.k.toFixed(1) + "km"}</div>` : ""}`;
   b.onclick = onPick; $res.appendChild(b);
 }
+/* 짧은 링크(maps.app.goo.gl) 풀기: 브라우저는 직접 못 열어서 공개 중계 서버를 통해 최종 주소만 확인 */
+async function expandShort(u){
+  const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+  const tries = [
+    async () => { const r = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(u)); const j = await r.json(); return ((j.status && j.status.url) || "") + " " + (j.contents || "").slice(0, 300000); },
+    async () => { const r = await fetch("https://corsproxy.io/?url=" + encodeURIComponent(u)); return r.url + " " + (await r.text()).slice(0, 300000); },
+  ];
+  for(const t of tries){
+    try{
+      let s = await withTimeout(t(), 10000);
+      if(!s || !/google\./.test(s)) continue;
+      s = s.replace(/\\u003d/g, "=").replace(/\\u0026/g, "&").replace(/&amp;/g, "&");
+      try{ s = decodeURIComponent(s); }catch(e){ try{ s = decodeURI(s); }catch(e2){} }
+      return s;
+    }catch(e){}
+  }
+  return "";
+}
 sheet.querySelector("#apGo").onclick = async () => {
-  const t = $in.value.trim(); if(!t) return;
+  let t = $in.value.trim(); if(!t) return;
+  rowN = 0; showOnMap([]);
   $res.innerHTML = `<div class="plansum">찾는 중…</div>`;
   try{
+    const sh = t.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/\S+/);
+    let shortName = "";
+    if(sh && !coordsFrom(t)){
+      $res.innerHTML = `<div class="plansum">짧은 링크를 여는 중…</div>`;
+      const full = await expandShort(sh[0]);
+      if(full){
+        const pm = full.match(/\/maps\/place\/([^/@?]+)/) || full.match(/property="og:title"\s+content="([^"·]+)/) || full.match(/content="([^"·]+)[^"]*"\s+property="og:title"/);
+        shortName = pm ? pm[1].replace(/\+/g, " ").trim() : "";
+        const cc = coordsFrom(full);
+        const rest = t.replace(sh[0], " ").trim();
+        if(shortName && !rest){ t = shortName + (cc ? " @" + cc.join(",") : ""); }
+        else if(cc){ t = (rest || shortName) + " @" + cc.join(","); }
+      }else if(!nameFrom(t)){
+        $res.innerHTML = `<div class="plansum">짧은 링크를 열지 못했어요. 구글맵에서 가게 이름을 복사해 붙여넣거나, 공유 문구 전체를 붙여넣어 주세요.</div>`; return;
+      }
+    }
     const c = coordsFrom(t);
+    if(c && shortName){                                 // 이름+위치를 알면 그 근처에서 가게를 정확히 찾기
+      const {Place} = await google.maps.importLibrary("places");
+      const {places} = await Place.searchByText({textQuery: shortName, fields: ["id", "displayName", "location", "formattedAddress"],
+        locationBias: {center: {lat: c[0], lng: c[1]}, radius: 300}, maxResultCount: 3, language: "ko", region: "jp"});
+      if(places && places.length){
+        $res.innerHTML = "";
+        places.forEach(pl => { const inGuide = IDX[pl.id] && IDX[pl.id].cat !== "custom", lat = pl.location.lat(), lng = pl.location.lng();
+          resultRow(pl.displayName, pl.formattedAddress, () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}), inGuide ? "가이드에 있음" : "", lat, lng); });
+        showOnMap(places.map(pl => ({lat: pl.location.lat(), lng: pl.location.lng(), name: pl.displayName})));
+        return;
+      }
+    }
     if(c){
       const geo = new google.maps.Geocoder();
       const r = await geo.geocode({location: {lat: c[0], lng: c[1]}, language: "ko"}).catch(() => null);
       const addr = r && r.results[0] ? r.results[0].formatted_address : "";
       const name = nameFrom(t) || addr.replace(/^일본\s*/, "").slice(0, 30) || "지정한 위치";
       $res.innerHTML = "";
-      resultRow(name, addr, () => addToPlan({id: "c_" + c[0].toFixed(5) + "_" + c[1].toFixed(5), name, lat: c[0], lng: c[1], addr}));
+      resultRow(name, addr, () => addToPlan({id: "c_" + c[0].toFixed(5) + "_" + c[1].toFixed(5), name, lat: c[0], lng: c[1], addr}), "", c[0], c[1]);
+      showOnMap([{lat: c[0], lng: c[1], name}]);
       return;
     }
     const q = nameFrom(t);
     if(!q){ $res.innerHTML = `<div class="plansum">짧은 링크만으로는 위치를 알 수 없어요. 구글맵 공유 문구 전체(가게 이름 포함)를 붙여넣거나 이름을 입력해 주세요.</div>`; return; }
     const {Place} = await google.maps.importLibrary("places");
-    const here = (typeof hereLL === "function" ? hereLL() : [33.5902, 130.4017]);
+    const day = plan.days[cur], here = day ? pt(day.start) : (typeof hereLL === "function" ? hereLL() : [33.5902, 130.4017]);
     const {places} = await Place.searchByText({textQuery: q, fields: ["id", "displayName", "location", "formattedAddress"],
-      locationBias: {center: {lat: here[0], lng: here[1]}, radius: 50000}, maxResultCount: 6, language: "ko", region: "jp"});
+      locationBias: {center: {lat: here[0], lng: here[1]}, radius: 20000}, maxResultCount: 8, language: "ko", region: "jp"});
     $res.innerHTML = "";
     if(!places || !places.length){ $res.innerHTML = `<div class="plansum">찾지 못했어요. 이름을 조금 다르게(일본어 이름 등) 입력해 보세요.</div>`; return; }
     places.forEach(pl => {
@@ -2204,8 +2324,9 @@ sheet.querySelector("#apGo").onclick = async () => {
       const lat = pl.location.lat(), lng = pl.location.lng();
       resultRow(pl.displayName, pl.formattedAddress,
         () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}),
-        inGuide ? "가이드에 있음" : "");
+        inGuide ? "가이드에 있음" : "", lat, lng);
     });
+    showOnMap(places.map(pl => ({lat: pl.location.lat(), lng: pl.location.lng(), name: pl.displayName})));
   }catch(e){
     $res.innerHTML = `<div class="plansum">검색하지 못했어요. 잠시 뒤 다시 시도하거나 이름을 바꿔 보세요.</div>`;
   }
