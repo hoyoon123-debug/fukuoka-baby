@@ -882,6 +882,12 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .leg{font-size:12px;color:var(--muted);padding:6px 0 6px 44px;position:relative}
 .leg::before{content:"";position:absolute;left:21px;top:0;bottom:0;border-left:2px dashed var(--line)}
 .leg.far{color:var(--warn)}
+.leg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.leg .lms{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.leg .lms button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;padding:3px 8px;cursor:pointer}
+.leg .lms button[aria-pressed="true"]{background:var(--sea);color:#fff;font-weight:700}
+.leg .ltxt{flex:1 1 140px;min-width:0}
+.leg a.lgo{font-size:11.5px;font-weight:700;color:var(--sea);text-decoration:none;white-space:nowrap;border:1px solid var(--line);border-radius:999px;padding:1px 7px}
 .stop{display:grid;grid-template-columns:34px 56px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
 .stop .no{width:30px;height:30px;border-radius:50%;background:var(--sea);color:var(--surface);display:grid;place-items:center;font-weight:700;font-size:14px}
 .stop img,.stop .noimg{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--ph);display:block}
@@ -952,7 +958,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
           <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선 계산</button>
           <button class="btn" id="autoOrder" type="button">가까운 순으로 자동 정렬</button>
           <a class="btn primary" id="gdir" target="_blank" rel="noopener">구글맵으로 동선 열기</a>
-          <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">도보</option><option value="transit">대중교통</option><option value="driving">차량</option></select>
+          <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">기본: 도보</option><option value="transit">기본: 대중교통</option><option value="driving">기본: 차</option></select>
         </div>
       </div>
       <div id="planmap"></div>
@@ -1212,6 +1218,8 @@ const AIRPORT=STARTS.find(([v,t])=>/공항/.test(t));
 function toast(t,act){const el=$("toast");el.textContent=t;
   if(act){const b=document.createElement("button");b.type="button";b.className="toastbtn";b.textContent=act.label;b.onclick=()=>{el.hidden=true;act.fn()};el.appendChild(b)}
   el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,act?4000:1800)}
+const LMODES={walking:"🚶 도보",transit:"🚇 대중교통",driving:"🚗 차"};
+const LM1={w:"walking",t:"transit",d:"driving"};
 function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
@@ -1219,7 +1227,7 @@ function fixPlan(p){
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
     .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
   regHotels(p.hotels);
-  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>x.done?{id:x.id,memo:x.memo||"",done:true}:{id:x.id,memo:x.memo||""})}));
+  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>{const o={id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;return o}),...(LMODES[d.endMode]?{endMode:d.endMode}:{})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom=p.custom.filter(c=>used.has(c.id));
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
@@ -1317,9 +1325,20 @@ function initPlanMap(){
   pmap.on("popupopen",e=>hydrate(e.popup.getElement()));
   pmap.on("click",e=>{if(!picking)return;const h=addHotel({name:"숙소",lat:+e.latlng.lat.toFixed(5),lng:+e.latlng.lng.toFixed(5)});if(h)useHotel(h,cur);picking=false;$("pickStart").classList.remove("on");toast("숙소로 저장했어요 · 칩을 눌러 이름을 바꾸려면 다시 저장하세요");changed()});
 }
-function legInfo(a,b){
-  const k=kmOf(a,b),walk=Math.round(k*1.3/3.5*60);
-  return {k,txt:k<0.05?"같은 건물·바로 옆":`직선 ${k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"} · 유모차 도보 약 ${walk}분${k>2?" · 지하철·택시 추천":""}`};
+function legMode(day,i){const m=i<day.stops.length?day.stops[i].mode:day.endMode;return LMODES[m]?m:$("gmode").value}
+function legInfo(a,b,mode){
+  const k=kmOf(a,b),walk=Math.round(k*1.3/3.5*60),km=k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km";
+  if(k<0.05)return {k,far:false,txt:"같은 건물·바로 옆"};
+  if(mode==="driving")return {k,far:false,txt:`🚗 직선 ${km} · 차로 약 ${Math.round(k*1.4/20*60)+3}분`};
+  if(mode==="transit")return {k,far:false,txt:`🚇 직선 ${km} · 시간은 '길 보기'에서 확인${k<0.8?" · 가까워서 걸어도 돼요":""}`};
+  return {k,far:k>2,txt:`🚶 직선 ${km} · 유모차 도보 약 ${walk}분${k>2?" · 대중교통·차 추천":""}`};
+}
+function legHTML(i,a,b,mode,dest){
+  const L1=legInfo(a,b,mode);
+  const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",a.join(","));
+  if(dest&&dest.cat!=="custom"&&dest.cat!=="hotel"){u.searchParams.set("destination",dest.name);u.searchParams.set("destination_place_id",dest.id)}else u.searchParams.set("destination",b.join(","));
+  u.searchParams.set("travelmode",mode);
+  return {k:L1.k,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a></div>`}
 }
 const fmt=m=>{m=m%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
 const WD=["일","월","화","수","목","금","토"];
@@ -1361,8 +1380,8 @@ function renderPlan(){
   const S=pt(day.start),pts=[S],ds=day.stops.map(x=>BYID[x.id]);
   let total=0,html=`<div class="startrow"><span class="no">출</span>${esc(day.startName||"출발지")}에서 출발</div>`;
   ds.forEach((d,i)=>{
-    const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
-    html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
+    const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legHTML(i,prev,cp,legMode(day,i),d);total+=L1.k;pts.push(cp);
+    html+=`${L1.html}
     <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span><a class="phl" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="${esc(d.name)} 구글맵에서 보기">${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}</a>
       <div class="info"><a class="nm gml" href="${esc(d.url)}" target="_blank" rel="noopener" title="구글맵에서 보기">${esc(d.name)} <span class="gmi">🗺 구글맵 ↗</span></a>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
       ${d.cat==="hotel"?"":hoursNote(d,day.date,day.stops[i].memo)}
@@ -1370,8 +1389,8 @@ function renderPlan(){
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
   });
   const E=endPt(day,S);
-  if(E&&ds.length){const L1=legInfo(pts[pts.length-1],E);total+=L1.k;pts.push(E);
-    html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${ds.length}">${L1.txt}</div><div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
+  if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;pts.push(E);
+    html+=`${L1.html}<div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
   if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
@@ -1404,6 +1423,7 @@ $("days").addEventListener("click",e=>{const b=e.target.closest("[data-pday]");i
   if(b.dataset.pday==="new"){plan.days.push(newDay());cur=plan.days.length-1;changed()}
   else{cur=+b.dataset.pday;picking=false;renderPlan()}});
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
+  const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;changed();return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
   const hs=e.target.closest("[data-hstop]");if(hs&&IDX[hs.dataset.hstop]){day.stops.push({id:hs.dataset.hstop,memo:""});changed();toast("숙소를 맨 아래에 넣었어요 · ↑↓로 순서를 옮기세요")}});
@@ -1978,7 +1998,7 @@ const shareBtn = document.createElement("button");
 shareBtn.className = "btn"; shareBtn.type = "button"; shareBtn.textContent = "🔗 일정 공유 링크 복사";
 $("delDay").parentNode.insertBefore(shareBtn, $("delDay"));
 shareBtn.addEventListener("click", async ()=>{
-  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, ...(x.end ? {e: x.end, en: x.endName} : {}), p: x.stops.map(y=>y.memo ? [y.id, y.memo] : y.id)})),
+  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, ...(x.end ? {e: x.end, en: x.endName} : {}), p: x.stops.map(y=>y.mode ? [y.id, y.memo || "", y.mode[0]] : y.memo ? [y.id, y.memo] : y.id), ...(x.endMode ? {em: x.endMode[0]} : {})})),
                 c: (plan.custom || []).map(c=>[c.id, c.name, +c.lat.toFixed(6), +c.lng.toFixed(6), c.addr || "", c.gid || ""]),
                 h: (plan.hotels || []).map(h=>[h.id, h.name, h.lat, h.lng, h.addr || "", h.addrJa || ""]),
                 r: plan.trip ? [plan.trip.from, plan.trip.to] : 0};
@@ -2004,7 +2024,7 @@ function importFromHash(){
     regCustom(custom);
     regHotels((got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})));
     plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지", end: x.e || "", endName: x.en || "",
-      stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])})), custom,
+      stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1] || "", ...(LM1[y[2]] ? {mode: LM1[y[2]]} : {})} : {id: y, memo: ""}).filter(y=>BYID[y.id]), ...(LM1[x.em] ? {endMode: LM1[x.em]} : {})})), custom,
       hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})),
       trip: Array.isArray(got.r) ? {from: got.r[0], to: got.r[1]} : null};
     cur = 0; persist(); done(); setView("plan"); toast("일정을 불러왔어요");
@@ -2081,6 +2101,18 @@ async function route(points, mode, optimize){
   cache[sig] = res;
   return res;
 }
+/* 한 구간 경로 (구간마다 이동 수단이 달라요) */
+async function legRoute(a, b, mode){
+  const k = mode + "|" + a[0].toFixed(5) + "," + a[1].toFixed(5) + ">" + b[0].toFixed(5) + "," + b[1].toFixed(5);
+  if(cache[k]) return cache[k];
+  const pack = (r, walk) => ({d: r.legs[0].duration, m: r.legs[0].distanceMeters, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {})});
+  let res;
+  if(mode === "TRANSIT"){
+    try{ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "TRANSIT"})); }
+    catch(e){ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "WALK"}), true); }
+  }else res = pack(await call({origin: ll(a), destination: ll(b), travelMode: mode}));
+  return cache[k] = res;
+}
 /* 직접 추가한 장소 사진: 구글 장소 사진 1장 (한 번 받으면 이 기기에 기억) */
 const GPH_KEY = "fk_gph";
 let gph = {}; try{ gph = JSON.parse(localStorage.getItem(GPH_KEY) || "{}"); }catch(e){}
@@ -2110,33 +2142,41 @@ window.afterPlanRender = async function(day, ds, S){
   $("optRoute").hidden = !on || ds.length < 2;
   fillCustomPhotos($("stops"));
   if(!on || !ds.length){ clearRoute(); return; }
-  const mode = MODE[$("gmode").value] || "WALK";
   const E = endPt(day, S);
   const pts = [S, ...ds.map(d => [d.lat, d.lng])]; if(E) pts.push(E);
-  const sig = mode + JSON.stringify(pts); lastSig = sig;
+  const modes = pts.slice(1).map((_, i) => MODE[legMode(day, i)] || "WALK");
+  const sig = modes.join(",") + JSON.stringify(pts); lastSig = sig;
   const sum = $("plansum"), base = sum.textContent.replace(/^.*?km \(실제 길은 더 길어요\)/, "");
   sum.textContent = `${ds.length}곳 · 실제 경로 계산 중…` + base;
-  let r;
-  try{ r = await route(pts, mode, false); }
+  let legs;
+  try{ legs = await Promise.all(modes.map((m, i) => legRoute(pts[i], pts[i+1], m))); }
   catch(e){ sum.textContent = `${ds.length}곳 · 경로를 계산하지 못해 직선 거리로 보여드려요` + base; return; }
   if(sig !== lastSig) return;                        // 그새 순서가 또 바뀜
-  let tot = 0, totm = 0;
-  r.legs.forEach((l, i) => {
-    tot += parseInt(l.d); totm += l.m;
-    const el = document.querySelector(`.leg[data-leg="${i}"]`);
-    const ic = l.walk ? "🚶" : ICON[mode];
-    const txt = `${ic} ${mins(l.d)} · ${dist(l.m)}${mode === "WALK" && l.m > 2000 ? " · 지하철·택시 추천" : ""}`;
-    if(el){ el.textContent = txt; el.classList.toggle("far", mode === "WALK" && l.m > 2000); }
+  let tot = 0, totm = 0, unknown = 0;
+  legs.forEach((l, i) => {
+    const el = document.querySelector(`.leg[data-leg="${i}"] .ltxt`), m = modes[i];
+    if(!el) return;
+    let txt, far = false;
+    if(m === "TRANSIT" && l.walk){                   // 대중교통 시간이 안 나오는 구간
+      unknown++;
+      txt = `🚇 대중교통 시간은 '길 보기'에서 확인 · 걸으면 ${mins(l.d)} (${dist(l.m)})`;
+    }else{
+      tot += parseInt(l.d); totm += l.m;
+      far = m === "WALK" && l.m > 2000;
+      txt = `${ICON[m]} ${mins(l.d)} · ${dist(l.m)}${far ? " · 대중교통·차 추천" : ""}`;
+    }
+    el.textContent = txt; el.parentNode.classList.toggle("far", far);
   });
-  sum.textContent = `${ds.length}곳 · 실제 경로 기준 이동 ${mins(tot)} · ${dist(totm)}` + base;
-  /* 지도: 직선 대신 실제 길 */
+  sum.textContent = `${ds.length}곳 · 실제 경로 기준 이동 ${mins(tot)} · ${dist(totm)}${unknown ? ` (대중교통 ${unknown}구간 제외)` : ""}` + base;
+  /* 지도: 직선 대신 실제 길 (구간마다 이동 수단 색) */
   if(typeof gPlanStraight !== "undefined" && gPlanStraight) gPlanStraight.setMap(null);
   clearRoute();
   const map = window.__gPmap;
   if(!map) return;
-  r.legs.forEach((l, i) => {
-    gRoute.push(new google.maps.Polyline({map, path: decode(l.poly), strokeColor: l.walk ? "#5f6f7a" : (mode === "TRANSIT" ? "#d0473b" : "#1f5f8b"),
-      strokeOpacity: .85, strokeWeight: 5, zIndex: 5}));
+  legs.forEach((l, i) => {
+    const m = modes[i];
+    gRoute.push(new google.maps.Polyline({map, path: decode(l.poly), strokeColor: l.walk && m === "TRANSIT" ? "#d0473b" : (m === "TRANSIT" ? "#d0473b" : m === "DRIVE" ? "#7a4fc0" : "#1f5f8b"),
+      strokeOpacity: .85, strokeWeight: 5, zIndex: 5, ...(l.walk && m === "TRANSIT" ? {strokeOpacity: 0, icons: [{icon: {path: "M 0,-1 0,1", strokeOpacity: .9, scale: 3}, offset: "0", repeat: "12px"}]} : {})}));
   });
 };
 
