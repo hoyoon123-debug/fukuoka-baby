@@ -884,7 +884,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .leg.far{color:var(--warn)}
 .leg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .leg .lms{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
-.leg .lms button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;padding:3px 8px;cursor:pointer}
+.leg .lms button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:5px 11px;cursor:pointer}
 .leg .lms button[aria-pressed="true"]{background:var(--sea);color:#fff;font-weight:700}
 .leg .ltxt{flex:1 1 140px;min-width:0}
 .leg a.lgo{font-size:11.5px;font-weight:700;color:var(--sea);text-decoration:none;white-space:nowrap;border:1px solid var(--line);border-radius:999px;padding:1px 7px}
@@ -2034,7 +2034,9 @@ importFromHash();
 
 /* ---------- 오프라인 (서비스 워커) ---------- */
 if("serviceWorker" in navigator && location.protocol === "https:"){
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.register("sw.js").then(r => r.update()).catch(()=>{});
+  let reloaded = false;                       // 새 버전이 설치되면 한 번 새로고침
+  if(navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener("controllerchange", () => { if(!reloaded){ reloaded = true; location.reload(); } });
 }
 })();
 
@@ -2105,7 +2107,7 @@ async function route(points, mode, optimize){
 async function legRoute(a, b, mode){
   const k = mode + "|" + a[0].toFixed(5) + "," + a[1].toFixed(5) + ">" + b[0].toFixed(5) + "," + b[1].toFixed(5);
   if(cache[k]) return cache[k];
-  const pack = (r, walk) => ({d: r.legs[0].duration, m: r.legs[0].distanceMeters, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {})});
+  const pack = (r, walk) => ({d: r.legs[0].duration || "0s", m: r.legs[0].distanceMeters || 0, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {})});
   let res;
   if(mode === "TRANSIT"){
     try{ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "TRANSIT"})); }
@@ -2157,7 +2159,8 @@ window.afterPlanRender = async function(day, ds, S){
     const el = document.querySelector(`.leg[data-leg="${i}"] .ltxt`), m = modes[i];
     if(!el) return;
     let txt, far = false;
-    if(m === "TRANSIT" && l.walk){                   // 대중교통 시간이 안 나오는 구간
+    if(l.m < 50){ txt = "같은 곳·바로 옆"; }
+    else if(m === "TRANSIT" && l.walk){                   // 대중교통 시간이 안 나오는 구간
       unknown++;
       txt = `🚇 대중교통 시간은 '길 보기'에서 확인 · 걸으면 ${mins(l.d)} (${dist(l.m)})`;
     }else{
