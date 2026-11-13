@@ -847,6 +847,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .today .nx{font-size:17px;font-weight:700}
 .today .warn{font-size:12.5px;color:#9b2c2c}
 .stop.done{opacity:.45}
+.stop a.gml{color:inherit;text-decoration:none;display:block}
+.stop .gmi{font-size:11px;font-weight:700;color:var(--sea);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;white-space:nowrap;vertical-align:2px}
+.stop a.phl{display:block;line-height:0}
 .nstog{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .nstog[aria-pressed="true"]{background:#c4456a;color:#fff;border-color:#c4456a}
 .nstog.lk[aria-pressed="true"]{background:#8a5a2b;border-color:#8a5a2b}
@@ -1352,8 +1355,8 @@ function renderPlan(){
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
-    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}
-      <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
+    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span><a class="phl" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="${esc(d.name)} 구글맵에서 보기">${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}</a>
+      <div class="info"><a class="nm gml" href="${esc(d.url)}" target="_blank" rel="noopener" title="구글맵에서 보기">${esc(d.name)} <span class="gmi">🗺 구글맵 ↗</span></a>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
       ${d.cat==="hotel"?"":hoursNote(d,day.date,day.stops[i].memo)}
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
