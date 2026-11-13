@@ -1174,6 +1174,8 @@ const BYID=IDX;
 function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:"",rating:null,reviews:0,
   url:c.gid?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}&query_place_id=${c.gid}`:`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`,
   gid:c.gid||"",hours:[],oh:{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
+function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="number")IDX[h.id]=Object.assign(mkCustom({id:h.id,name:h.name,lat:h.lat,lng:h.lng,addr:h.addrJa||h.addr||""}),{cat:"hotel",lv:"숙소",name:"🏨 "+h.name,
+  url:`https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}`})})}
 function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
 const STARTS=[...$("here").options].map(o=>[o.value,o.textContent]);
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -1192,11 +1194,12 @@ function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
   regCustom(p.custom);
+  p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
+    .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
+  regHotels(p.hotels);
   p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>x.done?{id:x.id,memo:x.memo||"",done:true}:{id:x.id,memo:x.memo||""})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom=p.custom.filter(c=>used.has(c.id));
-  p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
-    .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
   return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip};
 }
@@ -1338,15 +1341,16 @@ function renderPlan(){
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legInfo(prev,cp);total+=L1.k;pts.push(cp);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${i}">${L1.txt}</div>
-    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}
-      <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
-      ${hoursNote(d,day.date,day.stops[i].memo)}
+    <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span>${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}
+      <div class="info"><div class="nm">${esc(d.name)}</div>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
+      ${d.cat==="hotel"?"":hoursNote(d,day.date,day.stops[i].memo)}
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
   });
   const E=endPt(day,S);
   if(E&&ds.length){const L1=legInfo(pts[pts.length-1],E);total+=L1.k;pts.push(E);
     html+=`<div class="leg${L1.k>2?" far":""}" data-leg="${ds.length}">${L1.txt}</div><div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
+  if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
   const wn=dayWarnings(day);
@@ -1355,8 +1359,9 @@ function renderPlan(){
   if(ds.length){
     const last=ds[ds.length-1],mid=E?ds.slice(0,9):ds.slice(0,-1).slice(0,9);
     const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",day.start);
-    if(E)u.searchParams.set("destination",E.join(","));else{u.searchParams.set("destination",last.name);if(last.cat!=="custom")u.searchParams.set("destination_place_id",last.id)}
-    if(mid.length){u.searchParams.set("waypoints",mid.map(d=>d.name).join("|"));u.searchParams.set("waypoint_place_ids",mid.map(d=>d.id).join("|"))}
+    if(E)u.searchParams.set("destination",E.join(","));else if(last.cat==="custom"||last.cat==="hotel")u.searchParams.set("destination",`${last.lat},${last.lng}`);else{u.searchParams.set("destination",last.name);u.searchParams.set("destination_place_id",last.id)}
+    const realG=d=>d.cat!=="custom"&&d.cat!=="hotel";
+    if(mid.length){u.searchParams.set("waypoints",mid.map(d=>realG(d)?d.name:`${d.lat},${d.lng}`).join("|"));if(mid.every(realG))u.searchParams.set("waypoint_place_ids",mid.map(d=>d.id).join("|"))}
     u.searchParams.set("travelmode",$("gmode").value);
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
   }else{$("gdir").removeAttribute("href");$("gdir").style.opacity=".5"}
@@ -1378,7 +1383,8 @@ $("days").addEventListener("click",e=>{const b=e.target.closest("[data-pday]");i
   else{cur=+b.dataset.pday;picking=false;renderPlan()}});
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
-  const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed()}});
+  const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
+  const hs=e.target.closest("[data-hstop]");if(hs&&IDX[hs.dataset.hstop]){day.stops.push({id:hs.dataset.hstop,memo:""});changed();toast("숙소를 맨 아래에 넣었어요 · ↑↓로 순서를 옮기세요")}});
 $("stops").addEventListener("input",e=>{const m=e.target.closest("[data-memo]");if(!m)return;plan.days[cur].stops[+m.dataset.memo].memo=m.value.slice(0,120);saveSoon()});
 $("stops").addEventListener("change",e=>{if(e.target.closest("[data-memo]"))renderPlan()});
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
@@ -1410,10 +1416,10 @@ const hKey=h=>h.lat.toFixed(5)+","+h.lng.toFixed(5);
 function addHotel(h){
   if(!plan.hotels)plan.hotels=[];
   const ex=plan.hotels.find(x=>hKey(x)===hKey(h));
-  if(ex){Object.assign(ex,{name:h.name||ex.name,addr:h.addr||ex.addr,addrJa:h.addrJa||ex.addrJa});return ex}
+  if(ex){Object.assign(ex,{name:h.name||ex.name,addr:h.addr||ex.addr,addrJa:h.addrJa||ex.addrJa});regHotels([ex]);return ex}
   if(plan.hotels.length>=5){toast("숙소는 5곳까지 저장할 수 있어요");return null}
   const n={id:"h_"+uid(),name:(h.name||"숙소").slice(0,40),lat:+h.lat,lng:+h.lng,addr:h.addr||"",addrJa:h.addrJa||""};
-  plan.hotels.push(n);
+  plan.hotels.push(n);regHotels([n]);
   plan.days.forEach(d=>{if(!d.stops.length&&STARTS.some(([v])=>v===d.start)){d.start=hKey(n);d.startName="🏨 "+n.name}}); // 빈 날은 숙소에서 출발
   return n;
 }
@@ -1439,7 +1445,7 @@ $("hotelrow").addEventListener("click",e=>{
   const u=e.target.closest("[data-huse]");if(u){const h=plan.hotels.find(x=>x.id===u.dataset.huse);if(h){useHotel(h,cur);changed();toast(`${h.name}에서 출발해요`)}return}
   const d=e.target.closest("[data-hdel]");if(d){
     if(d.dataset.armed!=="1"){d.dataset.armed="1";d.textContent="삭제?";setTimeout(()=>{d.dataset.armed="";d.textContent="✕"},2500);return}
-    plan.hotels=plan.hotels.filter(x=>x.id!==d.dataset.hdel);changed();return}
+    const hid=d.dataset.hdel;plan.hotels=plan.hotels.filter(x=>x.id!==hid);plan.days.forEach(x=>x.stops=x.stops.filter(y=>y.id!==hid));delete IDX[hid];changed();return}
   if(e.target.closest("#hFromStart")){const day=plan.days[cur],[a,b]=pt(day.start);
     const nm=(day.startName||"숙소").replace(/^🏨\s*/,"");
     const h=addHotel({name:nm==="숙소"||nm==="선택한 위치"?"숙소":nm,lat:a,lng:b});
@@ -1636,7 +1642,7 @@ function hoursNow(d){
   const nx=sp.find(([a])=>a>m);return nx?{st:"before",open:nx[0]}:{st:"closed"};
 }
 const hm=n=>n>=60?`${Math.floor(n/60)}시간 ${n%60}분`:`${n}분`;
-function hoursLine(d){const h=hoursNow(d);
+function hoursLine(d){if(d.cat==="hotel")return "🏨 숙소 들르기";const h=hoursNow(d);
   return h.st==="open"?`🟢 영업 중 · ${fmt(h.close)} 마감 (${hm(h.left)} 남음)`:h.st==="soon"?`🟠 곧 마감 · ${fmt(h.close)}까지 (${hm(h.left)} 남음)`:
     h.st==="before"?`🔵 아직 준비 중 · ${fmt(h.open)} 오픈`:h.st==="off"?`🔴 오늘 휴무`:h.st==="closed"?`🔴 오늘 영업 끝`:`⚪ 영업시간 정보 없음`}
 function renderToday(){
@@ -1953,6 +1959,7 @@ function importFromHash(){
   bar.querySelector("#impY").onclick = ()=>{
     const custom = (got.c || []).map(c=>({id: c[0], name: c[1], lat: c[2], lng: c[3], addr: c[4], gid: c[5]}));
     regCustom(custom);
+    regHotels((got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})));
     plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지", end: x.e || "", endName: x.en || "",
       stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1]} : {id: y, memo: ""}).filter(y=>BYID[y.id])})), custom,
       hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})),
