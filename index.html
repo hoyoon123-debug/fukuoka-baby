@@ -848,8 +848,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .today .warn{font-size:12.5px;color:#9b2c2c}
 .stop.done{opacity:.45}
 .stop a.gml{color:inherit;text-decoration:none;display:block}
-.stop .gmi{font-size:11px;font-weight:700;color:var(--sea);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;white-space:nowrap;vertical-align:2px}
+.stop .gmi,.near .gmi{font-size:11px;font-weight:700;color:var(--sea);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;white-space:nowrap;vertical-align:2px}
 .stop a.phl{display:block;line-height:0}
+.near a.gml{color:inherit;text-decoration:none;display:block}
+.near a.phl{display:block;line-height:0;flex:none}
 .nstog{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .nstog[aria-pressed="true"]{background:#c4456a;color:#fff;border-color:#c4456a}
 .nstog.lk[aria-pressed="true"]{background:#8a5a2b;border-color:#8a5a2b}
@@ -1733,8 +1735,8 @@ function renderNearby(day,S,ds){
   box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 동선에서 ${R*1000}m 안</span></div>${tip}
    <div class="row">${CATS2.map(([k,v])=>`<button class="chip" data-ncat="${k}" aria-pressed="${nearCat===k}">${v}</button>`).join("")}</div>
    ${sorted.length?sorted.map(c=>`<div class="near">
-      ${c.d.np?phImg(c.d,0):`<span class="noimg"></span>`}
-      <div class="info"><div class="nm">${esc(c.d.name)}</div>
+      ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"></span>`}${c.d.url?"</a>":""}
+      <div class="info">${c.d.url?`<a class="nm gml" href="${esc(c.d.url)}" target="_blank" rel="noopener">${esc(c.d.name)} <span class="gmi">🗺 구글맵 ↗</span></a>`:`<div class="nm">${esc(c.d.name)}</div>`}
         <div class="meta"><span class="lv lv-${esc(c.d.lv)}" style="padding:0 6px">${esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.after?c.after+"번":"출발지"} 근처 ${Math.round(c.km*1000)}m${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
         ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
       <button class="btn" data-nadd="${esc(c.d.id)}" data-after="${c.after}">넣기</button></div>`).join(""):`<div class="meta" style="padding:8px 0">이 조건으로 가까운 곳이 없어요.</div>`}`;
