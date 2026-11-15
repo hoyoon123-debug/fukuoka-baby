@@ -2510,7 +2510,7 @@ function saveHotelPick(c){
 }
 function addToPlan(c){
   if(mode === "hotel"){ const src = c || IDX[arguments[1]]; if(src) saveHotelPick({name: src.name, lat: src.lat, lng: src.lng, addr: src.addr}); return; }
-  if(IDX[c.id] && IDX[c.id].cat !== "custom"){            // 가이드에 이미 있는 가게면 가이드 정보로
+  if(c && IDX[c.id] && IDX[c.id].cat !== "custom"){       // 가이드에 이미 있는 가게면 가이드 정보로
     c = null;
   }
   const id = c ? c.id : arguments[1];
@@ -2608,7 +2608,7 @@ sheet.querySelector("#apGo").onclick = async () => {
       if(places && places.length){
         $res.innerHTML = "";
         places.forEach(pl => { const inGuide = IDX[pl.id] && IDX[pl.id].cat !== "custom", lat = pl.location.lat(), lng = pl.location.lng();
-          resultRow(pl.displayName, pl.formattedAddress, () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}), inGuide ? "가이드에 있음" : "", lat, lng); });
+          resultRow(pl.displayName, pl.formattedAddress, () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}), inGuide ? "가이드에 있음 · 눌러서 넣기" : "", lat, lng); });
         showOnMap(places.map(pl => ({lat: pl.location.lat(), lng: pl.location.lng(), name: pl.displayName})));
         return;
       }
@@ -2636,7 +2636,7 @@ sheet.querySelector("#apGo").onclick = async () => {
       const lat = pl.location.lat(), lng = pl.location.lng();
       resultRow(pl.displayName, pl.formattedAddress,
         () => inGuide ? addToPlan(null, pl.id) : addToPlan({id: "g_" + pl.id, gid: pl.id, name: pl.displayName, lat, lng, addr: pl.formattedAddress}),
-        inGuide ? "가이드에 있음" : "", lat, lng);
+        inGuide ? "가이드에 있음 · 눌러서 넣기" : "", lat, lng);
     });
     showOnMap(places.map(pl => ({lat: pl.location.lat(), lng: pl.location.lng(), name: pl.displayName})));
   }catch(e){
