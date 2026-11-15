@@ -1132,6 +1132,7 @@ function mineCard(d){
       <div class="meta">내가 찾은 장소${st.sort==="near"&&d.km!=null?` · 직선 ${d.km<1?Math.round(d.km*1000)+"m":d.km.toFixed(1)+"km"}`:""}</div></div>
       <span class="lv lv-mine">내 장소</span></div>
     <div class="meta">${esc(d.addr||"")}</div>
+    ${d.hours.length?`<div class="meta">🕒 ${esc(todayHours(d)||"")}</div><details><summary>영업시간</summary>${d.hours.map(esc).join("<br>")}</details>`:d.gid?"":`<div class="meta">영업시간: 좌표로만 저장된 곳이라 구글맵에서 확인해 주세요</div>`}
     <input class="memo" data-mymemo="${esc(d.id)}" value="${esc(c.note||"")}" placeholder="메모 (예: 친구 추천, 디저트 맛집)" aria-label="메모" style="width:100%;margin-top:6px">
     <div class="acts"><a href="${esc(d.url)}" target="_blank" rel="noopener">구글맵에서 보기</a>
       <button class="fav" data-unsave="${esc(d.id)}">🗑 내 장소에서 빼기</button>
@@ -1202,7 +1203,7 @@ function todayHours(d){
   return sp.length?"오늘 "+sp.map(([a,b])=>f(a)+"~"+f(b)).join(", "):"오늘 휴무";
 }
 function pop(d){
-  if(d.cat==="custom")return `<div class="pop"><b>📌 ${esc(d.name)}</b>${krn(d,1)}<div class="meta">내가 찾은 장소</div>${d.addr?`<div class="meta">📍 ${esc(d.addr)}</div>`:""}<div class="pbtns"><a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${planBadge(d)}</div>`;
+  if(d.cat==="custom")return `<div class="pop"><b>📌 ${esc(d.name)}</b>${krn(d,1)}<div class="meta">내가 찾은 장소</div>${d.addr?`<div class="meta">📍 ${esc(d.addr)}</div>`:""}${todayHours(d)?`<div class="meta">🕒 ${esc(todayHours(d))}</div>`:""}<div class="pbtns"><a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${planBadge(d)}</div>`;
   const ph=phImg(d,0),th=todayHours(d);
   return `<div class="pop">${ph}<b>${esc(d.name)}</b>${krn(d,1)}<div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${nsLine(d)}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div class="pbtns">${d.url?`<a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a>`:""}<a class="pbtn" href="${dirUrl(d,"transit")}" target="_blank" rel="noopener">🚇 길찾기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${d.url?`<div class="meta" style="font-size:11.5px;margin-top:4px">구글맵에서 리뷰·사진·전화번호를 직접 볼 수 있어요</div>`:""}${planBadge(d)}</div>`;
 }
@@ -1261,7 +1262,7 @@ const BYID=IDX;
 /* 직접 추가한 장소 (구글맵 링크·검색) */
 function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:"",rating:null,reviews:0,
   url:c.gid?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}&query_place_id=${c.gid}`:`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`,
-  gid:c.gid||"",hours:[],oh:{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
+  gid:c.gid||"",hours:c.hours||[],oh:c.oh||{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
 function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="number")IDX[h.id]=Object.assign(mkCustom({id:h.id,name:h.name,lat:h.lat,lng:h.lng,addr:h.addrJa||h.addr||""}),{cat:"hotel",lv:"숙소",name:"🏨 "+h.name,
   url:`https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}`})})}
 function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
@@ -2397,6 +2398,44 @@ async function fillCustomPhotos(root){
   }
 }
 window.fillCustomPhotos = fillCustomPhotos;
+/* 직접 추가한 장소 영업시간: 구글에서 한 번 받아 일정과 함께 저장 */
+let hoursBusy = false;
+async function fillCustomHours(){
+  if(hoursBusy || typeof google === "undefined" || !google.maps || !google.maps.importLibrary || window.__gmFailed) return;
+  // 좌표로만 저장된 곳: 이름+위치로 구글 장소를 한 번 찾아 연결 (100m 안일 때만)
+  const noId = (plan.custom || []).filter(c => !c.gid && !c.idTried && c.name);
+  if(noId.length){ try{ const {Place} = await google.maps.importLibrary("places");
+    for(const c of noId){ c.idTried = 1;
+      try{ const {places} = await Place.searchByText({textQuery: c.name.replace(/^🧳\s*/, ""), fields: ["id", "location"], locationBias: {center: {lat: c.lat, lng: c.lng}, radius: 300}, maxResultCount: 1});
+        const pl = places && places[0]; if(pl && kmOf([c.lat, c.lng], [pl.location.lat(), pl.location.lng()]) < 0.1){ c.gid = pl.id; regCustom([c]); } }catch(e){} }
+    saveSoon(); }catch(e){} }
+  const todo = (plan.custom || []).filter(c => c.gid && !c.oh && !c.ohTried);
+  if(!todo.length) return;
+  hoursBusy = true; let got = 0;
+  try{
+    const {Place} = await google.maps.importLibrary("places");
+    for(const c of todo){
+      c.ohTried = 1;
+      try{
+        const pl = new Place({id: c.gid}); await pl.fetchFields({fields: ["regularOpeningHours"]});
+        const roh = pl.regularOpeningHours; if(!roh || !roh.periods || !roh.periods.length) continue;
+        const oh = {"0": [], "1": [], "2": [], "3": [], "4": [], "5": [], "6": []};
+        roh.periods.forEach(p => {
+          const o = p.open; if(!o) return; const k = String((o.day + 6) % 7), a = o.hour * 60 + (o.minute || 0);
+          if(!p.close){ oh[k].push([0, 1440]); return; }
+          let b = p.close.hour * 60 + (p.close.minute || 0); if(p.close.day !== o.day || b <= a) b += 1440;
+          oh[k].push([a, b]);
+        });
+        Object.values(oh).forEach(v => v.sort((x, y) => x[0] - y[0]));
+        c.oh = oh; c.hours = roh.weekdayDescriptions || []; got++;
+        regCustom([c]);
+      }catch(e){}
+    }
+  }finally{ hoursBusy = false; }
+  if(got){ saveSoon(); if(view === "plan") renderPlan(); else render(); }
+}
+window.fillCustomHours = fillCustomHours;
+setInterval(fillCustomHours, 4000);
 function clearRoute(){ gRoute.forEach(o => o.setMap(null)); gRoute = []; }
 
 /* 화면: 일정이 바뀔 때마다 실제 경로로 다시 계산해서 표시 */
