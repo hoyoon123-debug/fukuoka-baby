@@ -1537,7 +1537,8 @@ function paintTimes(){
   const delay=R.fin-P.fin,live=isToday&&SS.some(x=>x.ta||x.td);
   const risk=live?ds.map((d,i)=>{if(SS[i].ta)return null;const fx=SS[i].fix;if(fx&&R.LT[i]&&!P.LT[i])return `${i+1}. ${d.name} 예약에 ${R.LT[i]}분 늦어요`;
     const sp=d.cat!=="hotel"&&hoursOn(d,day.date);if(sp&&sp.length&&!sp.some(([x,y])=>R.A[i]>=x&&R.A[i]<y)&&sp.some(([x,y])=>P.A[i]>=x&&P.A[i]<y))return `${i+1}. ${d.name}은 ${fmt(R.A[i])} 도착이면 문을 닫아요`;return null}).filter(Boolean):[];
-  window.__live={delay,risk,live};
+  window.__live={delay,risk,live};window.__times={t0,arr:arr.slice(),dep:dep.slice()};
+  renderNearby(day,pt(day.start),ds);
   let t=dep[ds.length-1]||t0;
   const endA=R.endA;
   // 구간: 엘리베이터 · 택시
@@ -1660,7 +1661,6 @@ function renderPlan(){
     u.searchParams.set("travelmode",$("gmode").value);
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
   }else{$("gdir").removeAttribute("href");$("gdir").style.opacity=".5"}
-  renderNearby(day,S,ds);
   drawPlanMap(S,pts,ds,day);
   if(window.afterPlanRender)window.afterPlanRender(day,ds,S);
 }
@@ -2031,21 +2031,40 @@ function renderNearby(day,S,ds){
     for(let i=0;i<pts.length;i++){const k=kmOf(p,pts[i]);if(k<best){best=k;after=i}}
     if(best<=R)cands.push({d,km:best,after});
   });
+  // 그 지점에 있는 시간대(시간표 기준)에 문을 여는지 · 식사 시간이면 식당 먼저
+  const T=window.__times||{t0:600,arr:[],dep:[]};
+  const win=i=>i?[T.arr[i-1]??T.t0,T.dep[i-1]??T.t0+60]:[T.t0-30,T.t0+30];
+  const MEAL=[[690,810,"🍽 점심때"],[1050,1170,"🍽 저녁때"]],SNACK=[870,960];
+  const mealOf=i=>{const [a,b]=win(i);const m=MEAL.find(([x,y])=>a<y&&b>x);return m?m[2]:a<SNACK[1]&&b>SNACK[0]?"☕ 간식때":""};
+  const openAt=(d,i)=>{const sp=hoursOn(d,day.date);if(!day.date||sp===null)return "unk";if(!sp.length)return "off";const [a,b]=win(i);return sp.some(([x,y])=>(a<y&&b+20>x)||(a+1440<y&&b+1460>x))?"open":"closed"};
+  // 실제 걷는 길 기준 300m (구글 경로) · 아직 못 받은 곳은 직선으로 두고 받아오면 다시 그림
+  let farN=0;const realOK=!!window.walkMatrix&&!window.__gmFailed;
+  if(realOK){const ask={};
+    for(let j=cands.length-1;j>=0;j--){const c=cands[j],o=pts[c.after],v=window.wmGet(o,[c.d.lat,c.d.lng]);
+      if(v===undefined){(ask[c.after]=ask[c.after]||[]).push([c.d.lat,c.d.lng]);continue}
+      if(v===null||v[0]>R*1000){cands.splice(j,1);farN++;continue}
+      c.real=v[0];c.rmin=Math.max(1,Math.round(v[1]/60*1.15))}
+    const ks=Object.keys(ask);if(ks.length&&!renderNearby.busy){renderNearby.busy=1;
+      Promise.all(ks.map(i=>window.walkMatrix(pts[+i],ask[i]))).then(r=>{renderNearby.busy=0;if(r.some(Boolean)&&view==="plan"&&plan.days[cur]===day)renderNearby(day,S,ds)})}}
+  let hidden=0;
+  for(let j=cands.length-1;j>=0;j--){const c=cands[j];c.st=openAt(c.d,c.after);if(c.st==="off"||c.st==="closed"){cands.splice(j,1);hidden++}}
+  const boost=c=>{const m=mealOf(c.after);return m.startsWith("🍽")&&c.d.cat==="restaurant"?2:m.startsWith("☕")&&c.d.cat==="cafe"?1:0};
+  const rank=d=>d.cat==="custom"?2:ORDER[d.lv];   // 내 장소는 '가능'과 같은 순위로 · 거리·영업시간 기준은 똑같이
   const CATS2=[["all","전체"],["nurse","🍼 수유실"],["restaurant","🍽 식당"],["cafe","☕ 카페"],["play","🎠 놀이"],["mall","🛍 쇼핑몰"],["mine","📌 내 장소"]];
   const pick=c=>nearCat==="all"||(nearCat==="mine"?c.d.cat==="custom":c.d.cat==="custom"?false:nearCat==="nurse"?(c.d.f.includes("수유실")||c.d.f.includes("기저귀교환대")||!!c.d.nurse):c.d.cat===nearCat);
-  const sorted=cands.filter(pick).sort((a,b)=>(ORDER[b.d.lv]-ORDER[a.d.lv])||((TR[b.d.trust]||0)-(TR[a.d.trust]||0))||(a.km-b.km));
+  const sorted=cands.filter(pick).sort((a,b)=>(boost(b)-boost(a))||(rank(b.d)-rank(a.d))||((TR[b.d.trust]||0)-(TR[a.d.trust]||0))||(a.km-b.km));
   const groups=pts.map((_,i)=>sorted.filter(c=>c.after===i)).map((g,i)=>({i,g})).filter(x=>x.g.length);
   const hasNurse=ds.some(d=>d.f.includes("수유실")||d.f.includes("기저귀교환대")||d.nurse);
   const nurseNear=cands.filter(c=>c.d.f.includes("수유실")||c.d.nurse).sort((a,b)=>a.km-b.km)[0];
   const tip=!hasNurse&&ds.length>=2&&nurseNear?`<div class="neartip">🍼 이 날 동선엔 수유실이 확인된 곳이 없어요. 가까운 곳: <b>${esc(nurseNear.d.name)}</b> (${nurseNear.after?nurseNear.after+"번":"출발지"} 근처 ${Math.round(nurseNear.km*1000)}m)</div>`:"";
-  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${R*1000}m 안</span></div>${tip}
+  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${realOK?"걷는 길":"직선"} ${R*1000}m 안${farN?` (돌아가야 해서 먼 ${farN}곳 제외)`:""}${day.date?` · 그 시간에 문 여는 곳만${hidden?` (닫힌 ${hidden}곳 숨김)`:""}`:" · 날짜를 넣으면 그 시간에 문 여는 곳만 보여줘요"}</span></div>${tip}
    <div class="row">${CATS2.map(([k,v])=>`<button class="chip" data-ncat="${k}" aria-pressed="${nearCat===k}">${v}</button>`).join("")}</div>
    ${groups.length?groups.map(({i,g})=>{const open=nearOpen.has(i),show=open?g:g.slice(0,3);
-     return `<div class="ngrp"><div class="ngh">${i?`<span class="no">${i}</span> ${esc(ds[i-1].name)}`:`<span class="no">출</span> ${esc(day.startName||"출발지")}`} 근처 <span class="meta">${g.length}곳</span></div>`
+     return `<div class="ngrp"><div class="ngh">${i?`<span class="no">${i}</span> ${esc(ds[i-1].name)}`:`<span class="no">출</span> ${esc(day.startName||"출발지")}`} 근처 <span class="meta">${(()=>{const [a,b]=win(i);return `${fmt(a)}~${fmt(b)}`})()} · ${g.length}곳</span>${mealOf(i)?`<span class="btag">${mealOf(i)}</span>`:""}</div>`
      +show.map(c=>`<div class="near${c.d.cat==="custom"?" mine":""}">
       ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"></span>`}${c.d.url?"</a>":""}
       <div class="info">${c.d.url?`<a class="nm gml" href="${esc(c.d.url)}" target="_blank" rel="noopener">${esc(c.d.name)}${krn(c.d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>`:`<div class="nm">${esc(c.d.name)}</div>`}
-        <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
+        <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
         ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
       <button class="btn" data-nadd="${esc(c.d.id)}" data-after="${c.after}">넣기</button></div>`).join("")
      +(g.length>3?`<button class="btn nmore" type="button" data-nopen="${i}">${open?"접기":`＋ ${g.length-3}곳 더 보기`}</button>`:"")+`</div>`}).join(""):`<div class="meta" style="padding:8px 0">이 조건으로 300m 안에 있는 곳이 없어요.</div>`}`;
@@ -2363,6 +2382,29 @@ async function call(body){
   if(!r.ok || !j.routes || !j.routes.length) throw new Error((j.error && j.error.message) || "no route");
   return j.routes[0];
 }
+/* 걷는 실제 거리 (한 지점 → 여러 곳) · Route Matrix · 한 번 받은 값은 이 기기에 기억 */
+const WM_KEY = "fk_wm"; let WM = {}; try{ WM = JSON.parse(localStorage.getItem(WM_KEY) || "{}"); }catch(e){}
+window.__wm = WM;
+const wmk = (a, b) => a[0].toFixed(4) + "," + a[1].toFixed(4) + ">" + b[0].toFixed(4) + "," + b[1].toFixed(4);
+let wmBusy = 0;
+window.walkMatrix = async function(origin, dests){
+  const need = dests.filter(d => WM[wmk(origin, d)] === undefined).slice(0, 25);
+  if(!need.length || wmBusy > 2) return false;
+  wmBusy++;
+  try{
+    const r = await fetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {method: "POST",
+      headers: {"Content-Type": "application/json", "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "originIndex,destinationIndex,distanceMeters,duration,condition"},
+      body: JSON.stringify({origins: [{waypoint: {location: {latLng: {latitude: origin[0], longitude: origin[1]}}}}],
+        destinations: need.map(d => ({waypoint: {location: {latLng: {latitude: d[0], longitude: d[1]}}}})), travelMode: "WALK"})});
+    const j = await r.json(); if(!r.ok || !Array.isArray(j)) throw new Error("matrix");
+    j.forEach(e => { const d = need[e.destinationIndex]; if(!d) return;
+      WM[wmk(origin, d)] = e.condition === "ROUTE_EXISTS" && e.distanceMeters != null ? [e.distanceMeters, parseInt(e.duration) || 0] : null; });
+    const ks = Object.keys(WM); if(ks.length > 4000) ks.slice(0, ks.length - 3000).forEach(k => delete WM[k]);
+    try{ localStorage.setItem(WM_KEY, JSON.stringify(WM)); }catch(e){}
+    return true;
+  }catch(e){ return false; }finally{ wmBusy--; }
+};
+window.wmGet = (a, b) => WM[wmk(a, b)];
 /* points: [start, ...stops, (end)] -> {legs:[{d,m,poly}], order?} */
 async function route(points, mode, optimize){
   const sig = mode + "|" + (optimize ? "o|" : "") + points.map(p => p[0].toFixed(5) + "," + p[1].toFixed(5)).join(";");
