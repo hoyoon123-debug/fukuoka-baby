@@ -931,6 +931,10 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .card.mine{background:color-mix(in srgb,#8e44c9 12%,var(--surface));border-color:color-mix(in srgb,#8e44c9 45%,var(--line))}
 .near.mine{background:color-mix(in srgb,#8e44c9 12%,transparent);border-radius:10px;padding-left:6px;padding-right:6px}
 .lv.lv-mine{background:#8e44c9;color:#fff}
+.flights details{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin:6px 0}
+.flights summary{cursor:pointer;font-weight:700;font-size:14px}
+.flrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0;font-size:13px}
+.flrow input{font:inherit;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 5px}
 </style>
 
 <header>
@@ -972,6 +976,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
     <div id="planwrap" hidden>
       <div id="today"></div>
       <div class="triprow"><span class="hl">🗓 여행 기간</span><input type="date" id="tFrom" aria-label="여행 시작일"> ~ <input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">기간 적용</button><span class="meta" id="tInfo"></span></div>
+      <div class="flights" id="flights"></div>
       <div class="days" id="days"></div>
       <div class="dayhead">
         <label>날짜 <input type="date" id="pdate"></label>
@@ -1289,7 +1294,9 @@ function fixPlan(p){
   p.custom=p.custom.filter(c=>used.has(c.id)||c.saved);
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
   const b=p.baby||{};p.baby={napA:HHMM.test(b.napA||"")?b.napA:"",napB:HHMM.test(b.napB||"")?b.napB:"",feed:[0,120,150,180,210,240].includes(+b.feed)?+b.feed:0,buf:[0,10,15,20].includes(+b.buf)?+b.buf:0};
-  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby};
+  const fl=p.flights||{},f1=o=>{o=o||{};return {no:String(o.no||"").slice(0,12),date:ISO.test(o.date||"")?o.date:"",dep:HHMM.test(o.dep||"")?o.dep:"",arr:HHMM.test(o.arr||"")?o.arr:"",memo:String(o.memo||"").slice(0,80)}};
+  p.flights={out:f1(fl.out),back:f1(fl.back)};
+  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];const o=plan.custom.find(x=>x.id===c.id);if(o)o.saved=true;else plan.custom.push(Object.assign({},c,{saved:true}));regCustom([c])}
 function persist(){
@@ -1299,7 +1306,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1316,8 +1323,8 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
+      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby,flights:plan.flights||p.flights})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1477,7 +1484,8 @@ function nearNS(p){let b=null,bk=9;(typeof NS!=="undefined"?NS:[]).forEach(x=>{i
 function hasNurse(d){return d&&d.f&&d.f.includes("수유실")||!!(typeof NSBY!=="undefined"&&NSBY[d.id]&&NSBY[d.id].nu)}
 function paintTimes(){
   const day=plan.days[cur];if(!day)return;const ds=day.stops.map(x=>BYID[x.id]),L=window.__legs||[];
-  const t0=toMin(day.t0||"10:00"),buf=+(plan.baby||{}).buf||0,isToday=day.date===jstISO(),now=jstNow().m;
+  const FI=flightInfo(day);
+  const t0=day.t0?toMin(day.t0):FI.t0!=null?FI.t0:600,buf=+(plan.baby||{}).buf||0,isToday=day.date===jstISO(),now=jstNow().m;
   const SS=day.stops,stayOf=i=>SS[i].stay||STAY[ds[i].cat]||60,legM=i=>L[i]?(L[i].min?L[i].min+buf:0):0;
   // 계획(실제 기록 무시)과 실시간(도착·출발 기록 + 지금 시각 반영) 두 번 계산
   function sched(live){let t=t0,started=false;const A=[],Dp=[],W=[],LT=[];
@@ -1531,7 +1539,10 @@ function paintTimes(){
   if(!ds.length){pe.innerHTML="";return}
   const fin=R.fin;
   const liveH=live?`<div class="${delay>10?"warn":""}">⏱ ${Math.abs(delay)<=10?"계획대로 가고 있어요":delay>0?`계획보다 ${delay}분 늦어지고 있어요`:`계획보다 ${-delay}분 여유가 생겼어요`}${risk.length?` · ${esc(risk.join(" · "))}`:delay>30?" · 머무는 시간을 줄이거나 한 곳을 빼는 걸 고려해 보세요":""}</div>`:"";
-  pe.innerHTML=liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소 출발"} <b>${fmt(fin)}</b> 예상</div>${fin>=1200?`<div class="warn">🌙 일정이 저녁 8시를 넘겨요 · 아이에게는 길 수 있어요</div>`:""}${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
+  let flH="";
+  if(FI.out)flH+=`<div>🛬 ${esc(FI.out.no||"가는 편")} ${FI.out.arr} 도착 → 입국·짐 찾기 약 ${FL_PREP}분${day.t0?` · 출발 시각은 직접 정한 ${day.t0} 기준`:` → ${fmt(t0)} 공항 출발로 계산했어요`}</div>`;
+  if(FI.back){const late=fin-FI.dl;flH+=`<div class="${late>0?"warn":""}">🛫 ${esc(FI.back.no||"오는 편")} ${FI.back.dep} 출발 · 공항에 <b>${fmt(FI.dl)}</b>까지 가야 해요 (2시간 전) · ${late>0?`지금 일정이면 ${fmt(fin)} 도착이라 ${late}분 늦어요`:`지금 일정이면 ${fmt(fin)} 도착 · ${-late}분 여유`}</div>`}
+  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소 출발"} <b>${fmt(fin)}</b> 예상</div>${fin>=1200?`<div class="warn">🌙 일정이 저녁 8시를 넘겨요 · 아이에게는 길 수 있어요</div>`:""}${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
 }
 function hoursAt(d,date,a,b){
   const sp=hoursOn(d,date);
@@ -1545,6 +1556,35 @@ function hoursAt(d,date,a,b){
   return `<div class="hrs">영업 ${t}</div>`;
 }
 window.paintTimes=paintTimes;
+
+/* ---------- 항공편 ---------- */
+const FL_PREP=80,FL_EARLY=120;   // 도착 후 입국·짐 찾기(아기 동반) 80분 · 국제선은 출발 2시간 전 공항 도착
+function renderFlights(){
+  const box=$("flights");if(!box||box.contains(document.activeElement))return;
+  const F=plan.flights||{out:{},back:{}};
+  const row=(k,t,ph)=>{const f=F[k]||{};return `<div class="flrow"><b>${t}</b>
+    <input data-fl="${k}:no" value="${esc(f.no||"")}" placeholder="편명 (예: ${ph})" aria-label="편명" style="width:7.5em">
+    <input type="date" data-fl="${k}:date" value="${esc(f.date||"")}" aria-label="날짜">
+    <label>출발 <input type="time" data-fl="${k}:dep" value="${esc(f.dep||"")}"></label>
+    <label>도착 <input type="time" data-fl="${k}:arr" value="${esc(f.arr||"")}"></label>
+    <input data-fl="${k}:memo" value="${esc(f.memo||"")}" placeholder="예약번호·좌석·아기 바구니(배시넷) 메모" aria-label="메모" style="flex:1 1 12em">
+    ${f.no?`<a class="lgo" href="https://www.google.com/search?q=${encodeURIComponent(f.no+" flight status")}" target="_blank" rel="noopener">운항 정보 ↗</a>`:""}</div>`};
+  box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary>✈ 항공편${F.out&&F.out.no?` · 가는 편 ${esc(F.out.no)} ${esc(F.out.date||"")} ${esc(F.out.arr||"")} 도착`:""}${F.back&&F.back.no?` · 오는 편 ${esc(F.back.no)} ${esc(F.back.date||"")} ${esc(F.back.dep||"")} 출발`:""}</summary>
+    ${row("out","🛫 가는 편","KE787")}${row("back","🛬 오는 편","KE788")}
+    <div class="meta">가는 편 날짜의 일정은 도착 ${FL_PREP}분 뒤(입국·짐 찾기)부터, 오는 편 날은 출발 ${FL_EARLY/60}시간 전 공항 도착 기준으로 시간표를 확인해요.</div></details>`;
+}
+$("flights").addEventListener("change",e=>{const el=e.target.closest("[data-fl]");if(!el)return;const [k,f]=el.dataset.fl.split(":");
+  plan.flights=plan.flights||{out:{},back:{}};plan.flights[k]=plan.flights[k]||{};
+  let v=el.value.trim();if(f==="no")v=v.toUpperCase().replace(/\s+/g,"");plan.flights[k][f]=v;
+  const o=plan.flights[k];if(f==="date"&&ISO.test(v)&&!plan.days.some(d=>d.date===v)&&plan.trip)toast("여행 기간 밖의 날짜예요");
+  saveSoon();paintTimes();if(document.activeElement!==$("pt0")&&!plan.days[cur].t0){const fi=flightInfo(plan.days[cur]);if(fi.t0!=null)$("pt0").value=fmt(fi.t0)}});
+$("flights").addEventListener("focusout",()=>setTimeout(()=>{if(!$("flights").contains(document.activeElement))renderFlights()},200));
+function flightInfo(day){
+  const F=plan.flights||{},out=F.out||{},bk=F.back||{},r={};
+  if(day.date&&out.date===day.date&&out.arr){r.t0=Math.ceil((toMin(out.arr)+FL_PREP)/5)*5;r.out=out}
+  if(day.date&&bk.date===day.date&&bk.dep){r.dl=toMin(bk.dep)-FL_EARLY;r.back=bk}
+  return r;
+}
 function renderPlan(){
   if(!window.__todaySel){window.__todaySel=1;const ti=plan.days.findIndex(d=>d.date===jstISO());if(ti>=0)cur=ti}
   const day=plan.days[cur]||plan.days[0];
@@ -1553,6 +1593,7 @@ function renderPlan(){
   $("tInfo").textContent=plan.trip?`${plan.days.filter(d=>d.date>=plan.trip.from&&d.date<=plan.trip.to).length}일 · 장소를 넣을 때 날짜를 골라요`:"기간을 정하면 날짜별 일차가 한 번에 만들어져요";
   $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
   $("pdate").value=day.date||"";
+  renderFlights();
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
   const opts=[...hopts,...STARTS];if(!opts.some(([v])=>v===day.start))opts.unshift([day.start,day.startName||"숙소"]);
   $("pstart").innerHTML=opts.map(([v,t])=>`<option value="${v}"${v===day.start?" selected":""}>${esc(t)}</option>`).join("");
@@ -1579,7 +1620,7 @@ function renderPlan(){
   if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
-  if(document.activeElement!==$("pt0"))$("pt0").value=day.t0||"10:00";
+  if(document.activeElement!==$("pt0")){const fi=flightInfo(day);$("pt0").value=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00")}
   const bb=plan.baby||{};["bNapA","bNapB"].forEach((k,j)=>{if(document.activeElement!==$(k))$(k).value=j?bb.napB||"":bb.napA||""});$("bFeed").value=String(bb.feed||0);$("bBuf").value=String(bb.buf||0);
   paintTimes();
   const wn=dayWarnings(day);
