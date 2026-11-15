@@ -910,6 +910,19 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .pinstart{background:#fff;border:3px solid #b4456a;border-radius:50%;width:22px!important;height:22px!important;margin-left:-11px!important;margin-top:-11px!important}
 .kr{color:var(--muted);font-weight:500;font-size:12.5px;letter-spacing:0}
 .kr.krb{display:block;margin:1px 0 2px}
+.babyrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:13px}
+.babyrow input,.babyrow select,#pt0{font:inherit;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
+.tl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13px;font-weight:700;color:var(--sea);margin:2px 0}
+.tl select{font:inherit;font-size:12px;font-weight:500;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:1px 3px}
+.tl .wait{font-weight:500;color:var(--muted)}
+.tl .late,.tl .bad{color:var(--milk)}
+.btag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;margin:2px 4px 0 0;background:color-mix(in srgb,var(--sea) 14%,transparent);color:var(--ink)}
+.btag.feed{background:color-mix(in srgb,#c4456a 18%,transparent)}
+.fixrow{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:12px;color:var(--muted)}
+.fixrow input{font:inherit;font-size:12.5px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:1px 4px}
+.lex{flex-basis:100%;font-size:12px;color:var(--muted);padding-left:2px}
+.plantime{font-size:13px;margin:4px 0 8px;display:grid;gap:3px}
+.plantime .warn{color:var(--milk);font-weight:700}
 </style>
 
 <header>
@@ -956,6 +969,11 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
         <div class="hotelrow" id="hotelrow"></div>
         <label>출발 <select id="pstart"></select> <button class="btn" id="pickStart" type="button">지도에서 숙소 찍기</button></label>
         <label>도착 <select id="pend"></select></label>
+        <label>🕘 출발 시각 <input type="time" id="pt0" step="300"></label>
+        <div class="babyrow"><span class="hl">👶 아기 시간</span>
+          <label>😴 낮잠 <input type="time" id="bNapA" step="900"> ~ <input type="time" id="bNapB" step="900"></label>
+          <label>🍼 수유 <select id="bFeed"><option value="0">안 챙기기</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label>
+          <span class="meta">모든 날에 똑같이 적용돼요</span></div>
         <div class="btnrow">
           <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선 계산</button>
           <button class="btn" id="autoOrder" type="button">가까운 순으로 자동 정렬</button>
@@ -965,6 +983,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
       </div>
       <div id="planmap"></div>
       <div class="plansum" id="plansum"></div>
+      <div class="plantime" id="plantime"></div>
       <div class="stops" id="stops"></div>
       <div id="nearby"></div>
       <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
@@ -1211,7 +1230,7 @@ function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="numb
 function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
 const STARTS=[...$("here").options].map(o=>[o.value,o.textContent]);
 const uid=()=>Math.random().toString(36).slice(2,9);
-let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[],trip:null};
+let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[],trip:null,baby:{napA:"",napB:"",feed:0}};
 const ISO=/^\d{4}-\d\d-\d\d$/;
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
@@ -1224,6 +1243,7 @@ function toast(t,act){const el=$("toast");el.textContent=t;
   el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,act?4000:1800)}
 const LMODES={walking:"🚶 도보",transit:"🚇 대중교통",driving:"🚗 차"};
 const LM1={w:"walking",t:"transit",d:"driving"};
+const HHMM=/^([01]\d|2[0-3]):[0-5]\d$/;
 function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
@@ -1231,11 +1251,12 @@ function fixPlan(p){
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
     .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
   regHotels(p.hotels);
-  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>{const o={id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;return o}),...(LMODES[d.endMode]?{endMode:d.endMode}:{})}));
+  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>{const o={id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;if(x.stay>0&&x.stay<=600)o.stay=+x.stay;if(HHMM.test(x.fix||""))o.fix=x.fix;return o}),...(LMODES[d.endMode]?{endMode:d.endMode}:{}),...(HHMM.test(d.t0||"")?{t0:d.t0}:{})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom=p.custom.filter(c=>used.has(c.id));
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
-  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip};
+  const b=p.baby||{};p.baby={napA:HHMM.test(b.napA||"")?b.napA:"",napB:HHMM.test(b.napB||"")?b.napB:"",feed:[0,120,150,180,210,240].includes(+b.feed)?+b.feed:0};
+  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];if(!plan.custom.some(x=>x.id===c.id))plan.custom.push(c);regCustom([c])}
 function persist(){
@@ -1245,7 +1266,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1262,8 +1283,8 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
+      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1372,10 +1393,12 @@ function legInfo(a,b,mode){
 }
 function legHTML(i,a,b,mode,dest){
   const L1=legInfo(a,b,mode);
+  const lk=kmOf(a,b),wm=walkMin(lk),te=mode==="transit"?transitEst(a,b):null;
+  const min=lk<0.05?0:mode==="driving"?Math.round(lk*1.4/20*60)+3:mode==="transit"?(te&&te.t<wm?te.t:wm):wm;
   const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",a.join(","));
   if(dest&&dest.cat!=="custom"&&dest.cat!=="hotel"){u.searchParams.set("destination",dest.name);u.searchParams.set("destination_place_id",dest.id)}else u.searchParams.set("destination",b.join(","));
   u.searchParams.set("travelmode",mode);
-  return {k:L1.k,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a></div>`}
+  return {k:L1.k,min,mode,te:te&&te.t<wm?te:null,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a><span class="lex" data-lex="${i}"></span></div>`}
 }
 const fmt=m=>{m=m%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
 const WD=["일","월","화","수","목","금","토"];
@@ -1399,6 +1422,74 @@ function hoursNote(d,date,memo){
   return `<div class="hrs">영업 ${t}</div>`;
 }
 function dayWarnings(day){return day.stops.filter(x=>{const d=BYID[x.id];const sp=d&&hoursOn(d,day.date);return sp&&!sp.length}).length}
+
+/* ---------- 하루 시간표 · 아기 시간 · 엘리베이터 · 택시 ---------- */
+const STAY={restaurant:60,cafe:45,mall:90,play:120,hotel:60,custom:60};
+const STAYS=[15,30,45,60,90,120,150,180,240];
+const toMin=t=>{const [h,m]=t.split(":").map(Number);return h*60+m};
+// 지하철역 엘리베이터 출구 (라쿠라쿠 오데카케 2019 기준)
+const EV={"무로미":"6번 출구","후지사키":"5번 출구","니시진":"8·9번 출구 또는 프라리바 안","도진마치":"7번 출구","오호리코엔":"6번 출구","아카사카":"6번 출구",
+ "텐진":"5·6A·10·11·13A·15번 출구 또는 텐진 지하상가(빌딩 영업시간)","나카스카와바타":"환승은 홈 동쪽(가와바타 쪽) 엘리베이터","기온":"6번 출구","히가시히에":"5번 출구",
+ "후쿠오카공항":"공항 빌딩 안(빌딩 영업시간) 또는 5번 출구","고후쿠마치":"6번 출구","지요켄초구치":"8번 출구","마이다시큐다이뵤인마에":"6·7번 출구","하코자키미야마에":"4번 출구",
+ "하코자키큐다이마에":"4번 출구","가이즈카":"3·4번 출구 → 2층 통로에서 개찰구행 엘리베이터로 갈아타기","하시모토":"2번 출구 근처","지로마루":"2번 출구 근처","가모":"1번 출구 근처",
+ "노케":"2번 출구 근처","바이린":"1번 출구 근처","후쿠다이마에":"2번 출구 근처","나나쿠마":"2번 출구 근처","가나야마":"2번 출구 근처","차야마":"1번 출구 근처","베후":"3번 출구 근처",
+ "롯폰마쓰":"1·3번 출구 근처","사쿠라자카":"2번 출구 근처","야쿠인오도리":"1·2번 출구 근처","야쿠인":"1번 출구 근처 또는 니시테츠 야쿠인역 2층 통로","와타나베도리":"1번 출구 근처",
+ "텐진미나미":"2번 출구 또는 텐진 지하상가(빌딩 영업시간)","구시다진자마에":"1·6번 출구"};
+const evTxt=n=>EV[n]?`${n}역 ${EV[n]}`:`${n}역은 역무원에게 "エレベーターはどこですか?"`;
+// 후쿠오카시 택시 (중형, 2023.8~): 1.6km까지 830엔, 이후 268m마다 80엔 · 막히는 시간 감안 +10%
+function taxiFare(m){const f=830+Math.ceil(Math.max(0,m-1600)/268)*80;return Math.round(f*1.1/10)*10}
+function nearNS(p){let b=null,bk=9;(typeof NS!=="undefined"?NS:[]).forEach(x=>{if(!x.nu&&!x.dp)return;const k=kmOf(p,[x.lat,x.lng]);if(k<bk){bk=k;b=x}});return b?{x:b,k:bk}:null}
+function hasNurse(d){return d&&d.f&&d.f.includes("수유실")||!!(typeof NSBY!=="undefined"&&NSBY[d.id]&&NSBY[d.id].nu)}
+function paintTimes(){
+  const day=plan.days[cur];if(!day)return;const ds=day.stops.map(x=>BYID[x.id]),L=window.__legs||[];
+  const t0=toMin(day.t0||"10:00");let t=t0;const arr=[],dep=[],notes=[];
+  ds.forEach((d,i)=>{
+    t+=L[i]?L[i].min:0;let a=t,wait=0,late=0;const fx=day.stops[i].fix;
+    if(fx){const f=toMin(fx);if(f>a){wait=f-a;a=f}else if(a-f>5)late=a-f}
+    const stay=day.stops[i].stay||STAY[d.cat]||60;arr.push(a);dep.push(a+stay);t=a+stay;
+    const tl=document.querySelector(`[data-tl="${i}"]`);
+    if(tl)tl.innerHTML=`🕘 ${fmt(a)}~${fmt(a+stay)}<select data-stay="${i}" aria-label="머무는 시간">${STAYS.concat(STAYS.includes(stay)?[]:[stay]).sort((x,y)=>x-y).map(v=>`<option value="${v}"${v===stay?" selected":""}>${v<60?v+"분":v%60?Math.floor(v/60)+"시간 "+v%60+"분":v/60+"시간"} 머물기</option>`).join("")}</select>${wait?`<span class="wait">⏳ ${fx} ${d.cat==="hotel"?"체크인":"예약"}까지 ${wait}분 여유</span>`:""}${late?`<span class="late">⚠ ${fx} ${d.cat==="hotel"?"체크인":"예약"}보다 ${late}분 늦어요</span>`:""}`;
+    const hn=document.querySelector(`[data-hn="${i}"]`);
+    if(hn)hn.innerHTML=d.cat==="hotel"?"":hoursAt(d,day.date,a,a+stay);
+  });
+  const endA=L[ds.length]?t+L[ds.length].min:null;
+  // 구간: 엘리베이터 · 택시
+  L.forEach((l,i)=>{const el=document.querySelector(`[data-lex="${i}"]`);if(!el)return;const bits=[];
+    if(l.mode==="transit"&&l.te)bits.push(`🛗 엘리베이터: ${evTxt(l.te.from)} · ${evTxt(l.te.to)}`);
+    if(l.mode==="driving"&&l.min>0){const m=l.m||kmOf(l.a,l.b)*1350;const dep0=i?dep[i-1]:t0;
+      bits.push(`🚕 택시 약 ${taxiFare(m).toLocaleString()}엔 (예상)${dep0%1440>=1320||dep0%1440<300?" · 밤 10시~새벽 5시는 20% 할증":""} · 일본 택시는 카시트 없어도 돼요 · GO 앱으로 부르기`)}
+    el.textContent=bits.join("\n");el.style.whiteSpace="pre-line"});
+  // 아기 시간
+  const bb=plan.baby||{},tags={},sum=[];
+  const at=(m)=>{for(let i=0;i<ds.length;i++){if(m>=arr[i]&&m<dep[i])return {i,stay:true};if(m<arr[i])return {i,stay:false}}return {i:ds.length,stay:false}};
+  if(bb.napA&&bb.napB&&ds.length){const a=toMin(bb.napA),b=toMin(bb.napB);const who=[];
+    ds.forEach((d,i)=>{if(arr[i]<b&&dep[i]>a){(tags[i]=tags[i]||[]).push(`<span class="btag">😴 낮잠 시간${d.cat==="hotel"?" · 숙소에서 재우기":d.cat==="play"?" · 놀이 장소라 잠들기 어려울 수 있어요":""}</span>`);who.push(`${i+1}. ${d.name}`)}});
+    sum.push(`😴 낮잠 ${bb.napA}~${bb.napB}: ${who.length?who.join(", ")+"에 있을 때예요. 유모차에서 재우거나 숙소에 들르는 것도 좋아요":"이동 중이에요. 유모차에서 재우기 좋아요"}`)}
+  if(bb.feed&&ds.length){const end=endA||dep[ds.length-1];const fs=[];
+    for(let f=t0+bb.feed;f<end;f+=bb.feed){const w=at(f);let txt;
+      if(w.stay){const d=ds[w.i];if(hasNurse(d))txt=`${w.i+1}. ${d.name} 안에 수유실이 있어요`;else{const n=nearNS([d.lat,d.lng]);txt=n?`${w.i+1}. ${d.name} 근처 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:`${w.i+1}. ${d.name}에 있을 때`}
+        (tags[w.i]=tags[w.i]||[]).push(`<span class="btag feed">🍼 ${fmt(f)} 수유${hasNurse(d)?" · 수유실 있음":""}</span>`)}
+      else{const p=w.i<ds.length?(w.i?[ds[w.i-1].lat,ds[w.i-1].lng]:pt(day.start)):[ds[ds.length-1].lat,ds[ds.length-1].lng];const n=nearNS(p);txt=`이동 중 · ${n?`가까운 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:"이동 전후에 챙기기"}`}
+      fs.push(`<div>🍼 <b>${fmt(f)}</b> ${esc(txt)}</div>`)}
+    if(fs.length)sum.push(`<div style="display:grid;gap:2px">${fs.join("")}</div>`)}
+  document.querySelectorAll("[data-bt]").forEach(el=>{el.innerHTML=(tags[el.dataset.bt]||[]).join("")});
+  const pe=$("plantime");if(!pe)return;
+  if(!ds.length){pe.innerHTML="";return}
+  const fin=endA!=null?endA:dep[ds.length-1];
+  pe.innerHTML=`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소 출발"} <b>${fmt(fin)}</b> 예상</div>${fin>=1200?`<div class="warn">🌙 일정이 저녁 8시를 넘겨요 · 아이에게는 길 수 있어요</div>`:""}${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
+}
+function hoursAt(d,date,a,b){
+  const sp=hoursOn(d,date);
+  if(sp===null)return date?`<div class="hrs">영업시간 정보 없음 · 구글맵에서 확인</div>`:"";
+  const wd=WD[new Date(date+"T00:00:00").getDay()];
+  if(!sp.length)return `<div class="hrs bad">⚠ ${wd}요일 휴무예요</div>`;
+  const t=`${wd} ${sp.map(([x,y])=>fmt(x)+"~"+fmt(y)).join(", ")}`;
+  const c=sp.find(([x,y])=>a>=x&&a<y);
+  if(!c){const nx=sp.find(([x])=>x>a);return `<div class="hrs bad">⚠ ${fmt(a)} 도착이면 ${nx?`아직 문 열기 전이에요 (${fmt(nx[0])} 오픈)`:"이미 문을 닫았어요"} · ${t}</div>`}
+  if(c[1]<b)return `<div class="hrs warn">⏰ ${fmt(c[1])}에 마감이라 머무는 시간이 ${c[1]-a}분뿐이에요 · ${t}</div>`;
+  return `<div class="hrs">영업 ${t}</div>`;
+}
+window.paintTimes=paintTimes;
 function renderPlan(){
   if(!window.__todaySel){window.__todaySel=1;const ti=plan.days.findIndex(d=>d.date===jstISO());if(ti>=0)cur=ti}
   const day=plan.days[cur]||plan.days[0];
@@ -1415,22 +1506,27 @@ function renderPlan(){
   renderHotels();
   $("pickStart").classList.toggle("on",picking);$("pickStart").textContent=picking?"지도를 눌러 주세요…":"지도에서 숙소 찍기";
   const S=pt(day.start),pts=[S],ds=day.stops.map(x=>BYID[x.id]);
+  const LEGS=[];window.__legs=LEGS;
   let total=0,html=`<div class="startrow"><span class="no">출</span>${esc(day.startName||"출발지")}에서 출발</div>`;
   ds.forEach((d,i)=>{
-    const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legHTML(i,prev,cp,legMode(day,i),d);total+=L1.k;pts.push(cp);
+    const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legHTML(i,prev,cp,legMode(day,i),d);total+=L1.k;pts.push(cp);LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:prev,b:cp,m:null});
     html+=`${L1.html}
     <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span><a class="phl" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="${esc(d.name)} 구글맵에서 보기">${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}</a>
       <div class="info"><a class="nm gml" href="${esc(d.url)}" target="_blank" rel="noopener" title="구글맵에서 보기">${esc(d.name)}${krn(d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
-      ${d.cat==="hotel"?"":hoursNote(d,day.date,day.stops[i].memo)}
-      <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 점심 11:30 도착)" aria-label="메모"></div>
+      <div class="tl" data-tl="${i}"></div><div data-bt="${i}"></div><div data-hn="${i}"></div>
+      <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 예약번호, 주문할 메뉴)" aria-label="메모">
+      <div class="fixrow"><label>⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 <input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300"></label>${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}" style="padding:0 8px;white-space:nowrap">지우기</button>`:""}</div></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
   });
   const E=endPt(day,S);
-  if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;pts.push(E);
+  if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:pts[pts.length-1],b:E,m:null});pts.push(E);
     html+=`${L1.html}<div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
   if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
+  if(document.activeElement!==$("pt0"))$("pt0").value=day.t0||"10:00";
+  const bb=plan.baby||{};["bNapA","bNapB"].forEach((k,j)=>{if(document.activeElement!==$(k))$(k).value=j?bb.napB||"":bb.napA||""});$("bFeed").value=String(bb.feed||0);
+  paintTimes();
   const wn=dayWarnings(day);
   $("plansum").textContent=ds.length?`${ds.length}곳 · 이동 거리 합계 직선 약 ${total.toFixed(1)}km (실제 길은 더 길어요)${day.date?(wn?` · ⚠ 휴무인 곳 ${wn}곳`:" · 휴무인 곳 없음"):" · 날짜를 넣으면 휴무일을 확인해 드려요"}`:"";
   // google directions
@@ -1463,9 +1559,15 @@ $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;changed();return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
+  const uf=e.target.closest("[data-unfix]");if(uf){delete day.stops[+uf.dataset.unfix].fix;changed();return}
   const hs=e.target.closest("[data-hstop]");if(hs&&IDX[hs.dataset.hstop]){day.stops.push({id:hs.dataset.hstop,memo:""});changed();toast("숙소를 맨 아래에 넣었어요 · ↑↓로 순서를 옮기세요")}});
 $("stops").addEventListener("input",e=>{const m=e.target.closest("[data-memo]");if(!m)return;plan.days[cur].stops[+m.dataset.memo].memo=m.value.slice(0,120);saveSoon()});
-$("stops").addEventListener("change",e=>{if(e.target.closest("[data-memo]"))renderPlan()});
+$("stops").addEventListener("change",e=>{const day=plan.days[cur];
+  const sy=e.target.closest("[data-stay]");if(sy){day.stops[+sy.dataset.stay].stay=+sy.value;saveSoon();paintTimes();return}
+  const fx=e.target.closest("[data-fix]");if(fx){const st=day.stops[+fx.dataset.fix];if(HHMM.test(fx.value))st.fix=fx.value;else delete st.fix;changed();return}
+  if(e.target.closest("[data-memo]"))renderPlan()});
+$("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;saveSoon();paintTimes()});
+["bNapA","bNapB","bFeed"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={napA:HHMM.test($("bNapA").value)?$("bNapA").value:"",napB:HHMM.test($("bNapB").value)?$("bNapB").value:"",feed:+$("bFeed").value||0};saveSoon();paintTimes()}));
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
   plan.days[cur].date=v;if(plan.trip&&v){if(v<plan.trip.from)plan.trip.from=v;if(v>plan.trip.to)plan.trip.to=v}sortDays();fillTrip();changed()});
 $("pstart").addEventListener("change",e=>{const day=plan.days[cur];day.start=e.target.value;day.startName=e.target.selectedOptions[0].textContent;changed()});
@@ -2199,7 +2301,15 @@ window.afterPlanRender = async function(day, ds, S){
   catch(e){ sum.textContent = `${ds.length}곳 · 경로를 계산하지 못해 직선 거리로 보여드려요` + base; return; }
   if(sig !== lastSig) return;                        // 그새 순서가 또 바뀜
   let tot = 0, totm = 0, unknown = 0;
+  const LG = window.__legs || [];
   legs.forEach((l, i) => {
+    if(LG[i]){                                        // 시간표에 실제 이동 시간 반영
+      const sec = parseInt(l.d) || 0;
+      if(modes[i] === "TRANSIT" && l.walk){ const e = transitEst(pts[i], pts[i+1]); LG[i].min = e && e.t * 60 < sec ? e.t : Math.round(sec / 60); LG[i].te = e && e.t * 60 < sec ? e : null; }
+      else { LG[i].min = Math.round(sec / 60); if(modes[i] !== "TRANSIT") LG[i].te = null; }
+      if(modes[i] === "DRIVE") LG[i].m = l.m;
+      if(l.m < 50) LG[i].min = 0;
+    }
     const el = document.querySelector(`.leg[data-leg="${i}"] .ltxt`), m = modes[i];
     if(!el) return;
     let txt, far = false;
@@ -2216,6 +2326,7 @@ window.afterPlanRender = async function(day, ds, S){
     }
     el.textContent = txt; el.parentNode.classList.toggle("far", far);
   });
+  if(window.paintTimes) paintTimes();
   sum.textContent = `${ds.length}곳 · 실제 경로 기준 이동 ${mins(tot)} · ${dist(totm)}${unknown ? ` (${unknown}구간 제외)` : ""}` + base;
   /* 지도: 직선 대신 실제 길 (구간마다 이동 수단 색) */
   if(typeof gPlanStraight !== "undefined" && gPlanStraight) gPlanStraight.setMap(null);
