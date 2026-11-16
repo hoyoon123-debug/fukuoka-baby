@@ -1025,6 +1025,11 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .sosmenu button span{font-size:26px}
 .sheet h3{font-size:19px;font-weight:700;letter-spacing:-.02em}
 .nrow{border-radius:14px;background:var(--fill2);border:0!important;padding:10px 12px}
+/* 안드로이드 한 손 조작: 위·아래 이동 버튼 46px, 삭제는 간격을 두고 따로 */
+.stop .ctl{display:grid;grid-template-columns:46px;gap:4px;align-content:center}
+.stop .ctl button{width:46px;height:46px;border:0;border-radius:12px;background:var(--fill);color:var(--ink);font-size:18px;font-weight:600;touch-action:manipulation}
+.stop .ctl button[data-rm]{margin-top:12px;height:38px;background:transparent;color:var(--muted);font-size:15px;border:1px solid var(--line)}
+.stop{grid-template-columns:30px 56px 1fr auto}
 </style>
 
 <header>
@@ -1092,7 +1097,7 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
       <div class="stops" id="stops"></div>
       <div id="nearby"></div>
       <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
-      <div class="btnrow"><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
+      <div class="btnrow"><button class="btn" id="shareBtn" type="button">🔗 일정 공유 링크 복사</button><button class="btn" id="bkBtn" type="button">📦 백업·복원</button><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync"><span id="sync"></span> <button class="btn" id="famBtn" type="button" style="padding:2px 10px;font-size:12.5px">👨‍👩‍👧 가족과 같이 보기</button></div>
     </div>
     <div id="list"></div>
@@ -1123,6 +1128,7 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
   <button class="btn" type="button" id="pClose">닫기</button></div></div>
 <div id="bigjp" hidden></div>
 <div class="sheet" id="nsheet" hidden><div class="wrap2"><h3 id="ntitle">🍼 가까운 수유실</h3><div class="meta" id="nwhere"></div><div class="row" id="nchips"></div><div id="nlist"></div><div id="nmore"></div><button class="btn" type="button" id="nClose">닫기</button></div></div>
+<div class="sheet" id="iosheet" hidden><div class="wrap2" id="iosheetIn"></div></div>
 <div class="sheet" id="hsheet" hidden><div class="wrap2" id="hsheetIn"></div></div>
 
 <script>
@@ -1267,7 +1273,7 @@ function initMap(){
   map.attributionControl.setPrefix("").addAttribution("지도 데이터 © OpenStreetMap 기여자");
   drawBase(map);
   pinLayer=L.layerGroup().addTo(map);
-  map.on("popupopen",e=>hydrate(e.popup.getElement()));
+  map.on("popupopen",e=>{hydrate(e.popup.getElement());backLayer.open({kind:"lpop",m:map})});map.on("popupclose",()=>backLayer.closed("lpop"));
 }
 function drawBase(m){
   const R=L.canvas({padding:0.5});
@@ -1358,7 +1364,7 @@ function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="numb
 function regCustom(list){(list||[]).forEach(c=>{if(c&&c.id&&typeof c.lat==="number"&&(!IDX[c.id]||IDX[c.id].cat==="custom"))IDX[c.id]=mkCustom(c)})}
 const STARTS=[...$("here").options].map(o=>[o.value,o.textContent]);
 const uid=()=>Math.random().toString(36).slice(2,9);
-let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[],trip:null,baby:{napA:"",napB:"",feed:0}};
+let plan={days:[{id:uid(),date:"",start:STARTS[0][0],startName:STARTS[0][1],stops:[]}],custom:[],hotels:[],trip:null,baby:{napA:"",napB:"",feed:0},prefs:{gmode:"walking"}};
 const ISO=/^\d{4}-\d\d-\d\d$/;
 let cur=0,store=null,storeRef=null,lastSaved="",saving=false,pending=false,picking=false,pmap=null,pLayer=null;
 const kmOf=(a,b)=>Math.hypot((a[0]-b[0])*111,(a[1]-b[1])*92.5);
@@ -1385,9 +1391,10 @@ function fixPlan(p){
   p.custom=p.custom.filter(c=>used.has(c.id)||c.saved);
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
   const b=p.baby||{};p.baby={napA:HHMM.test(b.napA||"")?b.napA:"",napB:HHMM.test(b.napB||"")?b.napB:"",feed:[0,120,150,180,210,240].includes(+b.feed)?+b.feed:0,buf:[0,10,15,20].includes(+b.buf)?+b.buf:0};
-  const fl=p.flights||{},f1=o=>{o=o||{};return {no:String(o.no||"").slice(0,12),date:ISO.test(o.date||"")?o.date:"",dep:HHMM.test(o.dep||"")?o.dep:"",arr:HHMM.test(o.arr||"")?o.arr:"",memo:String(o.memo||"").slice(0,80)}};
+  const fl=p.flights||{},f1=o=>{o=o||{};return {no:String(o.no||"").slice(0,12),date:ISO.test(o.date||"")?o.date:"",dep:HHMM.test(o.dep||"")?o.dep:"",arr:HHMM.test(o.arr||"")?o.arr:"",memo:String(o.memo||"").slice(0,80),...([60,90,120,150,180].includes(+o.buf)?{buf:+o.buf}:{})}};
   p.flights={out:f1(fl.out),back:f1(fl.back)};
-  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights};
+  const pf=p.prefs||{};p.prefs={gmode:LMODES[pf.gmode]?pf.gmode:"walking"};
+  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];const o=plan.custom.find(x=>x.id===c.id);if(o)o.saved=true;else plan.custom.push(Object.assign({},c,{saved:true}));regCustom([c])}
 function persist(){
@@ -1397,7 +1404,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},prefs:plan.prefs||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1415,8 +1422,10 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby,flights:plan.flights||p.flights})){plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
+      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby,flights:plan.flights||p.flights,prefs:plan.prefs||p.prefs})){
+        if(lastSaved&&JSON.stringify(plan)!==lastSaved)saveBackup("동시 수정 — 이 폰에서 저장 전이던 내 변경분",plan,true);   // 내 변경분을 조용히 버리지 않기
+        plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1443,7 +1452,8 @@ function gasStore(cfg){
     async set(data){
       const r=await fetch(cfg.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({a:"set",k:cfg.key,base:rev,by:cfg.me||"",data})});
       const j=await r.json();
-      if(j.conflict){setRev(j.rev);cb&&cb(snap(j.data));toast("다른 폰에서 먼저 고친 내용을 불러왔어요 · 방금 바꾼 건 다시 해 주세요");return}
+      if(j.conflict){saveBackup("동시 수정 충돌 — 이 폰에서 고친 내용",{...data},false);setRev(j.rev);lastSaved="";cb&&cb(snap(j.data));lastSaved=JSON.stringify(plan);
+        toast("두 폰에서 동시에 고쳤어요 · 다른 폰 내용을 적용하고, 이 폰에서 고친 내용은 복구용 사본으로 남겼어요",{label:"사본 보기",fn:openBackupSheet});return}
       if(j.err)throw Object.assign(new Error(j.err),{code:j.err});
       setRev(j.rev);
     },
@@ -1479,12 +1489,133 @@ $("famBtn").addEventListener("click",()=>{
       if(!j.key)throw 0;
       localStorage.setItem(FAM_KEY,JSON.stringify({url,key:j.key,me:"호윤"}));localStorage.setItem("fk_fam_rev","0");
       msg.textContent="연결됐어요! 지금 일정을 올리고 있어요…";
-      const st=gasStore(famCfg());await st.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},updatedAt:Date.now()});
+      const st=gasStore(famCfg());await st.set({...planData(),trip:plan.trip||{},updatedAt:Date.now()});
       setTimeout(()=>location.reload(),600);
     }catch(e){msg.textContent="연결하지 못했어요. 배포할 때 액세스를 '모든 사용자'로 했는지 확인해 주세요."}};
   const cp=$("famCopy");if(cp)cp.onclick=async()=>{const l=famShareLink(cfg);try{await navigator.clipboard.writeText(l);toast("링크를 복사했어요 · 카톡으로 와이프에게 보내 주세요")}catch(e){prompt("이 링크를 복사해 주세요",l)}};
   const off=$("famOff");if(off)off.onclick=()=>{localStorage.removeItem(FAM_KEY);location.reload()};
 });
+
+/* ---------- 전체 일정 백업·복원·공유 링크 ---------- */
+// 백업·공유 데이터에는 API 키나 '가족과 같이 보기' 연결 정보(초대 권한)를 넣지 않아요
+const BK_KEY="fk_backups";
+function planData(p){p=p||plan;return {days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{}}}
+function exportObj(){const o=JSON.parse(JSON.stringify(planData()));(o.custom||[]).forEach(c=>{delete c.ohTried;delete c.idTried});return {app:"fukuoka-baby",v:2,at:new Date().toISOString(),plan:o}}
+function listBackups(){try{return JSON.parse(localStorage.getItem(BK_KEY)||"[]")}catch(e){return []}}
+function saveBackup(reason,p,notify){
+  const l=listBackups();l.unshift({at:Date.now(),reason,plan:JSON.parse(JSON.stringify(planData(p)))});
+  for(let n=8;n>0;n--){try{localStorage.setItem(BK_KEY,JSON.stringify(l.slice(0,n)));break}catch(e){}}
+  if(notify)toast("다른 폰에서 바뀐 일정을 받았어요 · 이 폰에서 고치던 내용은 복구용 사본으로 남겨 뒀어요",{label:"사본 보기",fn:openBackupSheet});
+}
+function planRange(p){const ds=(p.days||[]).map(d=>d.date).filter(Boolean).sort();
+  return {n:(p.days||[]).length,from:ds[0]||"",to:ds[ds.length-1]||"",stops:(p.days||[]).reduce((a,d)=>a+((d.stops||[]).length),0),
+    fl:[(p.flights&&p.flights.out||{}).no,(p.flights&&p.flights.back||{}).no].filter(Boolean).join(" / "),custom:(p.custom||[]).filter(c=>c.saved).length}}
+const rangeTxt=r=>`${r.n}일${r.from?` (${r.from}${r.to&&r.to!==r.from?" ~ "+r.to:""})`:""} · 장소 ${r.stops}곳${r.fl?` · 항공편 ${r.fl}`:""}${r.custom?` · 내 장소 ${r.custom}곳`:""}`;
+function mergeMissing(inc){   // 가져온 데이터에 없는 항목은 지금 설정을 그대로 유지
+  const out=Object.assign({},inc);
+  ["baby","flights","prefs"].forEach(k=>{if(inc[k]==null)out[k]=plan[k]?JSON.parse(JSON.stringify(plan[k])):undefined});
+  if(inc.trip===undefined)out.trip=plan.trip||null;
+  if(inc.__legacy){const byDate={};plan.days.forEach(d=>{if(d.date)byDate[d.date]=d});
+    out.days=(inc.days||[]).map(d=>{const o=d.date&&byDate[d.date];if(!o)return d;const r=Object.assign({},d);if(!r.t0&&o.t0)r.t0=o.t0;if(!r.endMode&&o.endMode)r.endMode=o.endMode;
+      r.stops=(d.stops||[]).map(st=>{const os=o.stops.find(x=>x.id===st.id);if(!os)return st;const n=Object.assign({},st);["stay","fix","mode"].forEach(k=>{if(n[k]==null&&os[k]!=null)n[k]=os[k]});return n});return r})}
+  delete out.__legacy;return out;
+}
+function ioSheet(html){$("iosheetIn").innerHTML=html+`<div class="btnrow"><button class="btn" type="button" data-io="close">닫기</button></div>`;$("iosheet").hidden=false}
+let pendingImport=null;
+function importPreview(inc,src){
+  if(!inc||!Array.isArray(inc.days)||!inc.days.length){toast("일정 데이터를 읽지 못했어요");return}
+  pendingImport=inc;const r=planRange(inc),cur0=planRange(plan);
+  ioSheet(`<h3>${esc(src)} 가져오기</h3>
+    <div class="plansum">가져올 일정: <b>${esc(rangeTxt(r))}</b></div>
+    <div class="meta">지금 이 폰의 일정(${esc(rangeTxt(cur0))})은 가져오기 전에 <b>복구용 사본</b>으로 자동 저장돼요. 📦 백업·복원에서 언제든 되돌릴 수 있어요.</div>
+    ${inc.__legacy?`<div class="meta">예전 공유 링크라 항공편·아기 시간·기본 이동수단·출발 시각·머무는 시간·예약 시각이 없어요. 이런 항목은 지금 설정을 그대로 유지해요.</div>`:""}
+    <div class="btnrow"><button class="btn primary" type="button" data-io="apply">이 일정으로 바꾸기</button></div>`);
+}
+function applyImport(){
+  const inc=pendingImport;if(!inc)return;pendingImport=null;
+  saveBackup("가져오기 전 자동 사본",plan);
+  const m=fixPlan(JSON.parse(JSON.stringify(mergeMissing(inc))));
+  if(!m){toast("가져올 일정에 쓸 수 있는 날이 없어요");return}
+  plan=m;cur=0;window.__todaySel=0;$("iosheet").hidden=true;persist();setView("plan");toast("일정을 가져왔어요 · 이전 일정은 복구용 사본에 있어요");
+}
+function openBackupSheet(){
+  const l=listBackups();
+  ioSheet(`<h3>📦 백업·복원</h3>
+    <div class="meta">백업 파일에는 일정·항공편·아기 시간·내 장소가 들어가요. 지도 키나 가족 초대 링크는 들어가지 않아요.</div>
+    <div class="btnrow"><button class="btn primary" type="button" data-io="export">💾 백업 파일 저장</button><label class="btn" style="text-align:center">📂 백업 파일 불러오기<input type="file" accept="application/json,.json" id="ioFile" hidden></label></div>
+    <h3 style="font-size:15px;margin-top:6px">복구용 사본 (이 폰에 자동 저장)</h3>
+    ${l.length?l.map((b,i)=>`<div class="nrow"><div><b>${new Date(b.at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</b> · ${esc(b.reason)}<div class="meta">${esc(rangeTxt(planRange(b.plan)))}</div></div><button class="btn" type="button" data-io="restore:${i}">복원</button></div>`).join(""):`<div class="meta">아직 없어요. 가져오기·복원·동시 수정이 있을 때 자동으로 만들어져요.</div>`}`);
+  const f=$("ioFile");if(f)f.onchange=async()=>{const file=f.files[0];if(!file)return;
+    try{const o=JSON.parse(await file.text());const p=o&&o.app==="fukuoka-baby"&&o.plan?o.plan:o&&Array.isArray(o.days)?o:null;if(!p)throw 0;importPreview(p,"백업 파일")}catch(e){toast("후쿠오카 아기랑 백업 파일이 아니에요")}};
+}
+$("iosheet").addEventListener("click",e=>{const b=e.target.closest("[data-io]");if(!b)return;const a=b.dataset.io;
+  if(a==="close"){$("iosheet").hidden=true;pendingImport=null}
+  else if(a==="apply")applyImport();
+  else if(a==="export"){const o=exportObj(),blob=new Blob([JSON.stringify(o,null,1)],{type:"application/json"}),u=URL.createObjectURL(blob),x=document.createElement("a");
+    const t=new Date(Date.now()+324e5).toISOString().slice(0,16).replace(/[-:T]/g,"");x.href=u;x.download=`fukuoka-plan-${t}.json`;document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);toast("백업 파일을 저장했어요")}
+  else if(a.startsWith("restore:")){const b2=listBackups()[+a.split(":")[1]];if(b2)importPreview(b2.plan,"복구용 사본")}});
+$("bkBtn").addEventListener("click",openBackupSheet);
+// 공유 링크: 전체 일정(항공편·아기 시간·출발/도착·머무는 시간·예약 시각·구간 이동수단 포함)을 압축해서 링크에 담아요
+const b64u=u8=>{let s="";for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+const unb64u=t=>{const s=atob(t.replace(/-/g,"+").replace(/_/g,"/"));const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
+async function packLink(o){const js=JSON.stringify(o);
+  if(window.CompressionStream){const st=new Blob([js]).stream().pipeThrough(new CompressionStream("deflate-raw"));return "z"+b64u(new Uint8Array(await new Response(st).arrayBuffer()))}
+  return "j"+b64u(new TextEncoder().encode(js))}
+async function unpackLink(t){const u=unb64u(t.slice(1));
+  if(t[0]==="z"){const st=new Blob([u]).stream().pipeThrough(new DecompressionStream("deflate-raw"));return JSON.parse(await new Response(st).text())}
+  return JSON.parse(new TextDecoder().decode(u))}
+$("shareBtn").addEventListener("click",async()=>{
+  const o=exportObj();delete o.at;
+  const url=location.origin+location.pathname+"#p2="+await packLink(o);
+  try{await navigator.clipboard.writeText(url);toast("공유 링크를 복사했어요 · 받은 사람 폰에 일정이 복사돼요 (같이 고치려면 '가족과 같이 보기')")}
+  catch(e){window.prompt("이 링크를 복사해서 보내세요",url)}});
+// 예전 링크(#plan=)도 계속 열리게
+function legacyToPlan(g){
+  return {__legacy:true,
+    days:(g.d||[]).map(x=>({id:uid(),date:x.t||"",start:x.s||STARTS[0][0],startName:x.n||"출발지",end:x.e||"",endName:x.en||"",
+      stops:(x.p||[]).map(y=>Array.isArray(y)?{id:y[0],memo:y[1]||"",...(LM1[y[2]]?{mode:LM1[y[2]]}:{})}:{id:y,memo:""}),...(LM1[x.em]?{endMode:LM1[x.em]}:{})})),
+    custom:(g.c||[]).map(c=>({id:c[0],name:c[1],lat:c[2],lng:c[3],addr:c[4]||"",gid:c[5]||"",saved:true})),
+    hotels:(g.h||[]).map(h=>({id:h[0],name:h[1],lat:h[2],lng:h[3],addr:h[4]||"",addrJa:h[5]||""})),
+    ...(Array.isArray(g.r)?{trip:{from:g.r[0],to:g.r[1]}}:g.r===0?{trip:null}:{})};
+}
+async function importFromHash(){
+  const h=location.hash;let inc=null,src="";
+  try{
+    const m2=h.match(/p2=([zj][A-Za-z0-9_-]+)/);
+    if(m2){const o=await unpackLink(m2[1]);inc=o&&o.plan;src="공유 링크"}
+    else{const m1=h.match(/plan=([A-Za-z0-9_-]+)/);if(m1){inc=legacyToPlan(JSON.parse(decodeURIComponent(escape(atob(m1[1].replace(/-/g,"+").replace(/_/g,"/"))))));src="예전 공유 링크"}}
+  }catch(e){toast("공유 링크를 읽지 못했어요");}
+  if(/p2=|plan=/.test(h))history.replaceState(null,"",location.pathname);
+  if(inc)setTimeout(()=>importPreview(inc,src),300);
+}
+importFromHash();
+window.addEventListener("hashchange",()=>{if(/p2=|plan=/.test(location.hash))importFromHash()});
+
+/* ---------- 안드로이드 뒤로가기: 앱을 나가기 전에 열린 팝업·하단 창부터 닫기 ---------- */
+const backLayer=(()=>{
+  // 열린 창이 하나라도 있으면 기록을 한 칸만 쌓고, 뒤로가기마다 맨 위 창부터 닫아요
+  const stack=[];let guard=false,ignore=0,byBack=false;
+  const isSheet=el=>el&&el.nodeType===1&&(el.classList.contains("sheet")||el.id==="bigjp");
+  function ensureGuard(){if(!guard){history.pushState({fkLayer:1},"");guard=true}}
+  function open(entry){stack.push(entry);ensureGuard()}
+  function check(){setTimeout(()=>{if(!stack.length&&guard&&!byBack){guard=false;ignore++;history.back()}},0)}
+  function removeEntry(match){for(let i=stack.length-1;i>=0;i--){if(match(stack[i])){stack.splice(i,1);check();return}}}
+  new MutationObserver(ms=>ms.forEach(m=>{const el=m.target;if(!isSheet(el))return;
+    if(!el.hidden&&!stack.some(x=>x.el===el))open({kind:"sheet",el});
+    else if(el.hidden)removeEntry(x=>x.el===el)})).observe(document.body,{subtree:true,attributes:true,attributeFilter:["hidden"]});
+  new MutationObserver(ms=>ms.forEach(m=>m.removedNodes.forEach(n=>{if(isSheet(n))removeEntry(x=>x.el===n)}))).observe(document.body,{childList:true});
+  window.addEventListener("popstate",()=>{
+    if(ignore>0){ignore--;return}
+    guard=false;const top=stack.pop();if(!top)return;
+    byBack=true;
+    try{if(top.kind==="sheet"){top.el.hidden=true;if(top.el.id==="iosheet")pendingImport=null}
+      else if(top.kind==="lpop")top.m.closePopup();
+      else if(top.kind==="gpop"&&window.__closeGPop)window.__closeGPop();}
+    finally{setTimeout(()=>{byBack=false;if(stack.length)ensureGuard()},0)}
+  });
+  return {open,closed:kind=>removeEntry(x=>x.kind===kind)};
+})();
+window.backLayer=backLayer;
 function openSheet(id){
   const d=BYID[id];if(!d)return;
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
@@ -1545,10 +1676,11 @@ function initPlanMap(){
   pmap=L.map("planmap",{preferCanvas:true,minZoom:11,maxZoom:18,attributionControl:true}).setView([33.5902,130.4017],13);
   pmap.attributionControl.setPrefix("").addAttribution("© OpenStreetMap 기여자");
   drawBase(pmap);pLayer=L.layerGroup().addTo(pmap);
-  pmap.on("popupopen",e=>hydrate(e.popup.getElement()));
+  pmap.on("popupopen",e=>{hydrate(e.popup.getElement());backLayer.open({kind:"lpop",m:pmap})});pmap.on("popupclose",()=>backLayer.closed("lpop"));
   pmap.on("click",e=>{if(!picking)return;const h=addHotel({name:"숙소",lat:+e.latlng.lat.toFixed(5),lng:+e.latlng.lng.toFixed(5)});if(h)useHotel(h,cur);picking=false;$("pickStart").classList.remove("on");toast("숙소로 저장했어요 · 칩을 눌러 이름을 바꾸려면 다시 저장하세요");changed()});
 }
-function legMode(day,i){const m=i<day.stops.length?day.stops[i].mode:day.endMode;return LMODES[m]?m:$("gmode").value}
+function baseMode(){const m=plan.prefs&&plan.prefs.gmode;return LMODES[m]?m:"walking"}
+function legMode(day,i){const m=i<day.stops.length?day.stops[i].mode:day.endMode;return LMODES[m]?m:baseMode()}
 /* ---------- 지하철 기준 대중교통 예상 시간 (구글이 일본 대중교통 시간을 안 줄 때) ---------- */
 // 대중교통 망: 지하철 3개 노선 + JR(가고시마선·지쿠히선·가시이선) + 니시테츠(덴진오무타선·다자이후선·가이즈카선) + 공항 국제선 버스
 // [노선, 기다림(분), 역간(분), [[역, 위도, 경도], ...]]  · 역 좌표: 라쿠라쿠 오데카케
@@ -1599,7 +1731,7 @@ function transitTxt(a,b){
   const k=kmOf(a,b),w=walkMin(k),e=transitEst(a,b);
   if(!e)return `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 ${w}분`;
   if(e.t>w-5)return `🚶 걸어가는 게 나아요 · 약 ${w}분 · 가까워서 전철 탈 필요 없어요`;
-  return `🚆 약 ${e.t}분 (예상) · ${e.txt}`;
+  return `🚆 약 ${e.t}분 (추정 · 시간표 미확인) · ${e.txt}`;
 }
 window.transitTxt=transitTxt;window.transitEst=transitEst;
 function legInfo(a,b,mode){
@@ -1688,7 +1820,7 @@ function paintTimes(){
   const delay=R.fin-P.fin,live=isToday&&SS.some(x=>x.ta||x.td);
   const risk=live?ds.map((d,i)=>{if(SS[i].ta)return null;const fx=SS[i].fix;if(fx&&R.LT[i]&&!P.LT[i])return `${i+1}. ${d.name} 예약에 ${R.LT[i]}분 늦어요`;
     const sp=d.cat!=="hotel"&&hoursOn(d,day.date);if(sp&&sp.length&&!sp.some(([x,y])=>R.A[i]>=x&&R.A[i]<y)&&sp.some(([x,y])=>P.A[i]>=x&&P.A[i]<y))return `${i+1}. ${d.name}은 ${fmt(R.A[i])} 도착이면 문을 닫아요`;return null}).filter(Boolean):[];
-  window.__live={delay,risk,live};window.__times={t0,arr:arr.slice(),dep:dep.slice()};
+  window.__live={delay,risk,live};window.__times={t0,arr:arr.slice(),dep:dep.slice()};if(window.__recheckTransit)window.__recheckTransit();
   renderNearby(day,pt(day.start),ds);
   let t=dep[ds.length-1]||t0;
   const endA=R.endA;
@@ -1718,8 +1850,14 @@ function paintTimes(){
   const liveH=live?`<div class="${delay>10?"warn":""}">⏱ ${Math.abs(delay)<=10?"계획대로 가고 있어요":delay>0?`계획보다 ${delay}분 늦어지고 있어요`:`계획보다 ${-delay}분 여유가 생겼어요`}${risk.length?` · ${esc(risk.join(" · "))}`:delay>30?" · 머무는 시간을 줄이거나 한 곳을 빼는 걸 고려해 보세요":""}</div>`:"";
   let flH="";
   if(FI.out)flH+=`<div>🛬 ${esc(FI.out.no||"가는 편")} ${FI.out.arr} 도착 → 입국·짐 찾기 약 ${FL_PREP}분${day.t0?` · 출발 시각은 직접 정한 ${day.t0} 기준`:` → ${fmt(t0)} 공항 출발로 계산했어요`}</div>`;
-  if(FI.back){const late=fin-FI.dl;flH+=`<div class="${late>0?"warn":""}">🛫 ${esc(FI.back.no||"오는 편")} ${FI.back.dep} 출발 · 공항에 <b>${fmt(FI.dl)}</b>까지 가야 해요 (2시간 전) · ${late>0?`지금 일정이면 ${fmt(fin)} 도착이라 ${late}분 늦어요`:`지금 일정이면 ${fmt(fin)} 도착 · ${-late}분 여유`}</div>`}
-  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소 출발"} <b>${fmt(fin)}</b> 예상</div>${fin>=1200?`<div class="warn">🌙 일정이 저녁 8시를 넘겨요 · 아이에게는 길 수 있어요</div>`:""}${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
+  if(FI.back){
+    // 공항 도착 시각은 '도착지 = 후쿠오카공항 국제선'이고 마지막 구간(→공항)이 계산됐을 때만
+    const toAirport=isAirportEnd(day),legOK=toAirport&&L[ds.length]&&L[ds.length].min!=null&&R.endA!=null;
+    const head=`🛫 ${esc(FI.back.no||"오는 편")} ${FI.back.dep} 출발 · <b>도착 목표 ${fmt(FI.dl)}</b> (출발 ${FI.buf}분 전 · 항공사 수속 마감과는 달라요)`;
+    if(legOK){const late=R.endA-FI.dl;flH+=`<div class="${late>0?"warn":""}">${head}<br>✈ 국제선 터미널 도착 예상 <b>${fmt(R.endA)}</b> · ${late>0?`목표보다 ${late}분 늦어요`:`목표까지 ${-late}분 여유`}</div>`}
+    else flH+=`<div>${head}<br><span class="warn">공항 도착 미계산</span> · ${toAirport?"공항까지 마지막 이동 시간이 아직 계산되지 않았어요":(day.end?`이 날 도착지가 '${esc(endName(day))}'(이)라 공항 도착을 알 수 없어요`:"이 날 도착지가 비어 있어요")} <button type="button" class="btn" data-setairport="1" style="padding:2px 10px">✈ 국제선 터미널을 도착지로</button></div>`;
+  }
+  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소에서 출발"} <b>${fmt(fin)}</b> 예상</div>${fin>=1200?`<div class="warn">🌙 일정이 저녁 8시를 넘겨요 · 아이에게는 길 수 있어요</div>`:""}${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
 }
 function hoursAt(d,date,a,b){
   const sp=hoursOn(d,date);
@@ -1744,22 +1882,24 @@ function renderFlights(){
     <input type="date" data-fl="${k}:date" value="${esc(f.date||"")}" aria-label="날짜">
     <label>출발 <input type="time" data-fl="${k}:dep" value="${esc(f.dep||"")}"></label>
     <label>도착 <input type="time" data-fl="${k}:arr" value="${esc(f.arr||"")}"></label>
+    ${k==="back"?`<label>공항 도착 목표: 출발 <select data-fl="back:buf" aria-label="공항 도착 목표">${[60,90,120,150,180].map(v=>`<option value="${v}"${(+f.buf||FL_EARLY)===v?" selected":""}>${v}분</option>`).join("")}</select> 전</label>`:""}
     <input data-fl="${k}:memo" value="${esc(f.memo||"")}" placeholder="예약번호·좌석·아기 바구니(배시넷) 메모" aria-label="메모" style="flex:1 1 12em">
     ${f.no?`<a class="lgo" href="https://www.google.com/search?q=${encodeURIComponent(f.no+" flight status")}" target="_blank" rel="noopener">운항 정보 ↗</a>`:""}</div>`};
   box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary>✈ 항공편${F.out&&F.out.no?` · 가는 편 ${esc(F.out.no)} ${esc(F.out.date||"")} ${esc(F.out.arr||"")} 도착`:""}${F.back&&F.back.no?` · 오는 편 ${esc(F.back.no)} ${esc(F.back.date||"")} ${esc(F.back.dep||"")} 출발`:""}</summary>
     ${row("out","🛫 가는 편","KE787")}${row("back","🛬 오는 편","KE788")}
-    <div class="meta">가는 편 날짜의 일정은 도착 ${FL_PREP}분 뒤(입국·짐 찾기)부터, 오는 편 날은 출발 ${FL_EARLY/60}시간 전 공항 도착 기준으로 시간표를 확인해요.</div></details>`;
+    <div class="meta">가는 편 날짜의 일정은 도착 ${FL_PREP}분 뒤(입국·짐 찾기)부터, 오는 편 날은 도착지를 '✈ 후쿠오카공항 국제선'으로 두면 공항 도착 예상과 '도착 목표'(기본 출발 ${FL_EARLY}분 전)를 비교해요. 항공사 수속 마감 시각은 항공사 안내를 따로 확인해 주세요.</div></details>`;
 }
 $("flights").addEventListener("change",e=>{const el=e.target.closest("[data-fl]");if(!el)return;const [k,f]=el.dataset.fl.split(":");
   plan.flights=plan.flights||{out:{},back:{}};plan.flights[k]=plan.flights[k]||{};
-  let v=el.value.trim();if(f==="no")v=v.toUpperCase().replace(/\s+/g,"");plan.flights[k][f]=v;
+  let v=el.value.trim();if(f==="no")v=v.toUpperCase().replace(/\s+/g,"");if(f==="buf")v=+v;plan.flights[k][f]=v;
   const o=plan.flights[k];if(f==="date"&&ISO.test(v)&&!plan.days.some(d=>d.date===v)&&plan.trip)toast("여행 기간 밖의 날짜예요");
   saveSoon();paintTimes();if(document.activeElement!==$("pt0")&&!plan.days[cur].t0){const fi=flightInfo(plan.days[cur]);if(fi.t0!=null)$("pt0").value=fmt(fi.t0)}});
 $("flights").addEventListener("focusout",()=>setTimeout(()=>{if(!$("flights").contains(document.activeElement))renderFlights()},200));
+function isAirportEnd(day){if(!AIRPORT||!day.end||day.end==="__back")return false;if(day.end===AIRPORT[0])return true;const e=pt(day.end),a=pt(AIRPORT[0]);return e.length===2&&kmOf(e,a)<0.4}
 function flightInfo(day){
   const F=plan.flights||{},out=F.out||{},bk=F.back||{},r={};
   if(day.date&&out.date===day.date&&out.arr){r.t0=Math.ceil((toMin(out.arr)+FL_PREP)/5)*5;r.out=out}
-  if(day.date&&bk.date===day.date&&bk.dep){r.dl=toMin(bk.dep)-FL_EARLY;r.back=bk}
+  if(day.date&&bk.date===day.date&&bk.dep){r.buf=+bk.buf||FL_EARLY;r.dl=toMin(bk.dep)-r.buf;r.back=bk}
   return r;
 }
 function renderPlan(){
@@ -1797,6 +1937,7 @@ function renderPlan(){
   if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
+  if(document.activeElement!==$("gmode"))$("gmode").value=baseMode();
   if(document.activeElement!==$("pt0")){const fi=flightInfo(day);$("pt0").value=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00")}
   const bb=plan.baby||{};["bNapA","bNapB"].forEach((k,j)=>{if(document.activeElement!==$(k))$(k).value=j?bb.napB||"":bb.napA||""});$("bFeed").value=String(bb.feed||0);$("bBuf").value=String(bb.buf||0);
   paintTimes();
@@ -1809,7 +1950,7 @@ function renderPlan(){
     if(E)u.searchParams.set("destination",E.join(","));else if(last.cat==="custom"||last.cat==="hotel")u.searchParams.set("destination",`${last.lat},${last.lng}`);else{u.searchParams.set("destination",last.name);u.searchParams.set("destination_place_id",last.id)}
     const realG=d=>d.cat!=="custom"&&d.cat!=="hotel";
     if(mid.length){u.searchParams.set("waypoints",mid.map(d=>realG(d)?d.name:`${d.lat},${d.lng}`).join("|"));if(mid.every(realG))u.searchParams.set("waypoint_place_ids",mid.map(d=>d.id).join("|"))}
-    u.searchParams.set("travelmode",$("gmode").value);
+    u.searchParams.set("travelmode",baseMode());
     $("gdir").href=u.toString();$("gdir").removeAttribute("aria-disabled");$("gdir").style.opacity="";
   }else{$("gdir").removeAttribute("href");$("gdir").style.opacity=".5"}
   drawPlanMap(S,pts,ds,day);
@@ -1844,6 +1985,7 @@ $("stops").addEventListener("change",e=>{const day=plan.days[cur];
   const sy=e.target.closest("[data-stay]");if(sy){day.stops[+sy.dataset.stay].stay=+sy.value;saveSoon();paintTimes();return}
   const fx=e.target.closest("[data-fix]");if(fx){const st=day.stops[+fx.dataset.fix];if(HHMM.test(fx.value))st.fix=fx.value;else delete st.fix;changed();return}
   if(e.target.closest("[data-memo]"))renderPlan()});
+$("plantime").addEventListener("click",e=>{if(!e.target.closest("[data-setairport]")||!AIRPORT)return;const day=plan.days[cur];day.end=AIRPORT[0];day.endName=AIRPORT[1];changed();toast("도착지를 후쿠오카공항 국제선으로 정했어요")});
 $("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;saveSoon();paintTimes()});
 ["bNapA","bNapB","bFeed","bBuf"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={napA:HHMM.test($("bNapA").value)?$("bNapA").value:"",napB:HHMM.test($("bNapB").value)?$("bNapB").value:"",feed:+$("bFeed").value||0,buf:+$("bBuf").value||0};saveSoon();paintTimes()}));
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
@@ -1851,7 +1993,7 @@ $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.
 $("pstart").addEventListener("change",e=>{const day=plan.days[cur];day.start=e.target.value;day.startName=e.target.selectedOptions[0].textContent;changed()});
 $("pend").addEventListener("change",e=>{const day=plan.days[cur];day.end=e.target.value;day.endName=e.target.value&&e.target.value!=="__back"?e.target.selectedOptions[0].textContent:"";changed()});
 $("pickStart").addEventListener("click",()=>{picking=!picking;renderPlan();if(picking)toast("지도에서 숙소 위치를 눌러 주세요")});
-$("gmode").addEventListener("change",()=>renderPlan());
+$("gmode").addEventListener("change",e=>{plan.prefs=plan.prefs||{};plan.prefs.gmode=LMODES[e.target.value]?e.target.value:"walking";changed()});
 $("autoOrder").addEventListener("click",()=>{const day=plan.days[cur];let p=pt(day.start),left=[...day.stops],out=[];
   while(left.length){let bi=0,bd=1e9;left.forEach((x,i)=>{const d=BYID[x.id],k=kmOf(p,[d.lat,d.lng]);if(k<bd){bd=k;bi=i}});const x=left.splice(bi,1)[0];out.push(x);p=[BYID[x.id].lat,BYID[x.id].lng]}
   day.stops=out;changed();toast("출발지에서 가까운 순으로 정렬했어요")});
@@ -2293,7 +2435,12 @@ function circle(color, scale, stroke){
   return {path: google.maps.SymbolPath.CIRCLE, fillColor: color, fillOpacity: 1, strokeColor: stroke || "#fff", strokeWeight: 2, scale};
 }
 window.gCircle = circle;
-function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 290}); } return gInfo; }
+function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 290});
+  gInfo.addListener("closeclick", () => { popOpen = false; window.backLayer && backLayer.closed("gpop"); }); }
+  // 뒤로가기로 닫을 수 있게 기록 (이미 열린 창을 다른 핀으로 바꿀 때는 한 번만)
+  if(!popOpen && window.backLayer) backLayer.open({kind: "gpop"});
+  return gInfo; }
+window.__closeGPop = () => { popOpen = false; if(gInfo) gInfo.close(); if(addrMk){ addrMk.setMap(null); addrMk = null; } };
 function openPop(m, mk, d){
   const w = info(), el = document.createElement("div");
   el.innerHTML = pop(d);
@@ -2306,6 +2453,7 @@ function closePops(){   // 빈 지도를 한 번 누르면 열린 정보창 닫�
   if(Date.now() - lpAt < 800) return true;            // 방금 길게 눌러 연 창은 유지
   const was = popOpen; popOpen = false;
   if(gInfo) gInfo.close();
+  if(was && window.backLayer) backLayer.closed("gpop");
   if(addrMk){ addrMk.setMap(null); addrMk = null; }
   return was;
 }
@@ -2451,47 +2599,7 @@ window.drawPlanMap = function(S, pts, ds, day){
   else { gPmap.setCenter({lat: S[0], lng: S[1]}); gPmap.setZoom(15); }
 };
 
-/* ---------- 일정 공유 링크 ---------- */
-const enc = o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-const dec = s=>JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/")))));
-const shareBtn = document.createElement("button");
-shareBtn.className = "btn"; shareBtn.type = "button"; shareBtn.textContent = "🔗 일정 공유 링크 복사";
-$("delDay").parentNode.insertBefore(shareBtn, $("delDay"));
-shareBtn.addEventListener("click", async ()=>{
-  const slim = {d: plan.days.map(x=>({t: x.date, s: x.start, n: x.startName, ...(x.end ? {e: x.end, en: x.endName} : {}), p: x.stops.map(y=>y.mode ? [y.id, y.memo || "", y.mode[0]] : y.memo ? [y.id, y.memo] : y.id), ...(x.endMode ? {em: x.endMode[0]} : {})})),
-                c: (plan.custom || []).map(c=>[c.id, c.name, +c.lat.toFixed(6), +c.lng.toFixed(6), c.addr || "", c.gid || ""]),
-                h: (plan.hotels || []).map(h=>[h.id, h.name, h.lat, h.lng, h.addr || "", h.addrJa || ""]),
-                r: plan.trip ? [plan.trip.from, plan.trip.to] : 0};
-  const url = location.origin + location.pathname + "#plan=" + enc(slim);
-  try{ await navigator.clipboard.writeText(url); toast("링크를 복사했어요 · 카톡으로 보내세요"); }
-  catch(e){ window.prompt("이 링크를 복사해서 보내세요", url); }
-});
-function importFromHash(){
-  const m = location.hash.match(/plan=([A-Za-z0-9_-]+)/);
-  if(!m) return;
-  let got;
-  try{ got = dec(m[1]); }catch(e){ return; }
-  const bar = document.createElement("div");
-  bar.className = "sheet";
-  bar.innerHTML = `<div class="wrap2"><h3>공유받은 일정이 있어요 (${got.d.length}일)</h3>
-    <div class="plansum">불러오면 이 폰에 있던 일정은 바뀌어요.</div>
-    <div class="btnrow"><button class="btn primary" id="impY">불러오기</button><button class="btn" id="impN">닫기</button></div></div>`;
-  document.body.appendChild(bar);
-  const done = ()=>{ bar.remove(); history.replaceState(null, "", location.pathname); };
-  bar.querySelector("#impN").onclick = done;
-  bar.querySelector("#impY").onclick = ()=>{
-    const custom = (got.c || []).map(c=>({id: c[0], name: c[1], lat: c[2], lng: c[3], addr: c[4], gid: c[5]}));
-    regCustom(custom);
-    regHotels((got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})));
-    plan = {days: got.d.map(x=>({id: uid(), date: x.t || "", start: x.s || STARTS[0][0], startName: x.n || "출발지", end: x.e || "", endName: x.en || "",
-      stops: (x.p || []).map(y=>Array.isArray(y) ? {id: y[0], memo: y[1] || "", ...(LM1[y[2]] ? {mode: LM1[y[2]]} : {})} : {id: y, memo: ""}).filter(y=>BYID[y.id]), ...(LM1[x.em] ? {endMode: LM1[x.em]} : {})})), custom,
-      hotels: (got.h || []).map(h=>({id: h[0], name: h[1], lat: h[2], lng: h[3], addr: h[4], addrJa: h[5]})),
-      trip: Array.isArray(got.r) ? {from: got.r[0], to: got.r[1]} : null};
-    cur = 0; persist(); done(); setView("plan"); toast("일정을 불러왔어요");
-  };
-}
-importFromHash();
-
+/* 일정 공유 링크·가져오기는 guide_template.html 의 '전체 일정 백업·복원·공유 링크'로 옮겼어요 */
 /* ---------- 오프라인 (서비스 워커) ---------- */
 if("serviceWorker" in navigator && location.protocol === "https:"){
   navigator.serviceWorker.register("sw.js").then(r => r.update()).catch(()=>{});
@@ -2587,14 +2695,17 @@ async function route(points, mode, optimize){
   return res;
 }
 /* 한 구간 경로 (구간마다 이동 수단이 달라요) */
-async function legRoute(a, b, mode){
-  const k = mode + "|" + a[0].toFixed(5) + "," + a[1].toFixed(5) + ">" + b[0].toFixed(5) + "," + b[1].toFixed(5);
+const STROLLER_MPM = 58;                                    // 유모차·캐리어 보행 속도 3.5km/h (분당 58m)
+const swm = m => Math.max(1, Math.round((m || 0) / STROLLER_MPM));
+async function legRoute(a, b, mode, depISO){
+  // 대중교통은 날짜·현지 출발 시각이 다르면 다른 결과라 캐시 키에 포함
+  const k = mode + "|" + a[0].toFixed(5) + "," + a[1].toFixed(5) + ">" + b[0].toFixed(5) + "," + b[1].toFixed(5) + (mode === "TRANSIT" ? "|" + (depISO || "now") : "");
   if(cache[k]) return cache[k];
   const pack = (r, walk) => ({d: r.legs[0].duration || "0s", m: r.legs[0].distanceMeters || 0, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {}),
     ...(!walk && mode === "TRANSIT" && !(r.legs[0].steps || []).some(st => st.travelMode === "TRANSIT") ? {walk: true, gwalk: true} : {})});   // 구글도 걷기만 추천한 경우
   let res;
   if(mode === "TRANSIT"){
-    try{ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "TRANSIT"})); }
+    try{ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "TRANSIT", ...(depISO ? {departureTime: depISO} : {})})); if(!res.walk) res.sched = depISO || ""; }
     catch(e){ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "WALK"}), true); }
   }else res = pack(await call({origin: ll(a), destination: ll(b), travelMode: mode}));
   return cache[k] = res;
@@ -2620,6 +2731,15 @@ async function fillCustomPhotos(root){
   }
 }
 window.fillCustomPhotos = fillCustomPhotos;
+/* 시간표가 바뀌어 대중교통 출발 시각이 10분 넘게 달라지면 그 시각으로 다시 조회 (최대 2번) */
+let recheckT = null;
+window.__recheckTransit = function(){
+  const u = window.__depsUsed, TT = window.__times; if(!u || !TT || !u.day.date || u.reruns >= 2) return;
+  const diff = u.deps.some((d, i) => { if(!d) return false; const t = i ? (TT.dep || [])[i-1] : TT.t0; if(t == null) return false;
+    const [h, m] = d.slice(11, 16).split(":").map(Number); return Math.abs(h * 60 + m - t) >= 10; });
+  if(!diff) return;
+  clearTimeout(recheckT); recheckT = setTimeout(() => { window.__nextReruns = u.reruns + 1; window.afterPlanRender(u.day, u.ds, u.S); }, 800);
+};
 /* 직접 추가한 장소 영업시간: 구글에서 한 번 받아 일정과 함께 저장 */
 let hoursBusy = false;
 async function fillCustomHours(){
@@ -2669,11 +2789,16 @@ window.afterPlanRender = async function(day, ds, S){
   const E = endPt(day, S);
   const pts = [S, ...ds.map(d => [d.lat, d.lng])]; if(E) pts.push(E);
   const modes = pts.slice(1).map((_, i) => MODE[legMode(day, i)] || "WALK");
-  const sig = modes.join(",") + JSON.stringify(pts); lastSig = sig;
+  const TT = window.__times || {};
+  const depOf = i => { if(!day.date) return ""; const t = i ? (TT.dep || [])[i-1] : TT.t0; if(t == null) return "";
+    const mm = ((Math.round(t) % 1440) + 1440) % 1440; return `${day.date}T${String(Math.floor(mm/60)).padStart(2,"0")}:${String(mm%60).padStart(2,"0")}:00+09:00`; };
+  const deps = modes.map((m, i) => m === "TRANSIT" ? depOf(i) : "");
+  const sig = modes.join(",") + JSON.stringify(pts) + deps.join(","); lastSig = sig;
+  window.__depsUsed = {day, ds, S, deps: deps.slice(), reruns: window.__nextReruns || 0}; window.__nextReruns = 0;
   const sum = $("plansum"), base = sum.textContent.replace(/^.*?km \(실제 길은 더 길어요\)/, "");
   sum.textContent = `${ds.length}곳 · 실제 경로 계산 중…` + base;
   let legs;
-  try{ legs = await Promise.all(modes.map((m, i) => legRoute(pts[i], pts[i+1], m))); }
+  try{ legs = await Promise.all(modes.map((m, i) => legRoute(pts[i], pts[i+1], m, deps[i]))); }
   catch(e){ sum.textContent = `${ds.length}곳 · 경로를 계산하지 못해 직선 거리로 보여드려요` + base; return; }
   if(sig !== lastSig) return;                        // 그새 순서가 또 바뀜
   let tot = 0, totm = 0, unknown = 0;
@@ -2681,8 +2806,10 @@ window.afterPlanRender = async function(day, ds, S){
   legs.forEach((l, i) => {
     if(LG[i]){                                        // 시간표에 실제 이동 시간 반영
       const sec = parseInt(l.d) || 0;
-      if(modes[i] === "TRANSIT" && l.walk){ const e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), ride = e && e.t * 60 <= sec - 300; LG[i].min = ride ? e.t : Math.round(sec / 60); LG[i].te = ride ? e : null; }
-      else { LG[i].min = Math.round(sec / 60); if(modes[i] !== "TRANSIT") LG[i].te = null; }
+      // 도보는 지도 경로 거리 × 유모차 속도 (여유 시간은 시간표에서 한 번만 더해요)
+      if(modes[i] === "TRANSIT" && l.walk){ const w = swm(l.m), e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), ride = e && e.t <= w - 5; LG[i].min = ride ? e.t : w; LG[i].te = ride ? e : null; LG[i].est = !!ride; }
+      else if(modes[i] === "WALK"){ LG[i].min = swm(l.m); LG[i].te = null; }
+      else { LG[i].min = Math.round(sec / 60); if(modes[i] !== "TRANSIT") LG[i].te = null; LG[i].est = false; }
       if(modes[i] === "DRIVE") LG[i].m = l.m;
       if(l.m < 50) LG[i].min = 0;
     }
@@ -2691,14 +2818,19 @@ window.afterPlanRender = async function(day, ds, S){
     let txt, far = false;
     if(l.m < 50){ txt = "같은 곳·바로 옆"; }
     else if(m === "TRANSIT" && l.walk){                   // 구글이 대중교통 시간을 안 줄 때: 지하철 기준 예상
-      const e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), wsec = parseInt(l.d);
-      if(e && e.t * 60 <= wsec - 300){ tot += e.t * 60; txt = `🚆 약 ${e.t}분 (예상) · ${e.txt}`; }
-      else if(e || l.gwalk){ tot += wsec; totm += l.m; txt = `🚶 걸어가는 게 나아요 · ${mins(l.d)} · ${dist(l.m)} · 가까워서 전철 탈 필요 없어요`; }
-      else{ unknown++; txt = `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 ${mins(l.d)}`; }
+      const w = swm(l.m), e = l.gwalk ? null : transitEst(pts[i], pts[i+1]);
+      if(e && e.t <= w - 5){ tot += e.t * 60; txt = `🚆 약 ${e.t}분 (추정 · 시간표 미확인) · ${e.txt}`; }
+      else if(e || l.gwalk){ tot += w * 60; totm += l.m; txt = `🚶 걸어가는 게 나아요 · 유모차 ${w}분 · ${dist(l.m)} · 가까워서 전철 탈 필요 없어요`; }
+      else{ unknown++; txt = `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 유모차 ${w}분`; }
+    }else if(m === "TRANSIT"){
+      tot += parseInt(l.d); totm += l.m;
+      txt = `🚆 ${mins(l.d)} · ${dist(l.m)} · ${l.sched ? `시간표 기준 ${l.sched.slice(11,16)} 출발` : "날짜가 없어 시간표 미확인"}`;
+    }else if(m === "WALK"){
+      const w = swm(l.m); tot += w * 60; totm += l.m; far = l.m > 2000;
+      txt = `🚶 유모차 ${w}분 · ${dist(l.m)}${far ? " · 대중교통·차 추천" : ""}`;
     }else{
       tot += parseInt(l.d); totm += l.m;
-      far = m === "WALK" && l.m > 2000;
-      txt = `${ICON[m]} ${mins(l.d)} · ${dist(l.m)}${far ? " · 대중교통·차 추천" : ""}`;
+      txt = `${ICON[m]} ${mins(l.d)} · ${dist(l.m)}`;
     }
     el.textContent = txt; el.parentNode.classList.toggle("far", far);
   });
@@ -2722,7 +2854,7 @@ $("optRoute").addEventListener("click", async () => {
   if(ds.length < 2) return;
   if(ds.length > 25){ toast("한 날에 25곳까지만 최적화할 수 있어요"); return; }
   const S = pt(day.start), E = endPt(day, S);
-  const mode = MODE[$("gmode").value] === "DRIVE" ? "DRIVE" : "WALK";   // 대중교통은 도보 기준으로 순서를 정해요
+  const mode = MODE[baseMode()] === "DRIVE" ? "DRIVE" : "WALK";   // 대중교통은 도보 기준으로 순서를 정해요
   const btn = $("optRoute"); btn.disabled = true; btn.textContent = "계산 중…";
   try{
     let stops = day.stops.slice(), endStop = null;
