@@ -1386,23 +1386,32 @@ function toast(t,act){const el=$("toast");el.textContent=t;
 const LMODES={walking:"🚶 도보",transit:"🚇 대중교통",driving:"🚗 차"};
 const LM1={w:"walking",t:"transit",d:"driving"};
 const HHMM=/^([01]\d|2[0-3]):[0-5]\d$/;
+// 앱이 아직 모르는 항목(새 버전에서 생긴 설정 등)은 지우지 않고 그대로 보관해요.
+// 그래서 두 폰의 앱 버전이 잠깐 달라도 예전 버전이 저장하면서 새 항목을 날리지 않아요.
+const K_TOP=["days","custom","hotels","trip","baby","flights","prefs","updatedAt"],K_DAY=["id","date","start","startName","end","endName","stops","endMode","t0"],
+  K_STOP=["id","memo","done","mode","stay","fix","ta","td"],K_HOTEL=["id","name","lat","lng","addr","addrJa"],K_BABY=["napA","napB","feed","buf"],
+  K_FL=["no","date","dep","arr","memo","buf"],K_PREF=["gmode"],K_TRIP=["from","to"];
+function keepExtra(o,known){const r={};if(o&&typeof o==="object"&&!Array.isArray(o))for(const k of Object.keys(o)){if(!known.includes(k)&&k[0]!=="_"&&o[k]!==undefined)r[k]=o[k]}return r}
 function fixPlan(p){
   if(!p||!Array.isArray(p.days)||!p.days.length)return null;
+  const top=keepExtra(p,K_TOP);
   p.custom=Array.isArray(p.custom)?p.custom.filter(c=>c&&c.id&&typeof c.lat==="number"&&typeof c.lng==="number").slice(0,200):[];
   regCustom(p.custom);
   p.hotels=(Array.isArray(p.hotels)?p.hotels:[]).filter(h=>h&&h.id&&typeof h.lat==="number"&&typeof h.lng==="number").slice(0,5)
-    .map(h=>({id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
+    .map(h=>({...keepExtra(h,K_HOTEL),id:h.id,name:String(h.name||"숙소").slice(0,40),lat:h.lat,lng:h.lng,addr:h.addr||"",addrJa:h.addrJa||""}));
   regHotels(p.hotels);
-  p.days=p.days.map(d=>({id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",stops:(d.stops||[]).filter(x=>BYID[x.id]).map(x=>{const o={id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;if(x.stay>0&&x.stay<=600)o.stay=+x.stay;if(HHMM.test(x.fix||""))o.fix=x.fix;if(HHMM.test(x.ta||""))o.ta=x.ta;if(HHMM.test(x.td||""))o.td=x.td;return o}),...(LMODES[d.endMode]?{endMode:d.endMode}:{}),...(HHMM.test(d.t0||"")?{t0:d.t0}:{})}));
+  p.days=p.days.map(d=>({...keepExtra(d,K_DAY),id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",
+    stops:(d.stops||[]).filter(x=>x&&BYID[x.id]).map(x=>{const o={...keepExtra(x,K_STOP),id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;if(x.stay>0&&x.stay<=600)o.stay=+x.stay;if(HHMM.test(x.fix||""))o.fix=x.fix;if(HHMM.test(x.ta||""))o.ta=x.ta;if(HHMM.test(x.td||""))o.td=x.td;return o}),
+    ...(LMODES[d.endMode]?{endMode:d.endMode}:{}),...(HHMM.test(d.t0||"")?{t0:d.t0}:{})}));
   const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
   p.custom.forEach(c=>{if(c.saved===undefined)c.saved=true});
   p.custom=p.custom.filter(c=>used.has(c.id)||c.saved);
-  p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{from:p.trip.from,to:p.trip.to}:null;
-  const b=p.baby||{};p.baby={napA:HHMM.test(b.napA||"")?b.napA:"",napB:HHMM.test(b.napB||"")?b.napB:"",feed:[0,120,150,180,210,240].includes(+b.feed)?+b.feed:0,buf:[0,10,15,20].includes(+b.buf)?+b.buf:0};
-  const fl=p.flights||{},f1=o=>{o=o||{};return {no:String(o.no||"").slice(0,12),date:ISO.test(o.date||"")?o.date:"",dep:HHMM.test(o.dep||"")?o.dep:"",arr:HHMM.test(o.arr||"")?o.arr:"",memo:String(o.memo||"").slice(0,80),...([60,90,120,150,180].includes(+o.buf)?{buf:+o.buf}:{})}};
-  p.flights={out:f1(fl.out),back:f1(fl.back)};
-  const pf=p.prefs||{};p.prefs={gmode:LMODES[pf.gmode]?pf.gmode:"walking"};
-  return {days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs};
+  p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{...keepExtra(p.trip,K_TRIP),from:p.trip.from,to:p.trip.to}:null;
+  const b=p.baby||{};p.baby={...keepExtra(b,K_BABY),napA:HHMM.test(b.napA||"")?b.napA:"",napB:HHMM.test(b.napB||"")?b.napB:"",feed:[0,120,150,180,210,240].includes(+b.feed)?+b.feed:0,buf:[0,10,15,20].includes(+b.buf)?+b.buf:0};
+  const fl=p.flights||{},f1=o=>{o=o||{};return {...keepExtra(o,K_FL),no:String(o.no||"").slice(0,12),date:ISO.test(o.date||"")?o.date:"",dep:HHMM.test(o.dep||"")?o.dep:"",arr:HHMM.test(o.arr||"")?o.arr:"",memo:String(o.memo||"").slice(0,80),...([60,90,120,150,180].includes(+o.buf)?{buf:+o.buf}:{})}};
+  p.flights={...keepExtra(fl,["out","back"]),out:f1(fl.out),back:f1(fl.back)};
+  const pf=p.prefs||{};p.prefs={...keepExtra(pf,K_PREF),gmode:LMODES[pf.gmode]?pf.gmode:"walking"};
+  return {...top,days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];const o=plan.custom.find(x=>x.id===c.id);if(o)o.saved=true;else plan.custom.push(Object.assign({},c,{saved:true}));regCustom([c])}
 function persist(){
@@ -1412,7 +1421,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},prefs:plan.prefs||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({...planData(),trip:plan.trip||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1430,10 +1439,11 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(snap.metadata.hasPendingWrites)return;
       const p=fixPlan(JSON.parse(JSON.stringify(snap.data())));
       if(!p)return;
-      const js=JSON.stringify({days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs});lastSaved=JSON.stringify(plan)===js?js:lastSaved;
-      if(js!==JSON.stringify({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||null,baby:plan.baby||p.baby,flights:plan.flights||p.flights,prefs:plan.prefs||p.prefs})){
+      delete p.updatedAt;
+      const js=JSON.stringify(p),mine=JSON.stringify(fixPlan(JSON.parse(JSON.stringify(plan)))||plan);if(mine===js)lastSaved=JSON.stringify(plan);
+      if(js!==mine){
         if(lastSaved&&JSON.stringify(plan)!==lastSaved)saveBackup("동시 수정 — 이 폰에서 저장 전이던 내 변경분",plan,true);   // 내 변경분을 조용히 버리지 않기
-        plan={days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs};lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
+        plan=p;lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
       $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
@@ -1519,7 +1529,7 @@ $("famBtn").addEventListener("click",()=>{
 /* ---------- 전체 일정 백업·복원·공유 링크 ---------- */
 // 백업·공유 데이터에는 API 키나 '가족과 같이 보기' 연결 정보(초대 권한)를 넣지 않아요
 const BK_KEY="fk_backups";
-function planData(p){p=p||plan;return {days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{}}}
+function planData(p){p=p||plan;return {...keepExtra(p,K_TOP),days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{}}}
 function exportObj(){const o=JSON.parse(JSON.stringify(planData()));(o.custom||[]).forEach(c=>{delete c.ohTried;delete c.idTried});return {app:"fukuoka-baby",v:2,at:new Date().toISOString(),plan:o}}
 function listBackups(){try{return JSON.parse(localStorage.getItem(BK_KEY)||"[]")}catch(e){return []}}
 function saveBackup(reason,p,notify){
