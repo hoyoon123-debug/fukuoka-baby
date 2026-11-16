@@ -1007,7 +1007,7 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
       <div id="nearby"></div>
       <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
       <div class="btnrow"><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
-      <div class="sync" id="sync"></div>
+      <div class="sync"><span id="sync"></span> <button class="btn" id="famBtn" type="button" style="padding:2px 10px;font-size:12.5px">👨‍👩‍👧 가족과 같이 보기</button></div>
     </div>
     <div id="list"></div>
     <button class="more" id="more" hidden>더 보기</button>
@@ -1320,8 +1320,9 @@ function changed(){saveSoon();if(view==="plan")renderPlan()}
 try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)plan=l}catch(e){}
 (async()=>{
   try{
-    store=await window.claude?.use?.("db");
-    if(!store){$("sync").textContent="이 기기에만 저장돼요.";return}
+    store=await window.claude?.use?.("db").catch?.(()=>null)??null;
+    if(store)$("famBtn").hidden=true;
+    if(!store){const cfg=famCfg();if(!cfg){$("sync").textContent="이 기기에만 저장돼요.";return}store={doc:()=>gasStore(cfg)}}
     storeRef=store.doc("trips/main");
     storeRef.onSnapshot(snap=>{
       if(!snap.exists){persist();return}
@@ -1334,6 +1335,70 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
 })();
+
+/* ---------- 가족과 같이 보기 (호윤님 구글 드라이브 · Apps Script) ---------- */
+const FAM_KEY="fk_fam";
+function famCfg(){try{const c=JSON.parse(localStorage.getItem(FAM_KEY)||"null");return c&&/^https:\/\/script\.google(usercontent)?\.com\//.test(c.url)&&c.key?c:null}catch(e){return null}}
+let famDirty=0;
+function gasStore(cfg){
+  let rev=+(localStorage.getItem("fk_fam_rev")||0),cb=null,first=true;
+  const setRev=r=>{rev=r;try{localStorage.setItem("fk_fam_rev",String(r))}catch(e){}};
+  const snap=d=>({exists:!!d,metadata:{hasPendingWrites:false},data:()=>d});
+  async function poll(){
+    if(document.hidden&&!first)return;
+    if(Date.now()-famDirty<4000&&!first)return;            // 방금 고친 내용이 저장되기 전엔 덮어쓰지 않기
+    try{const r=await fetch(`${cfg.url}?a=get&k=${encodeURIComponent(cfg.key)}${first?"":"&since="+rev}&t=${Date.now()}`);const j=await r.json();
+      if(j.err)throw new Error(j.err);
+      if(j.same){first=false;return}
+      if(first||j.rev!==rev){first=false;setRev(j.rev||0);cb&&cb(snap(j.data))}
+    }catch(e){$("sync").textContent="같이 보기 연결이 잠시 안 돼요 · 이 기기에는 저장돼요"}
+  }
+  return {
+    async set(data){
+      const r=await fetch(cfg.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({a:"set",k:cfg.key,base:rev,by:cfg.me||"",data})});
+      const j=await r.json();
+      if(j.conflict){setRev(j.rev);cb&&cb(snap(j.data));toast("다른 폰에서 먼저 고친 내용을 불러왔어요 · 방금 바꾼 건 다시 해 주세요");return}
+      if(j.err)throw Object.assign(new Error(j.err),{code:j.err});
+      setRev(j.rev);
+    },
+    onSnapshot(f,err){cb=f;poll();setInterval(poll,15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()})}
+  };
+}
+function famShareLink(cfg){return location.origin+location.pathname+"#fam="+btoa(unescape(encodeURIComponent(JSON.stringify({u:cfg.url,k:cfg.key}))))}
+(function(){const m=location.hash.match(/fam=([A-Za-z0-9+/=_-]+)/);if(!m)return;
+  try{const o=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(/^https:\/\/script\.google\.com\//.test(o.u)&&o.k){
+    try{localStorage.setItem("fk_plan_backup",localStorage.getItem("fk_plan")||"");localStorage.setItem(FAM_KEY,JSON.stringify({url:o.u,key:o.k,me:"가족"}));localStorage.setItem("fk_fam_rev","0")}catch(e){}
+    history.replaceState(null,"",location.pathname);setTimeout(()=>toast("👨‍👩‍👧 같이 보는 일정에 연결했어요"),800)}}catch(e){}})();
+document.addEventListener("input",()=>{famDirty=Date.now()},true);document.addEventListener("click",e=>{if(e.target.closest("#stops,#nearby,#sheet,#flights,.babyrow"))famDirty=Date.now()},true);
+$("famBtn").addEventListener("click",()=>{
+  const cfg=famCfg(),box=$("hsheetIn");
+  box.innerHTML=`<h3 style="margin:0 0 8px">👨‍👩‍👧 가족과 같이 보기</h3>`+(cfg?`<p>연결돼 있어요. 아래 링크를 와이프 폰에서 한 번 열면 같은 일정을 같이 보고 고칠 수 있어요.</p>
+     <button class="btn primary" type="button" id="famCopy">🔗 같이 보기 링크 복사</button>
+     <p class="meta">링크를 가진 사람은 누구나 일정을 고칠 수 있어요. 가족에게만 보내 주세요.</p>
+     <button class="btn" type="button" id="famOff">이 폰에서 같이 보기 끄기</button>`
+   :`<ol style="padding-left:18px;line-height:1.6">
+      <li>PC에서 <b>script.google.com</b> 접속 → <b>새 프로젝트</b></li>
+      <li>받은 <b>일정공유_AppsScript.gs</b> 내용을 전부 붙여넣고 저장</li>
+      <li><b>배포 → 새 배포</b> → 유형 <b>웹 앱</b>, 실행 <b>나</b>, 액세스 <b>모든 사용자</b> → 배포 → 권한 허용</li>
+      <li>나온 <b>웹 앱 URL</b>을 아래에 붙여넣기</li></ol>
+     <input id="famUrl" placeholder="https://script.google.com/macros/s/…/exec" style="width:100%;font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+     <button class="btn primary" type="button" id="famGo" style="margin-top:8px">연결하기</button><div class="meta" id="famMsg"></div>`)+`<div style="margin-top:10px"><button class="btn" type="button" id="famClose">닫기</button></div>`;
+  $("famClose").onclick=()=>{$("hsheet").hidden=true};
+  $("hsheet").hidden=false;
+  const go=$("famGo");if(go)go.onclick=async()=>{const url=$("famUrl").value.trim();const msg=$("famMsg");
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(url)){msg.textContent="URL이 맞지 않아요. …/exec 로 끝나는 주소를 붙여넣어 주세요.";return}
+    msg.textContent="연결 중…";
+    try{const j=await (await fetch(url+"?a=init&t="+Date.now())).json();
+      if(j.err==="already"){msg.textContent="이미 연결된 저장소예요. 처음 연결한 폰에서 '같이 보기 링크'를 받아 열어 주세요.";return}
+      if(!j.key)throw 0;
+      localStorage.setItem(FAM_KEY,JSON.stringify({url,key:j.key,me:"호윤"}));localStorage.setItem("fk_fam_rev","0");
+      msg.textContent="연결됐어요! 지금 일정을 올리고 있어요…";
+      const st=gasStore(famCfg());await st.set({days:plan.days,custom:plan.custom||[],hotels:plan.hotels||[],trip:plan.trip||{},baby:plan.baby||{},flights:plan.flights||{},updatedAt:Date.now()});
+      setTimeout(()=>location.reload(),600);
+    }catch(e){msg.textContent="연결하지 못했어요. 배포할 때 액세스를 '모든 사용자'로 했는지 확인해 주세요."}};
+  const cp=$("famCopy");if(cp)cp.onclick=async()=>{const l=famShareLink(cfg);try{await navigator.clipboard.writeText(l);toast("링크를 복사했어요 · 카톡으로 와이프에게 보내 주세요")}catch(e){prompt("이 링크를 복사해 주세요",l)}};
+  const off=$("famOff");if(off)off.onclick=()=>{localStorage.removeItem(FAM_KEY);location.reload()};
+});
 function openSheet(id){
   const d=BYID[id];if(!d)return;
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
