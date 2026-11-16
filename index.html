@@ -1463,7 +1463,10 @@ function gasStore(cfg){
 function famShareLink(cfg){return location.origin+location.pathname+"#fam="+btoa(unescape(encodeURIComponent(JSON.stringify({u:cfg.url,k:cfg.key}))))}
 (function(){const m=location.hash.match(/fam=([A-Za-z0-9+/=_-]+)/);if(!m)return;
   try{const o=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(/^https:\/\/script\.google\.com\//.test(o.u)&&o.k){
-    try{localStorage.setItem("fk_plan_backup",localStorage.getItem("fk_plan")||"");localStorage.setItem(FAM_KEY,JSON.stringify({url:o.u,key:o.k,me:"가족"}));localStorage.setItem("fk_fam_rev","0")}catch(e){}
+    try{const cur0=localStorage.getItem("fk_plan")||"";localStorage.setItem("fk_plan_backup",cur0);
+      // 같이 보기에 들어가기 전 이 폰 일정을 '복구용 사본'에도 남겨서 📦 백업·복원에서 되돌릴 수 있게
+      try{const pp=JSON.parse(cur0);if(pp&&Array.isArray(pp.days)&&pp.days.some(d=>(d.stops||[]).length)){const l=JSON.parse(localStorage.getItem("fk_backups")||"[]");l.unshift({at:Date.now(),reason:"가족과 같이 보기 연결 전 이 폰의 일정",plan:pp});localStorage.setItem("fk_backups",JSON.stringify(l.slice(0,8)))}}catch(e){}
+localStorage.setItem(FAM_KEY,JSON.stringify({url:o.u,key:o.k,me:"가족"}));localStorage.setItem("fk_fam_rev","0")}catch(e){}
     history.replaceState(null,"",location.pathname);setTimeout(()=>toast("👨‍👩‍👧 같이 보는 일정에 연결했어요"),800)}}catch(e){}})();
 document.addEventListener("input",()=>{famDirty=Date.now()},true);document.addEventListener("click",e=>{if(e.target.closest("#stops,#nearby,#sheet,#flights,.babyrow"))famDirty=Date.now()},true);
 $("famBtn").addEventListener("click",()=>{
@@ -1471,12 +1474,15 @@ $("famBtn").addEventListener("click",()=>{
   box.innerHTML=`<h3 style="margin:0 0 8px">👨‍👩‍👧 가족과 같이 보기</h3>`+(cfg?`<p>연결돼 있어요. 아래 링크를 와이프 폰에서 한 번 열면 같은 일정을 같이 보고 고칠 수 있어요.</p>
      <button class="btn primary" type="button" id="famCopy">🔗 같이 보기 링크 복사</button>
      <p class="meta">링크를 가진 사람은 누구나 일정을 고칠 수 있어요. 가족에게만 보내 주세요.</p>
+     <p class="meta"><b>홈 화면에 추가한 앱</b>은 브라우저와 저장 공간이 따로라 처음 한 번 연결이 필요해요. 홈 화면 앱에서 '가족과 같이 보기'를 열고 아래 주소를 붙여넣으면 같은 일정에 합류해요.</p>
+     <button class="btn" type="button" id="famUrlCopy">📋 저장소 주소 복사 (다른 기기·홈 화면 앱용)</button>
      <button class="btn" type="button" id="famOff">이 폰에서 같이 보기 끄기</button>`
    :`<ol style="padding-left:18px;line-height:1.6">
       <li>PC에서 <b>script.google.com</b> 접속 → <b>새 프로젝트</b></li>
       <li>받은 <b>일정공유_AppsScript.gs</b> 내용을 전부 붙여넣고 저장</li>
       <li><b>배포 → 새 배포</b> → 유형 <b>웹 앱</b>, 실행 <b>나</b>, 액세스 <b>모든 사용자</b> → 배포 → 권한 허용</li>
       <li>나온 <b>웹 앱 URL</b>을 아래에 붙여넣기</li></ol>
+     <div class="meta">이미 가족이 연결한 주소라면 같은 주소를 넣으면 그 일정에 합류해요. 이 기기에 있던 일정은 복구용 사본으로 남아요.</div>
      <input id="famUrl" placeholder="https://script.google.com/macros/s/…/exec" style="width:100%;font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
      <button class="btn primary" type="button" id="famGo" style="margin-top:8px">연결하기</button><div class="meta" id="famMsg"></div>`)+`<div style="margin-top:10px"><button class="btn" type="button" id="famClose">닫기</button></div>`;
   $("famClose").onclick=()=>{$("hsheet").hidden=true};
@@ -1485,14 +1491,20 @@ $("famBtn").addEventListener("click",()=>{
     if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(url)){msg.textContent="URL이 맞지 않아요. …/exec 로 끝나는 주소를 붙여넣어 주세요.";return}
     msg.textContent="연결 중…";
     try{const j=await (await fetch(url+"?a=init&t="+Date.now())).json();
-      if(j.err==="already"){msg.textContent="이미 연결된 저장소예요. 처음 연결한 폰에서 '같이 보기 링크'를 받아 열어 주세요.";return}
+      if(j.err==="already"){msg.textContent="이미 연결된 저장소예요. 처음 연결한 기기에서 '같이 보기 링크'를 받아 열어 주세요.";return}
       if(!j.key)throw 0;
+      if(j.joined){   // 이미 가족 일정이 있는 저장소에 합류: 이 기기 일정은 복구용 사본으로 남기고 가족 일정을 받아요
+        if(plan.days.some(d=>d.stops.length))saveBackup("같이 보기 합류 전 이 기기의 일정",plan);
+        localStorage.setItem(FAM_KEY,JSON.stringify({url,key:j.key,me:"가족"}));localStorage.setItem("fk_fam_rev","0");
+        msg.textContent="가족 일정에 합류했어요! 이 기기에 있던 일정은 📦 백업·복원의 복구용 사본에 남겨 뒀어요.";
+        setTimeout(()=>location.reload(),1200);return}
       localStorage.setItem(FAM_KEY,JSON.stringify({url,key:j.key,me:"호윤"}));localStorage.setItem("fk_fam_rev","0");
       msg.textContent="연결됐어요! 지금 일정을 올리고 있어요…";
       const st=gasStore(famCfg());await st.set({...planData(),trip:plan.trip||{},updatedAt:Date.now()});
       setTimeout(()=>location.reload(),600);
     }catch(e){msg.textContent="연결하지 못했어요. 배포할 때 액세스를 '모든 사용자'로 했는지 확인해 주세요."}};
   const cp=$("famCopy");if(cp)cp.onclick=async()=>{const l=famShareLink(cfg);try{await navigator.clipboard.writeText(l);toast("링크를 복사했어요 · 카톡으로 와이프에게 보내 주세요")}catch(e){prompt("이 링크를 복사해 주세요",l)}};
+  const uc=$("famUrlCopy");if(uc)uc.onclick=async()=>{try{await navigator.clipboard.writeText(cfg.url);toast("저장소 주소를 복사했어요 · 다른 기기의 '가족과 같이 보기'에 붙여넣으세요")}catch(e){prompt("이 주소를 복사해 주세요",cfg.url)}};
   const off=$("famOff");if(off)off.onclick=()=>{localStorage.removeItem(FAM_KEY);location.reload()};
 });
 
