@@ -1030,6 +1030,14 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .stop .ctl button{width:46px;height:46px;border:0;border-radius:12px;background:var(--fill);color:var(--ink);font-size:18px;font-weight:600;touch-action:manipulation}
 .stop .ctl button[data-rm]{margin-top:12px;height:38px;background:transparent;color:var(--muted);font-size:15px;border:1px solid var(--line)}
 .stop{grid-template-columns:30px 56px 1fr auto}
+/* 구간 이동수단: 고른 것은 파란 바탕 + 글자, 나머지는 흐리게 (라이트·다크 모두) */
+.leg .lms{background:var(--fill)!important;padding:2px!important;border-radius:10px!important;gap:2px}
+.leg .lms button{display:inline-flex;align-items:center;gap:3px;padding:5px 9px!important;border-radius:8px!important;color:var(--muted)!important;background:transparent!important;box-shadow:none!important;font-size:12.5px!important;font-weight:600}
+.leg .lms button .li{font-size:15px;filter:grayscale(1);opacity:.7}
+.leg .lms button .lt{display:none}
+.leg .lms button[aria-pressed="true"]{background:var(--sea)!important;color:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important}
+.leg .lms button[aria-pressed="true"] .li{filter:none;opacity:1}
+.leg .lms button[aria-pressed="true"] .lt{display:inline}
 </style>
 
 <header>
@@ -1760,7 +1768,7 @@ function legHTML(i,a,b,mode,dest){
   const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",a.join(","));
   if(dest&&dest.cat!=="custom"&&dest.cat!=="hotel"){u.searchParams.set("destination",dest.name);u.searchParams.set("destination_place_id",dest.id)}else u.searchParams.set("destination",b.join(","));
   u.searchParams.set("travelmode",mode);
-  return {k:L1.k,min,mode,te:te&&te.t<=wm-5?te:null,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a><span class="lex" data-lex="${i}"></span></div>`}
+  return {k:L1.k,min,mode,te:te&&te.t<=wm-5?te:null,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}"><span class="li">${t.split(" ")[0]}</span><span class="lt">${t.split(" ")[1]}</span></button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a><span class="lex" data-lex="${i}"></span></div>`}
 }
 const fmt=m=>{m=m%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
 const WD=["일","월","화","수","목","금","토"];
