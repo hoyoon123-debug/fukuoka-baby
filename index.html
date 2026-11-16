@@ -16,7 +16,6 @@
 <body>
 
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: 한 손으로 넘겨보는 세로 카드 리스트, 카드 위쪽에 사진 3장 띠, 상단 고정 필터 */
 :root{
@@ -939,6 +938,93 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .ngh{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px}
 .ngh .no{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--sea);color:#fff;font-size:12px}
 .nmore{justify-self:start;font-size:12.5px}
+
+/* ===== Apple 스타일 (iOS 시스템 색·SF 글꼴·반투명 바·그룹 카드) ===== */
+:root{
+  --bg:#f2f2f7; --surface:#ffffff; --ink:#1c1c1e; --muted:#8a8a8e; --line:rgba(60,60,67,.14);
+  --sea:#007aff; --sea-soft:rgba(0,122,255,.12); --milk:#ff2d55; --milk-soft:rgba(255,45,85,.10); --ph:#e5e5ea;
+  --good:#248a3d; --good-soft:rgba(52,199,89,.15); --ok:#007aff; --ok-soft:rgba(0,122,255,.12);
+  --warn:#c93400; --warn-soft:rgba(255,149,0,.16); --none:#8a8a8e; --none-soft:rgba(118,118,128,.12);
+  --fill:rgba(118,118,128,.12); --fill2:rgba(118,118,128,.08); --mat:rgba(242,242,247,.78);
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.06);
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --surface:#1c1c1e; --ink:#f2f2f7; --muted:#98989f; --line:rgba(84,84,88,.45);
+    --sea:#0a84ff; --sea-soft:rgba(10,132,255,.20); --milk:#ff375f; --milk-soft:rgba(255,55,95,.16); --ph:#2c2c2e;
+    --good:#30d158; --good-soft:rgba(48,209,88,.18); --ok:#0a84ff; --ok-soft:rgba(10,132,255,.20);
+    --warn:#ff9f0a; --warn-soft:rgba(255,159,10,.18); --none:#98989f; --none-soft:rgba(118,118,128,.24);
+    --fill:rgba(118,118,128,.24); --fill2:rgba(118,118,128,.16); --mat:rgba(22,22,24,.78); --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1c1c1e; --ink:#f2f2f7; --muted:#98989f; --line:rgba(84,84,88,.45);
+  --sea:#0a84ff; --sea-soft:rgba(10,132,255,.20); --milk:#ff375f; --milk-soft:rgba(255,55,95,.16); --ph:#2c2c2e;
+  --good:#30d158; --good-soft:rgba(48,209,88,.18); --ok:#0a84ff; --ok-soft:rgba(10,132,255,.20);
+  --warn:#ff9f0a; --warn-soft:rgba(255,159,10,.18); --none:#98989f; --none-soft:rgba(118,118,128,.24);
+  --fill:rgba(118,118,128,.24); --fill2:rgba(118,118,128,.16); --mat:rgba(22,22,24,.78); --shadow:none;
+}
+body{font-family:var(--body);-webkit-font-smoothing:antialiased;letter-spacing:-.01em;font-size:15.5px}
+body::before{background:var(--mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+header{background:var(--mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--line)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(22px,6.6vw,30px);letter-spacing:-.02em;white-space:nowrap;word-break:keep-all}
+h1 small{white-space:normal;word-break:keep-all}
+.near,.stop,.card,.meta{word-break:keep-all;overflow-wrap:anywhere}
+h1 small{font-weight:400;font-size:13px;letter-spacing:0}
+/* 세그먼트 컨트롤 */
+.views{background:var(--fill);border:0;border-radius:9px;padding:2px;gap:0}
+.views button{border-radius:7px;color:var(--ink);font-weight:500;font-size:13.5px;padding:5px 14px}
+.views button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .views button[aria-pressed="true"]{background:#636366}}
+:root[data-theme="dark"] .views button[aria-pressed="true"]{background:#636366}
+/* 검색창·입력 */
+#q,.memo,.babyrow input,.babyrow select,#pt0,.flrow input,.fixrow input,.tl select,.bar select{background:var(--fill)!important;border:0!important;border-radius:10px!important;color:var(--ink)}
+#q{padding:9px 12px 9px 34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8a8e' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:11px 50%!important}
+/* 칩·필 */
+.seg{border:0;background:var(--fill);color:var(--ink);font-weight:500;font-size:13.5px;padding:6px 13px}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.chip{border:0;background:var(--fill2);color:var(--ink);border-radius:999px;font-size:13px;padding:5px 12px}
+.chip[aria-pressed="true"]{background:var(--sea);color:#fff;font-weight:600}
+/* 카드 */
+.card{border:0;border-radius:18px;box-shadow:var(--shadow)}
+.name{font-weight:600;font-size:17px;letter-spacing:-.02em}
+.lv{font-weight:600;border-radius:6px;padding:2px 8px}
+.tag{border:0;background:var(--fill2);border-radius:6px;padding:2px 8px}
+.tag.milk{background:var(--milk-soft);color:var(--milk)}
+.nurse{border-radius:12px}
+/* 버튼 */
+.btn{border:0;background:var(--fill);color:var(--sea);font-weight:600;border-radius:10px;padding:7px 13px}
+.btn.primary{background:var(--sea);color:#fff}
+.addbtn{background:var(--sea)!important;color:#fff!important;border:0!important}
+.fav{border:0!important;background:var(--fill)!important;border-radius:10px!important}
+.acts a{color:var(--sea)}
+.fab{border-radius:999px;font-weight:600;background:var(--sea);box-shadow:0 6px 20px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.fab.nurse{background:#ff375f}
+/* 일정 */
+.stop{border:0;border-radius:16px;box-shadow:var(--shadow)}
+.leg .lms{border:0;background:var(--fill);border-radius:8px;padding:2px}
+.leg .lms button{border-radius:6px;padding:4px 11px}
+.leg .lms button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.leg a.lgo{border:0;background:var(--fill2);color:var(--sea)}
+.stp{border:0;background:var(--fill);border-radius:8px}
+.tl{color:var(--ink)}
+.tl .ck{border:0;background:var(--fill)}
+.tl .ck.go{background:var(--sea);color:#fff}
+.btag{border-radius:6px;background:var(--sea-soft)}
+.near{border-top:.5px solid var(--line)}
+.near.mine,.card.mine{background:color-mix(in srgb,#af52de 10%,var(--surface))}
+.lv.lv-mine{background:#af52de}
+.flights details{border:0;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:10px 14px}
+/* 시트(아래에서 올라오는 창) */
+.sheet{border:0;border-radius:14px 14px 0 0;background:var(--surface);box-shadow:0 -10px 40px rgba(0,0,0,.18);padding-top:22px}
+.sheet::before{content:"";position:absolute;top:7px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--fill)}
+#toast{border-radius:14px!important;background:color-mix(in srgb,var(--ink) 88%,transparent)!important;color:var(--bg)!important;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.sosmenu button{border:0!important;background:var(--fill2)!important;border-radius:16px!important;color:var(--ink)!important;font-weight:600}
+.sosmenu button span{font-size:26px}
+.sheet h3{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.nrow{border-radius:14px;background:var(--fill2);border:0!important;padding:10px 12px}
 </style>
 
 <header>
