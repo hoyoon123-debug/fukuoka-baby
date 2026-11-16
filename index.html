@@ -1512,7 +1512,7 @@ function transitEst(a,b){  // 유모차 기준: 역까지 걷기 + 엘리베이�
 function transitTxt(a,b){
   const k=kmOf(a,b),w=walkMin(k),e=transitEst(a,b);
   if(!e)return `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 ${w}분`;
-  if(e.t>=w)return `🚶 걸어가는 게 더 빨라요 · 약 ${w}분 (전철 ${e.t}분)`;
+  if(e.t>w-5)return `🚶 걸어가는 게 나아요 · 약 ${w}분 · 가까워서 전철 탈 필요 없어요`;
   return `🚆 약 ${e.t}분 (예상) · ${e.txt}`;
 }
 window.transitTxt=transitTxt;window.transitEst=transitEst;
@@ -1526,11 +1526,11 @@ function legInfo(a,b,mode){
 function legHTML(i,a,b,mode,dest){
   const L1=legInfo(a,b,mode);
   const lk=kmOf(a,b),wm=walkMin(lk),te=mode==="transit"?transitEst(a,b):null;
-  const min=lk<0.05?0:mode==="driving"?Math.round(lk*1.4/20*60)+3:mode==="transit"?(te&&te.t<wm?te.t:wm):wm;
+  const min=lk<0.05?0:mode==="driving"?Math.round(lk*1.4/20*60)+3:mode==="transit"?(te&&te.t<=wm-5?te.t:wm):wm;
   const u=new URL("https://www.google.com/maps/dir/");u.searchParams.set("api","1");u.searchParams.set("origin",a.join(","));
   if(dest&&dest.cat!=="custom"&&dest.cat!=="hotel"){u.searchParams.set("destination",dest.name);u.searchParams.set("destination_place_id",dest.id)}else u.searchParams.set("destination",b.join(","));
   u.searchParams.set("travelmode",mode);
-  return {k:L1.k,min,mode,te:te&&te.t<wm?te:null,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a><span class="lex" data-lex="${i}"></span></div>`}
+  return {k:L1.k,min,mode,te:te&&te.t<=wm-5?te:null,html:`<div class="leg${L1.far?" far":""}" data-leg="${i}"><span class="lms" role="group" aria-label="이 구간 이동 수단">${Object.entries(LMODES).map(([m,t])=>`<button type="button" data-lmode="${i}:${m}" aria-pressed="${m===mode}" title="${t}">${t.split(" ")[0]}</button>`).join("")}</span><span class="ltxt">${L1.txt}</span><a class="lgo" href="${esc(u.toString())}" target="_blank" rel="noopener">길 보기 ↗</a><span class="lex" data-lex="${i}"></span></div>`}
 }
 const fmt=m=>{m=m%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
 const WD=["일","월","화","수","목","금","토"];
@@ -2441,7 +2441,7 @@ function decode(str){
 async function call(body){
   const r = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {method: "POST",
     headers: {"Content-Type": "application/json", "X-Goog-Api-Key": KEY,
-      "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration,routes.legs.polyline.encodedPolyline,routes.optimizedIntermediateWaypointIndex"},
+      "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration,routes.legs.polyline.encodedPolyline,routes.legs.steps.travelMode,routes.optimizedIntermediateWaypointIndex"},
     body: JSON.stringify({languageCode: "ko", units: "METRIC", ...body})});
   const j = await r.json();
   if(!r.ok || !j.routes || !j.routes.length) throw new Error((j.error && j.error.message) || "no route");
@@ -2504,7 +2504,8 @@ async function route(points, mode, optimize){
 async function legRoute(a, b, mode){
   const k = mode + "|" + a[0].toFixed(5) + "," + a[1].toFixed(5) + ">" + b[0].toFixed(5) + "," + b[1].toFixed(5);
   if(cache[k]) return cache[k];
-  const pack = (r, walk) => ({d: r.legs[0].duration || "0s", m: r.legs[0].distanceMeters || 0, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {})});
+  const pack = (r, walk) => ({d: r.legs[0].duration || "0s", m: r.legs[0].distanceMeters || 0, poly: r.legs[0].polyline.encodedPolyline, ...(walk ? {walk: true} : {}),
+    ...(!walk && mode === "TRANSIT" && !(r.legs[0].steps || []).some(st => st.travelMode === "TRANSIT") ? {walk: true, gwalk: true} : {})});   // 구글도 걷기만 추천한 경우
   let res;
   if(mode === "TRANSIT"){
     try{ res = pack(await call({origin: ll(a), destination: ll(b), travelMode: "TRANSIT"})); }
@@ -2594,7 +2595,7 @@ window.afterPlanRender = async function(day, ds, S){
   legs.forEach((l, i) => {
     if(LG[i]){                                        // 시간표에 실제 이동 시간 반영
       const sec = parseInt(l.d) || 0;
-      if(modes[i] === "TRANSIT" && l.walk){ const e = transitEst(pts[i], pts[i+1]); LG[i].min = e && e.t * 60 < sec ? e.t : Math.round(sec / 60); LG[i].te = e && e.t * 60 < sec ? e : null; }
+      if(modes[i] === "TRANSIT" && l.walk){ const e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), ride = e && e.t * 60 <= sec - 300; LG[i].min = ride ? e.t : Math.round(sec / 60); LG[i].te = ride ? e : null; }
       else { LG[i].min = Math.round(sec / 60); if(modes[i] !== "TRANSIT") LG[i].te = null; }
       if(modes[i] === "DRIVE") LG[i].m = l.m;
       if(l.m < 50) LG[i].min = 0;
@@ -2604,9 +2605,9 @@ window.afterPlanRender = async function(day, ds, S){
     let txt, far = false;
     if(l.m < 50){ txt = "같은 곳·바로 옆"; }
     else if(m === "TRANSIT" && l.walk){                   // 구글이 대중교통 시간을 안 줄 때: 지하철 기준 예상
-      const e = transitEst(pts[i], pts[i+1]), wsec = parseInt(l.d);
-      if(e && e.t * 60 < wsec){ tot += e.t * 60; txt = `🚆 약 ${e.t}분 (예상) · ${e.txt}`; }
-      else if(e){ tot += wsec; totm += l.m; txt = `🚶 걸어가는 게 더 빨라요 · ${mins(l.d)} · ${dist(l.m)}`; }
+      const e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), wsec = parseInt(l.d);
+      if(e && e.t * 60 <= wsec - 300){ tot += e.t * 60; txt = `🚆 약 ${e.t}분 (예상) · ${e.txt}`; }
+      else if(e || l.gwalk){ tot += wsec; totm += l.m; txt = `🚶 걸어가는 게 나아요 · ${mins(l.d)} · ${dist(l.m)} · 가까워서 전철 탈 필요 없어요`; }
       else{ unknown++; txt = `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 ${mins(l.d)}`; }
     }else{
       tot += parseInt(l.d); totm += l.m;
