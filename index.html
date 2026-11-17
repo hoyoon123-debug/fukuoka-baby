@@ -1065,6 +1065,15 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .leg .lms button[aria-pressed="true"]{background:var(--sea)!important;color:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important}
 .leg .lms button[aria-pressed="true"] .li{filter:none;opacity:1}
 .leg .lms button[aria-pressed="true"] .lt{display:inline}
+/* 이동 구간: 수단 버튼은 늘 같은 자리·같은 크기 · 안내문은 아래 줄 (눌러도 화면이 안 밀리게) */
+.leg{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 8px}
+.leg .lms{display:grid!important;grid-template-columns:repeat(3,74px);grid-column:1}
+.leg .lms button{justify-content:center;padding:5px 0!important;min-height:36px}
+.leg .lms button .lt{display:inline!important;font-size:11.5px}
+.leg .lms button .li{font-size:14px}
+.leg a.lgo{grid-column:2;grid-row:1;justify-self:start}
+.leg .ltxt,.leg .lex{grid-column:1/-1}
+.leg .lex:empty{display:none}
 .appbtns{display:flex;gap:6px;margin-top:6px}
 .abtn{border:0;background:var(--fill);color:var(--sea);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
 .card .myph{height:150px}.card .myph img,.card .myph .noimg{width:100%;height:150px;object-fit:cover;display:block;background:var(--ph)}
@@ -1126,6 +1135,10 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .pi .ok{flex:none;font-size:12.5px;font-weight:700;color:#1f8a4c;background:rgba(52,199,89,.16);border-radius:999px;padding:4px 10px;white-space:nowrap}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pi .ok{color:#5ee08a;background:rgba(52,199,89,.2)}}
 :root[data-theme="dark"] .pi .ok{color:#5ee08a;background:rgba(52,199,89,.2)}
+.pi .ed{font-size:17px;min-width:40px}
+.pi.editing{padding:6px 4px 6px 14px;gap:8px}
+.pedit{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 12px;border:1.5px solid var(--sea);border-radius:10px;background:var(--surface);color:var(--ink)}
+.pi .x.ok2{color:#fff;background:var(--sea);border-radius:10px;font-weight:700;font-size:14px;min-width:56px}
 .pi .x,.mrow .x{border:0;background:none;color:var(--muted);font-size:15px;min-width:44px;height:44px;cursor:pointer}
 .pbar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}.pbar i{display:block;height:100%;width:0;background:var(--sea);transition:width .3s}
 .mtot{background:var(--surface);border-radius:16px;padding:14px 16px;display:grid;gap:2px}
@@ -2264,8 +2277,11 @@ function drawPlanMap(S,pts,ds,day){
 $("days").addEventListener("click",e=>{const b=e.target.closest("[data-pday]");if(!b)return;
   if(b.dataset.pday==="new"){plan.days.push(newDay());cur=plan.days.length-1;changed()}
   else{cur=+b.dataset.pday;picking=false;renderPlan()}});
+// 누른 구간이 화면에서 같은 자리에 머물도록 (다시 그리기·경로 계산으로 높이가 바뀌어도 2초간 보정)
+function holdLeg(i,fn){const q=()=>document.querySelector(`#stops [data-leg="${i}"]`);const el=q(),top=el?el.getBoundingClientRect().top:null;fn();if(top==null)return;
+  const until=Date.now()+2500;const fix=()=>{const n=q();if(n){const d=n.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollBy(0,d)}if(Date.now()<until)requestAnimationFrame(fix)};fix()}
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
-  const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;changed();return}
+  const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;holdLeg(n,()=>changed());return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
   const st=e.target.closest("[data-st]");if(st){const [i,dv]=st.dataset.st.split(":").map(Number),x=day.stops[i],d=BYID[x.id];x.stay=Math.min(480,Math.max(15,(x.stay||STAY[d.cat]||60)+dv));saveSoon();paintTimes();return}
@@ -2840,7 +2856,7 @@ function renderPrep(){
   $("prepCnt").textContent=n?`${c}/${n} 챙김${c===n?" 🎉":""}`:"";
   $("prepBar").style.width=n?Math.round(c/n*100)+"%":"0";
   const rows=[...L.filter(x=>!x.c),...(prepHide?[]:L.filter(x=>x.c))];
-  $("prepList").innerHTML=rows.length?rows.map(x=>`<div class="pi${x.c?" on":""}"><label><input type="checkbox" data-pc="${esc(x.id)}"${x.c?" checked":""}><span>${esc(x.t)}</span></label>${x.c?`<span class="ok">✓ 준비완료</span>`:""}<button type="button" class="x" data-pdel="${esc(x.id)}" aria-label="${esc(x.t)} 지우기">✕</button></div>`).join("")
+  $("prepList").innerHTML=rows.length?rows.map(x=>`<div class="pi${x.c?" on":""}"><label><input type="checkbox" data-pc="${esc(x.id)}"${x.c?" checked":""}><span>${esc(x.t)}</span></label>${x.c?`<span class="ok">✓ 준비완료</span>`:""}<button type="button" class="x ed" data-pedit="${esc(x.id)}" aria-label="${esc(x.t)} 고치기">✎</button><button type="button" class="x" data-pdel="${esc(x.id)}" aria-label="${esc(x.t)} 지우기">✕</button></div>`).join("")
     :`<div class="empty" style="padding:22px 14px">${n?"다 챙겼어요 🎉":"아직 목록이 없어요. 위에 입력하거나 아래 <b>📋 기본 목록 넣기</b>를 눌러 보세요."}</div>`;
   $("prepTools").innerHTML=`<button class="btn" type="button" data-ptool="base">📋 아기 여행 기본 목록 넣기</button>${c?`<button class="btn" type="button" data-ptool="hide">${prepHide?"챙긴 것 보기":"챙긴 것 숨기기"}</button><button class="btn" type="button" data-ptool="reset">↺ 체크 모두 풀기</button>`:""}`;
 }
@@ -2851,7 +2867,16 @@ $("prepForm").addEventListener("submit",e=>{e.preventDefault();const inp=$("prep
   inp.value="";saveSoon();renderPrep();if(n<ts.length)toast("이미 있는 건 빼고 넣었어요")});
 $("prepList").addEventListener("change",e=>{const cb=e.target.closest("[data-pc]");if(!cb)return;const x=(plan.prep||[]).find(y=>y.id===cb.dataset.pc);if(!x)return;
   if(cb.checked)x.c=true;else delete x.c;saveSoon();setTimeout(renderPrep,250)});
-$("prepList").addEventListener("click",e=>{const d=e.target.closest("[data-pdel]");if(!d)return;const L=plan.prep||[],i=L.findIndex(y=>y.id===d.dataset.pdel);if(i<0)return;
+$("prepList").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-pedit]");if(ed){const L=plan.prep||[],x=L.find(y=>y.id===ed.dataset.pedit);if(!x)return;
+    const row=ed.closest(".pi");row.classList.add("editing");
+    row.innerHTML=`<input class="pedit" value="${esc(x.t)}" maxlength="60" enterkeyhint="done" aria-label="준비물 고치기"><button type="button" class="x ok2" data-psave>저장</button>`;
+    const inp=row.querySelector("input");inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);let done=false;
+    const save=keep=>{if(done)return;done=true;const t=inp.value.trim().slice(0,60);
+      if(keep&&t&&t!==x.t){if(L.some(y=>y!==x&&y.t.toLowerCase()===t.toLowerCase()))toast("이미 같은 준비물이 있어요");else{x.t=t;saveSoon();toast("고쳤어요")}}renderPrep()};
+    inp.addEventListener("keydown",k=>{if(k.key==="Enter"&&!k.isComposing){k.preventDefault();save(true)}else if(k.key==="Escape")save(false)});
+    inp.addEventListener("blur",()=>setTimeout(()=>save(true),150));row.querySelector("[data-psave]").addEventListener("click",()=>save(true));return}
+  const d=e.target.closest("[data-pdel]");if(!d)return;const L=plan.prep||[],i=L.findIndex(y=>y.id===d.dataset.pdel);if(i<0)return;
   const [x]=L.splice(i,1);saveSoon();renderPrep();toast(`'${x.t}' 지웠어요`,{label:"되돌리기",fn:()=>{L.splice(Math.min(i,L.length),0,x);saveSoon();renderPrep()}})});
 $("prepTools").addEventListener("click",e=>{const b=e.target.closest("[data-ptool]");if(!b)return;const L=plan.prep||(plan.prep=[]),k=b.dataset.ptool;
   if(k==="base"){let n=0;PREP_BASE.forEach(t=>{if(!L.some(x=>x.t===t)){L.push({id:uid(),t});n++}});saveSoon();renderPrep();toast(n?`기본 준비물 ${n}개를 넣었어요 · 필요 없는 건 ✕로 지우세요`:"기본 목록이 이미 다 있어요");return}
