@@ -1421,7 +1421,7 @@ function persist(){
   if(js===lastSaved)return;
   if(saving){pending=true;return}
   saving=true;$("sync").textContent="저장 중…";
-  storeRef.set({...planData(),trip:plan.trip||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요"})
+  storeRef.set({...planData(),trip:plan.trip||{},updatedAt:Date.now()}).then(()=>{lastSaved=js;$("sync").textContent=(window.__artStore?"저장됨 · Claude 아티팩트 전용 저장소예요 (휴대폰 웹앱 일정과는 따로예요)":"저장됨 · 가족과 같이 보기로 연결된 기기와 같이 보여요")})
    .catch(e=>{$("sync").textContent=e&&e.code==="invalid_argument"?"보기 전용이라 이 기기에만 저장돼요.":"저장하지 못했어요. 이 기기에는 남아 있어요."})
    .finally(()=>{saving=false;if(pending){pending=false;persist()}});
 }
@@ -1431,7 +1431,7 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
 (async()=>{
   try{
     store=await window.claude?.use?.("db").catch?.(()=>null)??null;
-    if(store)$("famBtn").hidden=true;
+    if(store){$("famBtn").hidden=true;window.__artStore=true}
     if(!store){const cfg=famCfg();if(!cfg){$("sync").textContent="이 기기에만 저장돼요.";return}store={doc:()=>gasStore(cfg)}}
     storeRef=store.doc("trips/main");
     storeRef.onSnapshot(snap=>{
@@ -1444,7 +1444,7 @@ try{const l=fixPlan(JSON.parse(localStorage.getItem("fk_plan")||"null"));if(l)pl
       if(js!==mine){
         if(lastSaved&&JSON.stringify(plan)!==lastSaved)saveBackup("동시 수정 — 이 폰에서 저장 전이던 내 변경분",plan,true);   // 내 변경분을 조용히 버리지 않기
         plan=p;lastSaved=JSON.stringify(plan);cur=Math.min(cur,plan.days.length-1);try{localStorage.setItem("fk_plan",lastSaved)}catch(e){}if(view==="plan")renderPlan()}
-      $("sync").textContent="저장됨 · 이 일정을 볼 수 있는 사람과 같이 보여요";
+      $("sync").textContent=(window.__artStore?"저장됨 · Claude 아티팩트 전용 저장소예요 (휴대폰 웹앱 일정과는 따로예요)":"저장됨 · 가족과 같이 보기로 연결된 기기와 같이 보여요");
     },()=>{$("sync").textContent="이 기기에만 저장돼요."});
   }catch(e){$("sync").textContent="이 기기에만 저장돼요."}
 })();
