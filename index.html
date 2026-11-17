@@ -1050,11 +1050,21 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .abtn{border:0;background:var(--fill);color:var(--sea);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
 .card .myph{height:150px}.card .myph img,.card .myph .noimg{width:100%;height:150px;object-fit:cover;display:block;background:var(--ph)}
 .pop .pph img,.pop .pph .noimg{width:100%;height:110px;object-fit:cover;border-radius:10px;display:block;margin-bottom:6px;background:var(--ph)}
+.abtn[aria-pressed="true"]{background:var(--sea);color:#fff}
+.abtn[aria-pressed="true"]::after{content:" 켜짐";font-weight:700}
+#nearAlert{position:fixed;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top,0px));z-index:3000;background:var(--surface);color:var(--ink);border-radius:18px;
+  box-shadow:0 10px 40px rgba(0,0,0,.28);padding:12px;display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;border:2px solid #af52de}
+#nearAlert[hidden]{display:none}
+#nearAlert .nph img,#nearAlert .nph .noimg{width:64px;height:64px;border-radius:12px;object-fit:cover;display:block;background:var(--ph)}
+#nearAlert b{font-size:16px}#nearAlert .meta{font-size:13px}
+#nearAlert .nbtns{grid-column:1/-1;display:flex;gap:8px}
+#nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
+#nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 </style>
 
 <header>
   <div class="wrap">
-    <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small><span class="appbtns"><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button></div></div>
+    <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button></div></div>
     <input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색">
     <div class="row" id="cats"></div>
     <div class="row"><button class="btn" id="myAdd" type="button">＋ 내 장소 추가 (구글맵 링크·이름)</button></div>
@@ -1148,6 +1158,7 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
   <button class="btn" type="button" id="pClose">닫기</button></div></div>
 <div id="bigjp" hidden></div>
 <div class="sheet" id="nsheet" hidden><div class="wrap2"><h3 id="ntitle">🍼 가까운 수유실</h3><div class="meta" id="nwhere"></div><div class="row" id="nchips"></div><div id="nlist"></div><div id="nmore"></div><button class="btn" type="button" id="nClose">닫기</button></div></div>
+<div id="nearAlert" role="alert" hidden></div>
 <div class="sheet" id="iosheet" hidden><div class="wrap2" id="iosheetIn"></div></div>
 <div class="sheet" id="hsheet" hidden><div class="wrap2" id="hsheetIn"></div></div>
 
@@ -1684,6 +1695,49 @@ window.backLayer=backLayer;
     try{await navigator.clipboard.writeText(`${data.text}\n${APP_URL}`);toast("앱 주소를 복사했어요 · 카톡 등 메신저에 붙여넣어 보내세요")}catch(e){prompt("이 주소를 복사해서 보내세요",APP_URL)}
   });
 })();
+
+/* ---------- 📍 근처 알림: 앱을 켜 둔 동안 내 장소 100m 안에 들어오면 알림 (+ 화면 켜 둠) ---------- */
+const nearWatch=(()=>{
+  const KEY="fk_nearOn",R=0.1,RESET=0.3;   // 100m 안에서 알림 · 300m 밖으로 나가면 다시 알릴 수 있게
+  const btn=$("nearBtn"),box=$("nearAlert");let wid=null,lock=null,told=new Set(),last=null,hideT=null;
+  async function keepScreen(){try{if("wakeLock" in navigator&&!document.hidden&&wid!=null){lock=await navigator.wakeLock.request("screen");lock.addEventListener("release",()=>{lock=null})}}catch(e){}}
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&wid!=null&&!lock)keepScreen()});
+  function notify(d,k){
+    const m=Math.round(k*1000),w=Math.max(1,walkMin(k));
+    try{navigator.vibrate&&navigator.vibrate([250,120,250])}catch(e){}
+    box.innerHTML=`<div class="nph">${d.gid?`<span class="noimg" data-gph="${esc(d.gid)}"></span>`:`<span class="noimg"></span>`}</div>
+      <div><div class="meta">📍 저장한 내 장소가 가까워요</div><b>📌 ${esc(d.name)}</b><div class="meta">${m}m · 걸어서 약 ${w}분${(((plan.custom||[]).find(c=>c.id===d.id)||{}).note)?` · 📝 ${esc(((plan.custom||[]).find(c=>c.id===d.id)).note)}`:""}</div></div>
+      <div class="nbtns"><a class="pri" href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=walking" target="_blank" rel="noopener">🚶 길찾기</a><a href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵</a><button type="button" data-nclose>닫기</button></div>`;
+    box.hidden=false;hydrate(box);clearTimeout(hideT);hideT=setTimeout(()=>{box.hidden=true},25000);
+    try{if(window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker)navigator.serviceWorker.ready.then(r=>r.showNotification(`📌 ${d.name} 근처예요`,{body:`${m}m · 걸어서 약 ${w}분`,tag:"near-"+d.id,icon:"icon-192.png",vibrate:[250,120,250]})).catch(()=>{})}catch(e){}
+  }
+  function onPos(p){
+    const here=[p.coords.latitude,p.coords.longitude];last=here;
+    let best=null;
+    myPlaces().forEach(d=>{const k=kmOf(here,[d.lat,d.lng]);if(k>RESET)told.delete(d.id);if(k<=R&&!told.has(d.id)&&(!best||k<best.k))best={d,k}});
+    if(best){told.add(best.d.id);notify(best.d,best.k)}
+  }
+  function start(silent){
+    if(!("geolocation" in navigator)){toast("이 기기에서는 위치를 쓸 수 없어요");return false}
+    if(!myPlaces().length&&!silent){toast("📌 내 장소가 아직 없어요 · 저장한 곳이 있어야 알려줄 수 있어요")}
+    wid=navigator.geolocation.watchPosition(onPos,e=>{if(e.code===1){stop();toast("위치 권한이 꺼져 있어요 · 브라우저 설정에서 위치를 허용해 주세요")}},{enableHighAccuracy:true,maximumAge:10000,timeout:30000});
+    keepScreen();
+    try{if(!silent&&window.Notification&&Notification.permission==="default")Notification.requestPermission()}catch(e){}
+    btn.setAttribute("aria-pressed","true");try{localStorage.setItem(KEY,"1")}catch(e){}
+    if(!silent)toast("📍 근처 알림을 켰어요 · 앱을 켜 둔 동안 내 장소 100m 안에 오면 알려줘요 (화면도 켜 둬요)");
+    return true;
+  }
+  function stop(){
+    if(wid!=null)navigator.geolocation.clearWatch(wid);wid=null;
+    try{lock&&lock.release()}catch(e){}lock=null;
+    btn.setAttribute("aria-pressed","false");try{localStorage.removeItem(KEY)}catch(e){}
+  }
+  btn.addEventListener("click",()=>{if(wid!=null){stop();toast("📍 근처 알림을 껐어요")}else start(false)});
+  box.addEventListener("click",e=>{if(e.target.closest("[data-nclose]"))box.hidden=true});
+  try{if(localStorage.getItem(KEY)==="1")start(true)}catch(e){}
+  return {start,stop,test:onPos};
+})();
+window.nearWatch=nearWatch;
 function openSheet(id){
   const d=BYID[id];if(!d)return;
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
