@@ -1125,7 +1125,6 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div class="row" id="cats"></div>
     <div class="row"><button class="btn" id="myAdd" type="button">＋ 내 장소 추가 (구글맵 링크·이름)</button></div>
     <div class="row" id="areas"></div>
-    <div class="row" id="ages"></div>
     <div class="row" id="feats"></div>
   </div>
 </header>
@@ -1301,7 +1300,6 @@ function controls(){
   const areaCount={};D.forEach(d=>areaCount[d.area]=(areaCount[d.area]||0)+1);
   $("cats").innerHTML=CATS.map(([k,v])=>`<button class="seg" data-cat="${k}" aria-pressed="${st.cat===k}">${v}</button>`).join("");
   $("areas").innerHTML=AREAS.filter(([k])=>k==="all"||areaCount[k]).map(([k,v])=>`<button class="seg" data-area="${k}" aria-pressed="${st.area===k}">${v}</button>`).join("");
-  $("ages").innerHTML=AGES.map(([k,v])=>`<button class="seg" data-age="${k}" aria-pressed="${st.age===k}">${v}</button>`).join("");
   $("feats").innerHTML=FEATS.map(f=>`<button class="chip" data-feat="${f}" aria-pressed="${st.feats.has(f)}">${f}</button>`).join("");
 }
 function list(){
