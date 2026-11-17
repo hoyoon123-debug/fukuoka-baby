@@ -1156,7 +1156,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
         <option value="33.5737,130.4200">라라포트 후쿠오카</option>
       </select>
     </div>
-    <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span><i style="background:#23825a"></i>추천</span><span><i style="background:#2f6fb5"></i>가능</span><span><i style="background:#c98a1c"></i>주의</span><span><i style="background:#8e44c9;box-shadow:0 0 0 2px #fff3b0"></i>📌 내 장소</span><span>◎ 기준 위치</span><button class="nstog" id="nsTog" type="button" aria-pressed="false">🍼 수유실·기저귀 보기</button><button class="nstog lk" id="lkTog" type="button" aria-pressed="false">🧳 유모차 보관</button></div></div>
+    <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span id="lgG"><i style="background:#8e8e93"></i>아이랑 장소</span><span id="lgM"><i style="background:#0a84ff"></i>📌 내 장소</span><span id="lgN" hidden><i style="background:#c4456a"></i>수유실·기저귀</span><span id="lgL" hidden><i style="background:#8a5a2b"></i>유모차 보관</span><button class="nstog" id="nsTog" type="button" aria-pressed="false">🍼 수유실·기저귀 보기</button><button class="nstog lk" id="lkTog" type="button" aria-pressed="false">🧳 유모차 보관</button></div></div>
     <div id="planwrap" hidden>
       <div id="today"></div>
       <div class="triprow"><span class="hl">🗓 여행 기간</span><input type="date" id="tFrom" aria-label="여행 시작일"> ~ <input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">기간 적용</button><span class="meta" id="tInfo"></span></div>
@@ -1418,14 +1418,22 @@ function pop(d){
   const ph=phImg(d,0),th=todayHours(d);
   return `<div class="pop">${ph}<b>${esc(d.name)}</b>${krn(d,1)}<div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${nsLine(d)}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div class="pbtns">${d.url?`<a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a>`:""}<a class="pbtn" href="${dirUrl(d,"transit")}" target="_blank" rel="noopener">🚇 길찾기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${d.url?`<div class="meta" style="font-size:11.5px;margin-top:4px">구글맵에서 리뷰·사진·전화번호를 직접 볼 수 있어요</div>`:""}${planBadge(d)}</div>`;
 }
+/* 지도 핀: 가이드 장소는 회색 하나로 · 내 장소는 파랑 · 수유실/유모차 보관을 켜면 그 핀만 */
+const PIN={guide:"#8e8e93",mine:"#0a84ff",nurse:"#c4456a",locker:"#8a5a2b",r:6};
+function nurseLike(d){return d&&d.cat!=="custom"&&(hasNurse(d)||(d.f||[]).includes("기저귀교환대")||!!d.nurse||!!(NSBY[d.id]&&(NSBY[d.id].nu||NSBY[d.id].dp)))}
+function mapPins(arr){const only=!!(st.ns||st.lk);
+  const places=(only?(st.ns?arr.filter(nurseLike):[]):arr).map(d=>({d,c:only?PIN.nurse:d.cat==="custom"?PIN.mine:PIN.guide,z:d.cat==="custom"?3:only?2:1}));
+  return {places,lk:!!st.lk,ns:!!st.ns}}
+window.mapPins=mapPins;window.PIN=PIN;
 function renderMap(arr){
   initMap(); if(!map)return;
   setTimeout(()=>map.invalidateSize(),0);
   pinLayer.clearLayers();
-  [...arr].sort((a,b)=>ORDER[a.lv]-ORDER[b.lv]).forEach(d=>{
-    L.circleMarker([d.lat,d.lng],{radius:d.lv==="추천"||d.cat==="custom"?9:7,color:d.cat==="custom"?"#fff3b0":"#fff",weight:d.cat==="custom"?3:2,fillColor:LVC[d.lv]||"#8e44c9",fillOpacity:.95}).bindPopup(pop(d),{maxWidth:240}).addTo(pinLayer)});
-  if(st.lk)LOCKERS.forEach(l=>L.circleMarker([l.lat,l.lng],{radius:7,color:"#fff",weight:2,fillColor:"#8a5a2b",fillOpacity:.95}).bindPopup(popLK(l),{maxWidth:260}).addTo(pinLayer));
-  if(st.ns)NS.filter(x=>!IDX[x.gid]).forEach(x=>L.circleMarker([x.lat,x.lng],{radius:6,color:"#fff",weight:2,fillColor:"#c4456a",fillOpacity:.95}).bindPopup(popNS(x),{maxWidth:260}).addTo(pinLayer));
+  const M=mapPins(arr);
+  M.places.sort((a,b)=>a.z-b.z).forEach(({d,c})=>{
+    L.circleMarker([d.lat,d.lng],{radius:PIN.r,color:"#fff",weight:2,fillColor:c,fillOpacity:.95}).bindPopup(pop(d),{maxWidth:240}).addTo(pinLayer)});
+  if(M.lk)LOCKERS.forEach(l=>L.circleMarker([l.lat,l.lng],{radius:PIN.r,color:"#fff",weight:2,fillColor:PIN.locker,fillOpacity:.95}).bindPopup(popLK(l),{maxWidth:260}).addTo(pinLayer));
+  if(M.ns)NS.filter(x=>!IDX[x.gid]).forEach(x=>L.circleMarker([x.lat,x.lng],{radius:PIN.r,color:"#fff",weight:2,fillColor:PIN.nurse,fillOpacity:.95}).bindPopup(popNS(x),{maxWidth:260}).addTo(pinLayer));
   if(hereMk){hereMk.remove();hereMk=null}
   if(st.sort==="near"){const [hl,hg]=hereLL();
     hereMk=L.circleMarker([hl,hg],{radius:11,color:"#b4456a",weight:3,fillColor:"#fff",fillOpacity:.6}).bindTooltip("기준 위치",{direction:"top"}).addTo(map);map.setView([hl,hg],15)}
@@ -1441,7 +1449,9 @@ function render(){
   if(view==="money"){ $("more").hidden=true; renderMoney(); return; }
   $("goHotel").hidden=!(plan.hotels&&plan.hotels.length);
   if(view==="plan"){ $("more").hidden=true; renderPlan(); return; }
-  if(view==="map"){ $("count").textContent=`${arr.length}곳`; $("more").hidden=true; renderMap(arr); return; }
+  if(view==="map"){ const only=!!(st.ns||st.lk);$("lgG").hidden=only;$("lgM").hidden=only;$("lgN").hidden=!st.ns;$("lgL").hidden=!st.lk;
+    $("count").textContent=only?[st.ns?`수유실·기저귀 ${arr.filter(nurseLike).length+NS.filter(x=>!IDX[x.gid]).length}곳`:"",st.lk?`유모차 보관 ${LOCKERS.length}곳`:""].filter(Boolean).join(" · "):`${arr.length}곳`;
+    $("more").hidden=true; renderMap(arr); return; }
   $("count").textContent=`${arr.length}곳`;
   $("list").innerHTML=arr.length?arr.slice(0,st.shown).map(card).join(""):
     `<div class="empty">${st.cat==="mine"?"아직 저장한 내 장소가 없어요. 검색창 옆 <b>＋ 내 장소 추가</b>로 구글맵 링크나 가게 이름을 넣어 보세요.":st.cat==="fav"?"아직 찜한 곳이 없어요. 카드의 ☆ 찜하기를 눌러보세요.":"조건에 맞는 곳이 없어요. 필터를 줄이거나 '아이 정보 없는 곳도 보기'를 켜보세요."}</div>`;
@@ -2388,7 +2398,7 @@ $("nchips").addEventListener("click",e=>{const b=e.target.closest("[data-nm]");i
 try{st.ns=localStorage.getItem("fk_ns")==="1"}catch(e){}
 $("nsTog").setAttribute("aria-pressed",String(!!st.ns));
 $("nsTog").addEventListener("click",()=>{st.ns=!st.ns;try{localStorage.setItem("fk_ns",st.ns?"1":"0")}catch(e){}$("nsTog").setAttribute("aria-pressed",String(st.ns));render();
-  if(st.ns)toast(`수유실·기저귀 교환 장소 ${NS.length}곳을 분홍 점으로 보여 줘요`)});
+  if(st.ns)toast(`수유실·기저귀 교환 장소만 분홍 점으로 보여 줘요 · 다시 누르면 전체`)});
 function getHere(cb){
   const fb=()=>cb(hereLL(),`기준: ${$("here").selectedOptions[0]?.textContent||"선택한 위치"} (내 위치를 못 가져왔어요)`);
   if(!navigator.geolocation)return fb();
@@ -2446,7 +2456,7 @@ $("sLocker").addEventListener("click",()=>{openN("🧳 유모차 맡기기");get
 try{st.lk=localStorage.getItem("fk_lk")==="1"}catch(e){}
 $("lkTog").setAttribute("aria-pressed",String(!!st.lk));
 $("lkTog").addEventListener("click",()=>{st.lk=!st.lk;try{localStorage.setItem("fk_lk",st.lk?"1":"0")}catch(e){}$("lkTog").setAttribute("aria-pressed",String(st.lk));render();
-  if(st.lk)toast(`유모차 보관 장소 ${LOCKERS.length}곳을 갈색 점으로 보여 줘요 · 긴급 메뉴에서 근처 코인로커도 찾을 수 있어요`)});
+  if(st.lk)toast(`유모차 보관 장소 ${LOCKERS.length}곳만 갈색 점으로 보여 줘요 · 다시 누르면 전체`)});
 $("nlist").addEventListener("click",e=>{const f=e.target.closest("[data-lkf]");if(f){window.__lkf=f.dataset.lkf;$("sLocker").click();return}
   const b=e.target.closest("[data-pj]");if(b){$("nsheet").hidden=true;openPhrases(b.dataset.pj)}});
 $("nClose").addEventListener("click",()=>$("nsheet").hidden=true);
@@ -3010,19 +3020,19 @@ window.renderMap = function(arr){
   if(!useG()) return LEAF.renderMap(arr);
   initMap();
   gPins.forEach(m=>m.setMap(null)); gPins = [];
-  [...arr].sort((a,b)=>ORDER[a.lv]-ORDER[b.lv]).forEach(d=>{
-    const mk = new google.maps.Marker({map: gMap, position: {lat: d.lat, lng: d.lng}, title: d.name,
-      icon: d.cat === "custom" ? circle(LVC[d.lv], 9, "#fff3b0") : circle(LVC[d.lv], d.lv === "추천" ? 9 : 7), zIndex: ORDER[d.lv]});
+  const M = mapPins(arr), R = PIN.r;
+  M.places.sort((a,b)=>a.z-b.z).forEach(({d, c, z})=>{
+    const mk = new google.maps.Marker({map: gMap, position: {lat: d.lat, lng: d.lng}, title: d.name, icon: circle(c, R), zIndex: z});
     mk.addListener("click", ()=>openPop(gMap, mk, d));
     gPins.push(mk);
   });
-  if(st.lk) LOCKERS.forEach(l => {
-    const mk = new google.maps.Marker({map: gMap, position: {lat: l.lat, lng: l.lng}, title: l.n, icon: circle("#8a5a2b", 7), zIndex: 1});
+  if(M.lk) LOCKERS.forEach(l => {
+    const mk = new google.maps.Marker({map: gMap, position: {lat: l.lat, lng: l.lng}, title: l.n, icon: circle(PIN.locker, R), zIndex: 2});
     mk.addListener("click", () => { const w = info(), el = document.createElement("div"); el.innerHTML = popLK(l); w.setContent(el); w.open({map: gMap, anchor: mk}); popOpen = true; });
     gPins.push(mk);
   });
-  if(st.ns) NS.filter(x => !IDX[x.gid]).forEach(x => {
-    const mk = new google.maps.Marker({map: gMap, position: {lat: x.lat, lng: x.lng}, title: x.n, icon: circle("#c4456a", 6), zIndex: 0});
+  if(M.ns) NS.filter(x => !IDX[x.gid]).forEach(x => {
+    const mk = new google.maps.Marker({map: gMap, position: {lat: x.lat, lng: x.lng}, title: x.n, icon: circle(PIN.nurse, R), zIndex: 2});
     mk.addListener("click", () => { const w = info(), el = document.createElement("div"); el.innerHTML = popNS(x); w.setContent(el); w.open({map: gMap, anchor: mk}); popOpen = true; });
     gPins.push(mk);
   });
