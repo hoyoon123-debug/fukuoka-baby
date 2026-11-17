@@ -1061,6 +1061,11 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 #nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
+.qrow{display:flex;gap:8px;align-items:stretch;min-width:0}
+header .wrap{grid-template-columns:minmax(0,1fr)}
+.qrow #q{flex:1;min-width:0;width:auto}
+.qrow #myAdd{flex:none;white-space:nowrap;border-radius:10px;padding:0 14px;font-weight:600;min-height:40px}
+body.toolmode .qrow,body.planmode .qrow{display:none}
 /* 준비물 · 경비 탭 */
 #prepwrap,#moneywrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:12px}
 .mform>*{min-width:0}
@@ -1121,9 +1126,8 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 <header>
   <div class="wrap">
     <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
-    <input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색">
+    <div class="qrow"><input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색"><button class="btn" id="myAdd" type="button" title="구글맵 링크나 이름으로 내 장소 추가">＋ 내 장소 추가</button></div>
     <div class="row" id="cats"></div>
-    <div class="row"><button class="btn" id="myAdd" type="button">＋ 내 장소 추가 (구글맵 링크·이름)</button></div>
     <div class="row" id="areas"></div>
     <div class="row" id="feats"></div>
   </div>
@@ -1182,7 +1186,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
       <div class="plantime" id="plantime"></div>
       <div class="stops" id="stops"></div>
       <div id="nearby"></div>
-      <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 장소 직접 추가 (구글맵 링크·이름)</button>
+      <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 내 장소 추가</button>
       <div class="btnrow"><button class="btn" id="shareBtn" type="button">🔗 일정 공유 링크 복사</button><button class="btn" id="bkBtn" type="button">📦 백업·복원</button><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync"><span id="sync"></span> <button class="btn" id="famBtn" type="button" style="padding:2px 10px;font-size:12.5px">👨‍👩‍👧 가족과 같이 보기</button></div>
     </div>
@@ -1322,8 +1326,10 @@ function list(){
     arr.forEach(d=>{d.km=Math.hypot((d.lat-hl)*111,(d.lng-hg)*92.5)});
     return mine.concat(arr).map(d=>{d.km=Math.hypot((d.lat-hl)*111,(d.lng-hg)*92.5);return d}).sort((a,b)=>a.km-b.km);
   }
-  arr.sort((a,b)=>st.sort==="rating"?(b.rating||0)-(a.rating||0):st.sort==="reviews"?(b.reviews||0)-(a.reviews||0):
-    (ORDER[b.lv]-ORDER[a.lv])||(TR[b.trust]-TR[a.trust])||(b.kidn-a.kidn)||((b.rating||0)-(a.rating||0)));
+  // 평점순·리뷰순: 내 장소도 구글 평점·리뷰 수로 같이 정렬 · 아이 편의 순(기본)만 내 장소를 맨 위에
+  if(st.sort==="rating"||st.sort==="reviews"){const k=st.sort==="rating"?"rating":"reviews";
+    return mine.concat(arr).sort((a,b)=>((b[k]||0)-(a[k]||0))||((st.sort==="rating"?(b.reviews||0)-(a.reviews||0):(b.rating||0)-(a.rating||0))))}
+  arr.sort((a,b)=>(ORDER[b.lv]-ORDER[a.lv])||(TR[b.trust]-TR[a.trust])||(b.kidn-a.kidn)||((b.rating||0)-(a.rating||0)));
   return mine.concat(arr);
 }
 function inPlan(id){const out=[];plan.days.forEach((x,i)=>{if(x.stops.some(y=>y.id===id))out.push(i+1)});return out}
@@ -1438,7 +1444,7 @@ function render(){
   if(view==="map"){ $("count").textContent=`${arr.length}곳`; $("more").hidden=true; renderMap(arr); return; }
   $("count").textContent=`${arr.length}곳`;
   $("list").innerHTML=arr.length?arr.slice(0,st.shown).map(card).join(""):
-    `<div class="empty">${st.cat==="mine"?"아직 저장한 내 장소가 없어요. 위의 <b>＋ 내 장소 추가</b>로 구글맵 링크나 가게 이름을 넣어 보세요.":st.cat==="fav"?"아직 찜한 곳이 없어요. 카드의 ☆ 찜하기를 눌러보세요.":"조건에 맞는 곳이 없어요. 필터를 줄이거나 '아이 정보 없는 곳도 보기'를 켜보세요."}</div>`;
+    `<div class="empty">${st.cat==="mine"?"아직 저장한 내 장소가 없어요. 검색창 옆 <b>＋ 내 장소 추가</b>로 구글맵 링크나 가게 이름을 넣어 보세요.":st.cat==="fav"?"아직 찜한 곳이 없어요. 카드의 ☆ 찜하기를 눌러보세요.":"조건에 맞는 곳이 없어요. 필터를 줄이거나 '아이 정보 없는 곳도 보기'를 켜보세요."}</div>`;
   hydrate($("list"));
   $("more").hidden=arr.length<=st.shown;
   $("more").textContent=`더 보기 (${arr.length-st.shown}곳 남음)`;
@@ -1473,7 +1479,7 @@ const BYID=IDX;
 /* 직접 추가한 장소 (구글맵 링크·검색) */
 // 직접 추가한 곳의 지역: 가장 가까운 가이드 장소(1.5km 안)의 지역을 따라가요
 function areaOf(lat,lng){let best=null,bk=1.5;for(const d of D){if(!d.area)continue;const k=kmOf([lat,lng],[d.lat,d.lng]);if(k<bk){bk=k;best=d.area}}return best||""}
-function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:areaOf(c.lat,c.lng),rating:null,reviews:0,
+function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:areaOf(c.lat,c.lng),rating:typeof c.rating==="number"?c.rating:null,reviews:+c.reviews||0,
   url:c.gid?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}&query_place_id=${c.gid}`:`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`,
   gid:c.gid||"",hours:c.hours||[],oh:c.oh||{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
 function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="number")IDX[h.id]=Object.assign(mkCustom({id:h.id,name:h.name,lat:h.lat,lng:h.lng,addr:h.addrJa||h.addr||""}),{cat:"hotel",lv:"숙소",name:"🏨 "+h.name,
@@ -1648,7 +1654,7 @@ $("famBtn").addEventListener("click",()=>{
 // 백업·공유 데이터에는 API 키나 '가족과 같이 보기' 연결 정보(초대 권한)를 넣지 않아요
 const BK_KEY="fk_backups";
 function planData(p){p=p||plan;return {...keepExtra(p,K_TOP),days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{},prep:p.prep||[],money:p.money||{rate:0,items:[]}}}
-function exportObj(){const o=JSON.parse(JSON.stringify(planData()));(o.custom||[]).forEach(c=>{delete c.ohTried;delete c.idTried});return {app:"fukuoka-baby",v:2,at:new Date().toISOString(),plan:o}}
+function exportObj(){const o=JSON.parse(JSON.stringify(planData()));(o.custom||[]).forEach(c=>{delete c.ohTried;delete c.idTried;delete c.rtTried});return {app:"fukuoka-baby",v:2,at:new Date().toISOString(),plan:o}}
 function listBackups(){try{return JSON.parse(localStorage.getItem(BK_KEY)||"[]")}catch(e){return []}}
 function saveBackup(reason,p,notify){
   const l=listBackups();l.unshift({at:Date.now(),reason,plan:JSON.parse(JSON.stringify(planData(p)))});
@@ -3222,6 +3228,13 @@ async function fillCustomHours(){
       try{ const {places} = await Place.searchByText({textQuery: c.name.replace(/^🧳\s*/, ""), fields: ["id", "location"], locationBias: {center: {lat: c.lat, lng: c.lng}, radius: 300}, maxResultCount: 1});
         const pl = places && places[0]; if(pl && kmOf([c.lat, c.lng], [pl.location.lat(), pl.location.lng()]) < 0.1){ c.gid = pl.id; regCustom([c]); } }catch(e){} }
     saveSoon(); }catch(e){} }
+  // 평점·리뷰 수 (목록 평점순·리뷰순 정렬용) · 영업시간과 같은 요금 등급이라 한 번만 받아요
+  const noRt = (plan.custom || []).filter(c => c.gid && c.rating === undefined && !c.rtTried);
+  if(noRt.length){ try{ const {Place} = await google.maps.importLibrary("places"); let n = 0;
+    for(const c of noRt){ c.rtTried = 1;
+      try{ const pl = new Place({id: c.gid}); await pl.fetchFields({fields: ["rating", "userRatingCount"]});
+        c.rating = typeof pl.rating === "number" ? pl.rating : null; c.reviews = pl.userRatingCount || 0; regCustom([c]); n++; }catch(e){} }
+    if(n){ saveSoon(); if(view === "list") render(); } }catch(e){} }
   const todo = (plan.custom || []).filter(c => c.gid && !c.oh && !c.ohTried);
   if(!todo.length) return;
   hoursBusy = true; let got = 0;
@@ -3402,7 +3415,7 @@ setInterval(() => { btn.hidden = !ready(); const f = $("hFind"); if(f) f.hidden 
 const sheet = document.createElement("div");
 sheet.className = "sheet"; sheet.hidden = true;
 sheet.innerHTML = `<div class="wrap2">
-  <h3>장소 직접 추가</h3>
+  <h3>내 장소 추가</h3>
   <div class="plansum">구글맵에서 <b>공유 → 링크 복사</b>한 내용을 붙여넣거나, 가게 이름을 입력하세요.</div>
   <textarea id="apIn" rows="3" enterkeyhint="search" placeholder="예) 이치란 라멘 하카타점 (엔터로 바로 찾기)&#10;또는 https://maps.app.goo.gl/… 공유 문구 전체" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit"></textarea>
   <div class="btnrow"><button class="btn primary" id="apGo" type="button">찾기</button><button class="btn" id="apClose" type="button">닫기</button></div>
@@ -3415,7 +3428,7 @@ const $in = sheet.querySelector("#apIn"), $res = sheet.querySelector("#apRes");
 $in.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); sheet.querySelector("#apGo").click(); } });
 let mode = "stop";
 const $title = sheet.querySelector("h3");
-function openFinder(m){ mode = m; $title.textContent = m === "hotel" ? "숙소 찾기" : "장소 직접 추가";
+function openFinder(m){ mode = m; $title.textContent = m === "hotel" ? "숙소 찾기" : "내 장소 추가";
   $in.placeholder = m === "hotel" ? "예) 호텔 닛코 후쿠오카 / 에어비앤비 주소\n또는 구글맵 공유 문구 전체" : "예) 이치란 라멘 하카타점\n또는 https://maps.app.goo.gl/… 공유 문구 전체";
   sheet.hidden = false; $res.innerHTML = ""; $in.value = ""; $in.focus(); }
 btn.addEventListener("click", () => openFinder("stop"));
