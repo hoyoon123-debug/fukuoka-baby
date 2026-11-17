@@ -824,7 +824,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .near img,.near .noimg{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--ph);display:block}
 .near .info{min-width:0}.near .nm{font-weight:700;font-size:14px}
 .hotelrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.triprow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.triprow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:4px}
+.triprow .trh{grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.triprow .trh .meta{text-align:right}
+.triprow .tsep{color:var(--muted)}
+.triprow input[type=date]{min-width:0;width:100%;min-height:40px}
+.triprow #tApply{min-height:40px;padding:0 14px}
 .triprow .hl{font-size:13px;font-weight:700}
 .triprow input[type=date]{font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .sheetdate{display:flex;gap:8px;align-items:center;font-size:13px}
@@ -944,7 +949,14 @@ body.planmode #q,body.planmode #cats,body.planmode #areas,body.planmode #ages,bo
 .near.mine{background:color-mix(in srgb,#8e44c9 12%,transparent);border-radius:10px;padding-left:6px;padding-right:6px}
 .lv.lv-mine{background:#8e44c9;color:#fff}
 .flights details{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin:6px 0}
-.flights summary{cursor:pointer;font-weight:700;font-size:14px}
+.flights summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;display:grid;gap:4px;position:relative;padding-right:22px}
+.flights summary::-webkit-details-marker{display:none}
+.flights summary::after{content:"›";position:absolute;right:2px;top:-2px;font-size:20px;color:var(--muted);transition:transform .2s}
+.flights details[open] summary::after{transform:rotate(90deg)}
+.flights .fls{display:grid;grid-template-columns:5.2em auto 1fr auto;gap:8px;align-items:baseline;font-weight:500;font-size:13.5px}
+.flights .fls.meta{display:block;font-weight:400}
+.flights .fls b{font-weight:700}
+.flights .fls span:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .flrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0;font-size:13px}
 .flrow input{font:inherit;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 5px}
 .ngrp{display:grid;gap:8px;margin-top:10px}
@@ -1173,7 +1185,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span id="lgG"><i style="background:#8e8e93"></i>아이랑 장소</span><span id="lgM"><i style="background:#0a84ff"></i>📌 내 장소</span><span id="lgN" hidden><i style="background:#c4456a"></i>수유실·기저귀</span><span id="lgL" hidden><i style="background:#8a5a2b"></i>유모차 보관</span><button class="nstog" id="nsTog" type="button" aria-pressed="false">🍼 수유실·기저귀 보기</button><button class="nstog lk" id="lkTog" type="button" aria-pressed="false">🧳 유모차 보관</button></div></div>
     <div id="planwrap" hidden>
       <div id="today"></div>
-      <div class="triprow"><span class="hl">🗓 여행 기간</span><input type="date" id="tFrom" aria-label="여행 시작일"> ~ <input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">기간 적용</button><span class="meta" id="tInfo"></span></div>
+      <div class="triprow"><div class="trh"><span class="hl">🗓 여행 기간</span><span class="meta" id="tInfo"></span></div><input type="date" id="tFrom" aria-label="여행 시작일"><span class="tsep">~</span><input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">적용</button></div>
       <div class="flights" id="flights"></div>
       <div class="days" id="days"></div>
       <div class="wx" id="wx" hidden></div>
@@ -2153,7 +2165,9 @@ function renderFlights(){
     ${k==="back"?`<label>공항 도착 목표: 출발 <select data-fl="back:buf" aria-label="공항 도착 목표">${[60,90,120,150,180].map(v=>`<option value="${v}"${(+f.buf||FL_EARLY)===v?" selected":""}>${v}분</option>`).join("")}</select> 전</label>`:""}
     <input data-fl="${k}:memo" value="${esc(f.memo||"")}" placeholder="예약번호·좌석·아기 바구니(배시넷) 메모" aria-label="메모" style="flex:1 1 12em">
     ${f.no?`<a class="lgo" href="https://www.google.com/search?q=${encodeURIComponent(f.no+" flight status")}" target="_blank" rel="noopener">운항 정보 ↗</a>`:""}</div>`};
-  box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary>✈ 항공편${F.out&&F.out.no?` · 가는 편 ${esc(F.out.no)} ${esc(F.out.date||"")} ${esc(F.out.arr||"")} 도착`:""}${F.back&&F.back.no?` · 오는 편 ${esc(F.back.no)} ${esc(F.back.date||"")} ${esc(F.back.dep||"")} 출발`:""}</summary>
+  box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary><span class="flt">✈ 항공편</span>${(()=>{const md=d=>{if(!ISO.test(d||""))return "";const x=new Date(d+"T00:00");return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`};
+      const ln=(ic,t,f,k,w)=>f&&f.no?`<span class="fls"><span>${ic} ${t}</span><b>${esc(f.no)}</b><span>${md(f.date)}</span><span>${esc(f[k]||"--:--")} ${w}</span></span>`:"";
+      const a=ln("🛫","가는 편",F.out,"arr","도착"),b=ln("🛬","오는 편",F.back,"dep","출발");return a||b?a+b:`<span class="fls meta">편명을 넣으면 일정 시간 계산에 반영돼요</span>`})()}</summary>
     ${row("out","🛫 가는 편","KE787")}${row("back","🛬 오는 편","KE788")}
     <div class="meta">가는 편 날짜의 일정은 도착 ${FL_PREP}분 뒤(입국·짐 찾기)부터, 오는 편 날은 도착지를 '✈ 후쿠오카공항 국제선'으로 두면 공항 도착 예상과 '도착 목표'(기본 출발 ${FL_EARLY}분 전)를 비교해요. 항공사 수속 마감 시각은 항공사 안내를 따로 확인해 주세요.</div></details>`;
 }
