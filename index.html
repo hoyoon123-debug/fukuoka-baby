@@ -1254,10 +1254,10 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div id="moneywrap" hidden>
       <div class="mtot" id="mTot"></div>
       <form id="mForm" class="mform" autocomplete="off">
-        <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button class="btn primary" type="submit">기록</button></div>
+        <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button><button class="btn primary" type="submit">기록</button></div>
         <div class="meta" id="mPrev"></div>
         <div class="mcats" id="mCats"></div>
-        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button></div>
+        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select></div>
         <div class="addrow"><label class="meta" style="display:flex;align-items:center;gap:6px;flex:1">날짜 <input type="date" id="mDate" aria-label="날짜"></label><label class="meta rate" style="display:flex;align-items:center;gap:4px">100엔 = <input id="mRateIn" inputmode="decimal" aria-label="환율" style="width:5em">원</label></div>
         <div class="meta" id="mRate"></div>
       </form>
