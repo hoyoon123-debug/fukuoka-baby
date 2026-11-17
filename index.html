@@ -1228,7 +1228,7 @@ function controls(){
 }
 function list(){
   const q=st.q.trim().toLowerCase();
-  const mine=st.area==="all"&&st.age==="all"&&!st.feats.size&&(st.cat==="all"||st.cat==="mine")?myPlaces().filter(d=>!q||(d.name+d.addr+(d.kr||"")).toLowerCase().includes(q)):[];
+  const mine=st.age==="all"&&!st.feats.size&&(st.cat==="all"||st.cat==="mine")?myPlaces().filter(d=>(st.area==="all"||d.area===st.area)&&(!q||(d.name+d.addr+(d.kr||"")).toLowerCase().includes(q))):[];
   if(st.cat==="mine"){if(st.sort==="near"){const [hl,hg]=hereLL();mine.forEach(d=>{d.km=Math.hypot((d.lat-hl)*111,(d.lng-hg)*92.5)});mine.sort((a,b)=>a.km-b.km)}return mine}
   const arr=D.filter(d=>{
     if(st.cat==="fav"?!favs.has(d.id):(st.cat!=="all"&&d.cat!==st.cat))return false;
@@ -1389,7 +1389,9 @@ $("vPlan").addEventListener("click",()=>setView("plan"));
 /* ---------- 일정(동선) ---------- */
 const BYID=IDX;
 /* 직접 추가한 장소 (구글맵 링크·검색) */
-function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:"",rating:null,reviews:0,
+// 직접 추가한 곳의 지역: 가장 가까운 가이드 장소(1.5km 안)의 지역을 따라가요
+function areaOf(lat,lng){let best=null,bk=1.5;for(const d of D){if(!d.area)continue;const k=kmOf([lat,lng],[d.lat,d.lng]);if(k<bk){bk=k;best=d.area}}return best||""}
+function mkCustom(c){return {id:c.id,name:c.name,lat:c.lat,lng:c.lng,addr:c.addr||"",cat:"custom",type:"",area:areaOf(c.lat,c.lng),rating:null,reviews:0,
   url:c.gid?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}&query_place_id=${c.gid}`:`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`,
   gid:c.gid||"",hours:c.hours||[],oh:c.oh||{},lv:"직접 추가",score:0,f:[],sum:"",tips:[],warn:[],nurse:"",stroller:{s:"정보없음",n:""},kidn:0,latest:"",trust:"",np:0,phby:"",pc:-1,ages:{}}}
 function regHotels(list){(list||[]).forEach(h=>{if(h&&h.id&&typeof h.lat==="number")IDX[h.id]=Object.assign(mkCustom({id:h.id,name:h.name,lat:h.lat,lng:h.lng,addr:h.addrJa||h.addr||""}),{cat:"hotel",lv:"숙소",name:"🏨 "+h.name,
