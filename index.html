@@ -2165,9 +2165,9 @@ function renderFlights(){
     ${k==="back"?`<label>공항 도착 목표: 출발 <select data-fl="back:buf" aria-label="공항 도착 목표">${[60,90,120,150,180].map(v=>`<option value="${v}"${(+f.buf||FL_EARLY)===v?" selected":""}>${v}분</option>`).join("")}</select> 전</label>`:""}
     <input data-fl="${k}:memo" value="${esc(f.memo||"")}" placeholder="예약번호·좌석·아기 바구니(배시넷) 메모" aria-label="메모" style="flex:1 1 12em">
     ${f.no?`<a class="lgo" href="https://www.google.com/search?q=${encodeURIComponent(f.no+" flight status")}" target="_blank" rel="noopener">운항 정보 ↗</a>`:""}</div>`};
-  box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary><span class="flt">✈ 항공편</span>${(()=>{const md=d=>{if(!ISO.test(d||""))return "";const x=new Date(d+"T00:00");return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`};
-      const ln=(ic,t,f,k,w)=>f&&f.no?`<span class="fls"><span>${ic} ${t}</span><b>${esc(f.no)}</b><span>${md(f.date)}</span><span>${esc(f[k]||"--:--")} ${w}</span></span>`:"";
-      const a=ln("🛫","가는 편",F.out,"arr","도착"),b=ln("🛬","오는 편",F.back,"dep","출발");return a||b?a+b:`<span class="fls meta">편명을 넣으면 일정 시간 계산에 반영돼요</span>`})()}</summary>
+  box.innerHTML=`<details${(F.out&&F.out.no)||(F.back&&F.back.no)?"":" open"}><summary><span class="flt">✈ 항공편<span class="meta" style="float:right;font-weight:500;margin-right:4px">출발 → 도착</span></span>${(()=>{const md=d=>{if(!ISO.test(d||""))return "";const x=new Date(d+"T00:00");return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`};
+      const ln=(ic,t,f)=>f&&f.no?`<span class="fls"><span>${ic} ${t}</span><b>${esc(f.no)}</b><span>${md(f.date)}</span><span title="출발 → 도착 (현지 시각)">${esc(f.dep||"--:--")} → ${esc(f.arr||"--:--")}</span></span>`:"";
+      const a=ln("🛫","가는 편",F.out),b=ln("🛬","오는 편",F.back);return a||b?a+b:`<span class="fls meta">편명을 넣으면 일정 시간 계산에 반영돼요</span>`})()}</summary>
     ${row("out","🛫 가는 편","KE787")}${row("back","🛬 오는 편","KE788")}
     <div class="meta">가는 편 날짜의 일정은 도착 ${FL_PREP}분 뒤(입국·짐 찾기)부터, 오는 편 날은 도착지를 '✈ 후쿠오카공항 국제선'으로 두면 공항 도착 예상과 '도착 목표'(기본 출발 ${FL_EARLY}분 전)를 비교해요. 항공사 수속 마감 시각은 항공사 안내를 따로 확인해 주세요.</div></details>`;
 }
