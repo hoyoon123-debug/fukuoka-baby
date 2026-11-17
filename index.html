@@ -1004,6 +1004,8 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .nurse{border-radius:12px}
 /* 버튼 */
 .btn{border:0;background:var(--fill);color:var(--sea);font-weight:600;border-radius:10px;padding:7px 13px}
+/* 버튼(링크 버튼 포함) 글자는 모두 가운데 정렬 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;text-align:center}
 .btn.primary{background:var(--sea);color:#fff}
 .addbtn{background:var(--sea)!important;color:#fff!important;border:0!important}
 .fav{border:0!important;background:var(--fill)!important;border-radius:10px!important}
@@ -2424,7 +2426,7 @@ function getHere(cb){
   const fb=()=>cb(hereLL(),`기준: ${$("here").selectedOptions[0]?.textContent||"선택한 위치"} (내 위치를 못 가져왔어요)`);
   if(!navigator.geolocation)return fb();
   navigator.geolocation.getCurrentPosition(p=>{const h=[p.coords.latitude,p.coords.longitude];if(typeof myLoc!=="undefined")try{myLoc=h}catch(e){}
-    cb(h,kmOf(h,[33.59,130.40])>80?"지금 후쿠오카 밖이라 후쿠오카 기준 거리예요":"📍 지금 내 위치 기준")},fb,{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+    const far=kmOf(h,[33.59,130.40])>80;cb(far?hereLL():h,far?`지금 후쿠오카 밖이라 ${$("here").selectedOptions[0]?.textContent||"하카타역"} 기준 거리예요`:"📍 지금 내 위치 기준")},fb,{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
 }
 function openN(title){$("nchips").innerHTML="";$("ntitle").textContent=title;$("nwhere").textContent="내 위치 찾는 중…";$("nlist").innerHTML="";$("nmore").innerHTML="";$("sossheet").hidden=true;$("nsheet").hidden=false}
 const gmSearch=(q,h)=>`https://www.google.com/maps/search/${encodeURIComponent(q)}/@${h[0]},${h[1]},16z`;
