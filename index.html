@@ -11,6 +11,14 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <meta name="robots" content="noindex,nofollow">
+<meta name="description" content="아이랑 후쿠오카 여행: 아이 동반 식당·카페, 수유실·기저귀 교환, 유모차 보관, 일정표">
+<meta property="og:type" content="website">
+<meta property="og:title" content="후쿠오카 아기랑">
+<meta property="og:description" content="아이 동반 식당·카페 · 수유실·기저귀 교환 · 유모차 보관 · 일정표">
+<meta property="og:url" content="https://hoyoon123-debug.github.io/fukuoka-baby/">
+<meta property="og:image" content="https://hoyoon123-debug.github.io/fukuoka-baby/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -1038,11 +1046,13 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .leg .lms button[aria-pressed="true"]{background:var(--sea)!important;color:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important}
 .leg .lms button[aria-pressed="true"] .li{filter:none;opacity:1}
 .leg .lms button[aria-pressed="true"] .lt{display:inline}
+.appbtns{display:flex;gap:6px;margin-top:6px}
+.abtn{border:0;background:var(--fill);color:var(--sea);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
 </style>
 
 <header>
   <div class="wrap">
-    <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button></div></div>
+    <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small><span class="appbtns"><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button></div></div>
     <input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색">
     <div class="row" id="cats"></div>
     <div class="row"><button class="btn" id="myAdd" type="button">＋ 내 장소 추가 (구글맵 링크·이름)</button></div>
@@ -1646,6 +1656,30 @@ const backLayer=(()=>{
   return {open,closed:kind=>removeEntry(x=>x.kind===kind)};
 })();
 window.backLayer=backLayer;
+
+/* ---------- 앱 설치(홈 화면·바탕화면) · 메신저로 앱 보내기 ---------- */
+(function(){
+  const APP_URL="https://hoyoon123-debug.github.io/fukuoka-baby/";
+  const inst=$("appInstall"),shr=$("appShare");
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  const isWeb=/github\.io$/.test(location.hostname)||location.hostname==="127.0.0.1"||location.hostname==="localhost";
+  let deferred=null;
+  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;if(!standalone)inst.hidden=false});
+  window.addEventListener("appinstalled",()=>{inst.hidden=true;toast("📲 앱을 설치했어요 · 홈 화면(바탕화면)의 '아기랑' 아이콘으로 여세요")});
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(!standalone&&isWeb&&ios)inst.hidden=false;          // 아이폰은 사파리 공유 메뉴로 설치
+  if(!isWeb)inst.hidden=true;                             // Claude 아티팩트 안에서는 설치 불가
+  inst.addEventListener("click",async()=>{
+    if(deferred){deferred.prompt();const r=await deferred.userChoice;deferred=null;if(r.outcome!=="accepted")inst.hidden=false;return}
+    ioSheet(ios?`<h3>📲 아이폰 홈 화면에 앱 설치</h3><ol style="padding-left:18px;line-height:1.7"><li><b>사파리</b>로 이 페이지를 열어요</li><li>아래쪽 <b>공유 버튼(□↑)</b>을 눌러요</li><li><b>홈 화면에 추가</b> → <b>추가</b></li></ol><p class="meta">홈 화면 앱은 브라우저와 저장 공간이 따로라, 처음 열면 '가족과 같이 보기'에 저장소 주소를 한 번 넣어 주세요.</p>`
+      :`<h3>📲 앱 설치</h3><ol style="padding-left:18px;line-height:1.7"><li><b>안드로이드 크롬:</b> 오른쪽 위 <b>⋮ → 홈 화면에 추가(앱 설치)</b></li><li><b>PC 크롬·엣지:</b> 주소창 오른쪽 <b>설치 아이콘(⊕)</b> 또는 <b>⋮ → 앱 설치</b> → 바탕화면에 바로가기가 생겨요</li></ol><p class="meta">설치한 앱은 브라우저와 저장 공간이 따로라, 처음 열면 '가족과 같이 보기'에 저장소 주소를 한 번 넣어 주세요.</p>`);
+  });
+  shr.addEventListener("click",async()=>{
+    const data={title:"후쿠오카 아기랑",text:"아이랑 후쿠오카 여행 갈 때 쓰는 앱이에요. 아이 동반 식당·카페, 수유실·기저귀 교환, 유모차 보관, 일정표까지 있어요.",url:APP_URL};
+    try{if(navigator.share){await navigator.share(data);return}}catch(e){if(e&&e.name==="AbortError")return}
+    try{await navigator.clipboard.writeText(`${data.text}\n${APP_URL}`);toast("앱 주소를 복사했어요 · 카톡 등 메신저에 붙여넣어 보내세요")}catch(e){prompt("이 주소를 복사해서 보내세요",APP_URL)}
+  });
+})();
 function openSheet(id){
   const d=BYID[id];if(!d)return;
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
