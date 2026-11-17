@@ -862,6 +862,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .nstog{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .nstog[aria-pressed="true"]{background:#c4456a;color:#fff;border-color:#c4456a}
 .nstog.lk[aria-pressed="true"]{background:#8a5a2b;border-color:#8a5a2b}
+/* 지도 아래: 버튼 두 개는 첫 줄에 나란히 고정 · 색 설명은 둘째 줄 */
+.legend{align-items:center;row-gap:8px}
+.legend .nstog{order:-1;flex:1 1 0;min-width:0;min-height:40px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
+.legend::before{content:"";order:0;flex-basis:100%;height:0}
+.legend span{order:1;white-space:nowrap}
 .nsrc{font-size:11.5px;color:var(--muted)}
 .fab.nurse{right:auto;left:max(16px,env(safe-area-inset-left,0px));background:#c4456a}
 .nrow{border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:4px}
