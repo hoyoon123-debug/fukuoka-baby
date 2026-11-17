@@ -1126,7 +1126,7 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
     </div>
   </div>
 </main>
-<div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><div class="btnrow" id="sheetDays"></div><label class="sheetdate">📅 다른 날짜 고르기 <input type="date" id="sheetDate"></label><button class="btn" id="sheetSave" type="button" hidden>📌 일정엔 안 넣고 내 장소에만 저장</button><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
+<div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><input id="sheetMemo" class="memo" maxlength="120" enterkeyhint="done" placeholder="📝 장소 메모 (예: 예약번호, 꼭 먹을 메뉴, 친구 추천)" aria-label="장소 메모" style="width:100%;margin:2px 0 8px"><div class="btnrow" id="sheetDays"></div><label class="sheetdate">📅 다른 날짜 고르기 <input type="date" id="sheetDate"></label><button class="btn" id="sheetSave" type="button" hidden>📌 일정엔 안 넣고 내 장소에만 저장</button><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
 <div class="toast" id="toast" hidden></div>
 <button class="fab" id="goHotel" type="button" hidden>🏨 숙소 가는 길</button>
 <button class="fab nurse" id="goSOS" type="button">🆘 긴급·일본어</button>
@@ -1685,17 +1685,22 @@ function openSheet(id){
   $("sheetTitle").textContent=`'${d.name}'을(를) 어느 날에 넣을까요?`;
   $("sheetDays").innerHTML=plan.days.map((x,i)=>`<button class="btn" data-sday="${i}">${esc(dLabel(x,i))}${x.stops.some(y=>y.id===id)?" ✓":""}</button>`).join("")+(plan.trip?"":`<button class="btn primary" data-sday="new">＋ 새 날</button>`);
   $("sheetDate").value="";
+  const cc=(plan.custom||[]).find(x=>x.id===id);$("sheetMemo").value=cc&&cc.note||"";   // 내 장소 메모가 있으면 미리 채우기
   $("sheetSave").hidden=d.cat!=="custom";
   $("sheet").dataset.id=id;$("sheet").hidden=false;
 }
 function addStopTo(i,id){
   const day=plan.days[i];
   const go={label:"일정 보기",fn:()=>{cur=plan.days.indexOf(day);setView("plan")}};
-  if(day.stops.some(x=>x.id===id)){toast(`${dLabel(day,i)}에 이미 있어요`,go)}else{day.stops.push({id,memo:""});toast(`${dLabel(day,i)}에 넣었어요`,view==="plan"?null:go)}
+  const memo=$("sheetMemo").value.trim().slice(0,120);saveSheetMemo(id,memo);
+  const ex=day.stops.find(x=>x.id===id);
+  if(ex){if(memo&&!ex.memo)ex.memo=memo;toast(`${dLabel(day,i)}에 이미 있어요${memo&&ex.memo===memo?" · 메모를 넣었어요":""}`,go)}else{day.stops.push({id,memo});toast(`${dLabel(day,i)}에 넣었어요${memo?" · 메모도 저장했어요":""}`,view==="plan"?null:go)}
   $("sheet").hidden=true;cur=plan.days.indexOf(day);changed();if(view!=="plan")render();
 }
 $("sheetClose").addEventListener("click",()=>$("sheet").hidden=true);
-$("sheetSave").addEventListener("click",()=>{$("sheet").hidden=true;saveSoon();toast("📌 내 장소에 저장했어요 · 목록·지도·일정 추천에 보라색으로 나와요",{label:"보기",fn:()=>{st.cat="mine";setView("list")}});if(view!=="plan")render();else renderPlan()});
+function saveSheetMemo(id,memo){const c=(plan.custom||[]).find(x=>x.id===id);if(c&&memo)c.note=memo}
+$("sheetMemo").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();e.target.blur()}});
+$("sheetSave").addEventListener("click",()=>{saveSheetMemo($("sheet").dataset.id,$("sheetMemo").value.trim().slice(0,120));$("sheet").hidden=true;saveSoon();toast("📌 내 장소에 저장했어요 · 목록·지도·일정 추천에 보라색으로 나와요",{label:"보기",fn:()=>{st.cat="mine";setView("list")}});if(view!=="plan")render();else renderPlan()});
 $("sheetDays").addEventListener("click",e=>{
   const b=e.target.closest("[data-sday]");if(!b)return;
   let i=b.dataset.sday;
@@ -2953,13 +2958,15 @@ sheet.className = "sheet"; sheet.hidden = true;
 sheet.innerHTML = `<div class="wrap2">
   <h3>장소 직접 추가</h3>
   <div class="plansum">구글맵에서 <b>공유 → 링크 복사</b>한 내용을 붙여넣거나, 가게 이름을 입력하세요.</div>
-  <textarea id="apIn" rows="3" placeholder="예) 이치란 라멘 하카타점&#10;또는 https://maps.app.goo.gl/… 공유 문구 전체" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit"></textarea>
+  <textarea id="apIn" rows="3" enterkeyhint="search" placeholder="예) 이치란 라멘 하카타점 (엔터로 바로 찾기)&#10;또는 https://maps.app.goo.gl/… 공유 문구 전체" style="width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit"></textarea>
   <div class="btnrow"><button class="btn primary" id="apGo" type="button">찾기</button><button class="btn" id="apClose" type="button">닫기</button></div>
   <div id="apMap" style="height:210px;border-radius:12px;overflow:hidden;margin:4px 0" hidden></div>
   <div id="apRes" style="display:grid;gap:6px;max-height:34vh;overflow:auto"></div>
 </div>`;
 document.body.appendChild(sheet);
 const $in = sheet.querySelector("#apIn"), $res = sheet.querySelector("#apRes");
+// 엔터 = 바로 찾기 (한글 입력 조합 중엔 무시 · 줄바꿈은 Shift+엔터)
+$in.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); sheet.querySelector("#apGo").click(); } });
 let mode = "stop";
 const $title = sheet.querySelector("h3");
 function openFinder(m){ mode = m; $title.textContent = m === "hotel" ? "숙소 찾기" : "장소 직접 추가";
