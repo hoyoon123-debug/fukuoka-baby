@@ -1131,6 +1131,14 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .mrow:last-child{border-bottom:0}
 .mrow .t{flex:1;min-width:0}.mrow .t .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mrow .amt{font-weight:700;white-space:nowrap;text-align:right}
+.tfbtn{flex:none;border:0;background:var(--fill);color:var(--ink);font:inherit;font-size:15px;font-weight:600;border-radius:12px;padding:0 14px;min-height:44px;cursor:pointer;white-space:nowrap}
+.tfbtn[aria-pressed="true"]{background:#34c759;color:#fff}
+.tfb{color:#1f8a4c;font-weight:700}
+.mrow .tfx{min-width:36px;filter:grayscale(1);opacity:.45}.mrow .tfx.on{filter:none;opacity:1}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tfb{color:#5ee08a}}
+:root[data-theme="dark"] .tfb{color:#5ee08a}
+.tfsum{border:1.5px solid rgba(52,199,89,.5);font-size:14px}
+.tfsum .warn{color:#c47b00;font-size:13px}
 /* 날씨 · 비 오는 날 · 택시 */
 .wx{background:var(--surface);border-radius:14px;padding:10px 14px;display:grid;gap:4px;font-size:14px}
 .wx[hidden]{display:none}
@@ -1230,7 +1238,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
         <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button class="btn primary" type="submit">기록</button></div>
         <div class="meta" id="mPrev"></div>
         <div class="mcats" id="mCats"></div>
-        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select></div>
+        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button></div>
         <div class="addrow"><label class="meta" style="display:flex;align-items:center;gap:6px;flex:1">날짜 <input type="date" id="mDate" aria-label="날짜"></label><label class="meta rate" style="display:flex;align-items:center;gap:4px">100엔 = <input id="mRateIn" inputmode="decimal" aria-label="환율" style="width:5em">원</label></div>
         <div class="meta" id="mRate"></div>
       </form>
@@ -1541,7 +1549,7 @@ const HHMM=/^([01]\d|2[0-3]):[0-5]\d$/;
 // 그래서 두 폰의 앱 버전이 잠깐 달라도 예전 버전이 저장하면서 새 항목을 날리지 않아요.
 const K_TOP=["days","custom","hotels","trip","baby","flights","prefs","prep","money","updatedAt"],K_DAY=["id","date","start","startName","end","endName","stops","endMode","t0"],
   K_STOP=["id","memo","done","mode","stay","fix","ta","td"],K_HOTEL=["id","name","lat","lng","addr","addrJa"],K_BABY=["napA","napB","feed","buf"],
-  K_FL=["no","date","dep","arr","memo","buf"],K_PREF=["gmode"],K_TRIP=["from","to"],K_PREP=["id","t","c"],K_MONEY=["rate","items"],K_MI=["id","d","y","c","m","pay"];
+  K_FL=["no","date","dep","arr","memo","buf"],K_PREF=["gmode"],K_TRIP=["from","to"],K_PREP=["id","t","c"],K_MONEY=["rate","items"],K_MI=["id","d","y","c","m","pay","tf"];
 const MCATS={food:"🍜 식사",cafe:"☕ 카페·간식",shop:"🛍 쇼핑",baby:"👶 아기용품",move:"🚇 교통·택시",ticket:"🎟 입장료",stay:"🏨 숙소",etc:"🧾 기타"};
 function keepExtra(o,known){const r={};if(o&&typeof o==="object"&&!Array.isArray(o))for(const k of Object.keys(o)){if(!known.includes(k)&&k[0]!=="_"&&o[k]!==undefined)r[k]=o[k]}return r}
 function fixPlan(p){
@@ -1567,7 +1575,7 @@ function fixPlan(p){
   p.prep=(Array.isArray(p.prep)?p.prep:[]).filter(x=>x&&x.id&&x.t).slice(0,300).map(x=>({...keepExtra(x,K_PREP),id:String(x.id),t:String(x.t).slice(0,60),...(x.c?{c:true}:{})}));
   const mo=p.money&&typeof p.money==="object"?p.money:{};
   p.money={...keepExtra(mo,K_MONEY),rate:+mo.rate>0&&+mo.rate<100?+mo.rate:0,items:(Array.isArray(mo.items)?mo.items:[]).filter(x=>x&&x.id&&+x.y>0).slice(0,2000)
-    .map(x=>({...keepExtra(x,K_MI),id:String(x.id),d:ISO.test(x.d||"")?x.d:"",y:Math.min(99999999,Math.round(+x.y)),c:MCATS[x.c]?x.c:"etc",m:String(x.m||"").slice(0,60),...(x.pay==="card"?{pay:"card"}:{})}))};
+    .map(x=>({...keepExtra(x,K_MI),id:String(x.id),d:ISO.test(x.d||"")?x.d:"",y:Math.min(99999999,Math.round(+x.y)),c:MCATS[x.c]?x.c:"etc",m:String(x.m||"").slice(0,60),...(x.pay==="card"?{pay:"card"}:{}),...(x.tf?{tf:true}:{})}))};
   return {...top,days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs,prep:p.prep,money:p.money};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];const o=plan.custom.find(x=>x.id===c.id);if(o)o.saved=true;else plan.custom.push(Object.assign({},c,{saved:true}));regCustom([c])}
@@ -2877,12 +2885,20 @@ function renderMoney(){fxLoad();
   $("mRateIn").placeholder=String(Math.round(krwRate()*100));
   $("mRate").textContent=M.rate>0?"직접 넣은 환율로 계산해요 · 칸을 비우면 자동 환율로 돌아가요":fxAuto?`자동 환율 (${new Date(fxAuto.at).toLocaleDateString("ko-KR")} 기준) · 카드는 실제 청구 금액이 조금 달라요`:"환율을 아직 못 받아서 100엔 = 930원으로 계산하고 있어요";
   prevAmt();
+  // 🧾 면세(사후 환급): 같은 날·같은 가게(메모) 세전 5,000엔(세포함 5,500엔) 미만이면 ⚠
+  const T=I.filter(x=>x.tf),grp={},low={};T.forEach(x=>{const k=x.d+"|"+(x.m||"").trim();(grp[k]=grp[k]||[]).push(x)});
+  Object.values(grp).forEach(g=>{if(g.reduce((a,x)=>a+x.y,0)<5500)g.forEach(x=>low[x.id]=1)});
+  const tsum=T.reduce((a,x)=>a+x.y,0),refund=Math.floor(T.filter(x=>!low[x.id]).reduce((a,x)=>a+x.y,0)*10/110);
+  const tfH=T.length?`<div class="msum tfsum"><div><b>🧾 면세(사후 환급) 대상 ${T.length}건 · ${tsum.toLocaleString()}엔</b></div>
+    <div>예상 환급 약 <b>${refund.toLocaleString()}엔</b> (≈ ${won(refund).toLocaleString()}원 · 소비세 10% 기준, 수수료·식품 8%는 미반영)</div>
+    ${Object.keys(low).length?`<div class="warn">⚠ 표시: 같은 날 같은 가게(메모 기준) 합계가 세포함 5,500엔(세전 5,000엔) 미만이라 환급 대상이 아닐 수 있어요</div>`:""}
+    <div class="meta">출국 날 <b>짐 맡기기 전</b> 공항 세관 키오스크에서 여권 스캔 → 확인 후 등록한 방법으로 환급 · 구매 90일 안 · 소모품(화장품·식품·약) 개봉·사용 금지 · 영수증 보관</div></div>`:"";
   const bc={};I.forEach(x=>{bc[x.c]=(bc[x.c]||0)+x.y});const mx=Math.max(1,...Object.values(bc));
-  $("mSum").innerHTML=I.length?`<div class="msum">${Object.entries(bc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="r"><span>${MCATS[k]}</span><i style="width:${Math.max(4,Math.round(v/mx*100))}%"></i><b>${v.toLocaleString()}엔</b></div>`).join("")}</div>`:"";
+  $("mSum").innerHTML=tfH+(I.length?`<div class="msum">${Object.entries(bc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="r"><span>${MCATS[k]}</span><i style="width:${Math.max(4,Math.round(v/mx*100))}%"></i><b>${v.toLocaleString()}엔</b></div>`).join("")}</div>`:"");
   const by={};I.forEach(x=>{(by[x.d||""]=by[x.d||""]||[]).push(x)});
   $("mList").innerHTML=I.length?Object.keys(by).sort().reverse().map(k=>{const L=by[k],s=L.reduce((a,x)=>a+x.y,0);
     return `<div class="mday"><span>${k?mdLabel(k):"날짜 없음"}</span><span>${s.toLocaleString()}엔 · ${won(s).toLocaleString()}원</span></div><div class="mlist">${L.slice().reverse().map(x=>{const [ic,nm]=MCATS[x.c].split(" ");
-      return `<div class="mrow"><div class="t"><div>${ic} ${esc(x.m||nm)}</div><div class="meta">${x.pay==="card"?"💳 카드":"💴 현금"}${x.by?` · ${esc(x.by)}`:""}</div></div><div class="amt">${x.y.toLocaleString()}엔<div class="meta">${won(x.y).toLocaleString()}원</div></div><button type="button" class="x" data-mdel="${esc(x.id)}" aria-label="지우기">✕</button></div>`}).join("")}</div>`}).join("")
+      return `<div class="mrow"><div class="t"><div>${ic} ${esc(x.m||nm)}</div><div class="meta">${x.pay==="card"?"💳 카드":"💴 현금"}${x.tf?` · <span class="tfb">🧾 면세${low[x.id]?" ⚠":""}</span>`:""}${x.by?` · ${esc(x.by)}`:""}</div></div><div class="amt">${x.y.toLocaleString()}엔<div class="meta">${won(x.y).toLocaleString()}원</div></div><button type="button" class="x tfx${x.tf?" on":""}" data-mtf="${esc(x.id)}" aria-pressed="${!!x.tf}" aria-label="면세 표시">🧾</button><button type="button" class="x" data-mdel="${esc(x.id)}" aria-label="지우기">✕</button></div>`}).join("")}</div>`}).join("")
     :`<div class="empty" style="padding:24px 0">아직 기록이 없어요. 금액을 넣고 <b>기록</b>을 눌러 보세요.</div>`;
 }
 $("mY").addEventListener("input",e=>{const v=e.target.value.replace(/[^\d]/g,"");const n=v?(+v).toLocaleString():"";if(e.target.value!==n)e.target.value=n;prevAmt()});
@@ -2891,13 +2907,15 @@ $("mForm").addEventListener("submit",e=>{e.preventDefault();
   const y=parseInt(($("mY").value||"").replace(/\D/g,""),10);if(!(y>0)){toast("금액(엔)을 넣어 주세요");$("mY").focus();return}
   const M=plan.money||(plan.money={rate:0,items:[]}),f=famCfg();
   const it={id:uid(),d:ISO.test($("mDate").value)?$("mDate").value:jstISO(),y,c:mCat,m:$("mMemo").value.trim().slice(0,60)};
-  if($("mPay").value==="card")it.pay="card";if(f&&f.me)it.by=f.me;
-  M.items.push(it);$("mY").value="";$("mMemo").value="";$("mY").blur();$("mMemo").blur();saveSoon();renderMoney();
+  if($("mPay").value==="card")it.pay="card";if($("mTf").getAttribute("aria-pressed")==="true")it.tf=true;if(f&&f.me)it.by=f.me;
+  M.items.push(it);$("mY").value="";$("mMemo").value="";$("mTf").setAttribute("aria-pressed","false");$("mY").blur();$("mMemo").blur();saveSoon();renderMoney();
   toast(`${y.toLocaleString()}엔 (≈ ${won(y).toLocaleString()}원) 기록했어요`)});
+$("mTf").addEventListener("click",()=>{const b=$("mTf"),on=b.getAttribute("aria-pressed")!=="true";b.setAttribute("aria-pressed",String(on));if(on)toast("면세(사후 환급) 대상으로 기록해요 · 결제할 때 여권을 보여주고 영수증을 챙기세요")});
 $("mMemo").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("mForm").requestSubmit()}});
 $("mRateIn").addEventListener("change",e=>{const v=parseFloat(String(e.target.value).replace(/,/g,""));const M=plan.money||(plan.money={rate:0,items:[]});
   M.rate=v>100&&v<5000?v/100:0;if(String(e.target.value).trim()&&!M.rate)toast("100엔당 원화로 넣어 주세요 (예: 930)");saveSoon();renderMoney()});
-$("mList").addEventListener("click",e=>{const d=e.target.closest("[data-mdel]");if(!d)return;const I=(plan.money||{}).items||[],i=I.findIndex(x=>x.id===d.dataset.mdel);if(i<0)return;
+$("mList").addEventListener("click",e=>{const t=e.target.closest("[data-mtf]");if(t){const x=((plan.money||{}).items||[]).find(y=>y.id===t.dataset.mtf);if(x){if(x.tf)delete x.tf;else x.tf=true;saveSoon();renderMoney();toast(x.tf?"면세 대상으로 표시했어요":"면세 표시를 뺐어요")}return}
+  const d=e.target.closest("[data-mdel]");if(!d)return;const I=(plan.money||{}).items||[],i=I.findIndex(x=>x.id===d.dataset.mdel);if(i<0)return;
   const [x]=I.splice(i,1);saveSoon();renderMoney();toast(`${x.y.toLocaleString()}엔 기록을 지웠어요`,{label:"되돌리기",fn:()=>{I.splice(Math.min(i,I.length),0,x);saveSoon();renderMoney()}})});
 
 
