@@ -1111,7 +1111,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .taxi{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .taxi a{text-decoration:none;font-weight:700;font-size:13px;border-radius:999px;padding:7px 12px;background:var(--fill);color:var(--ink);min-height:32px;display:inline-flex;align-items:center}
 .taxi a.uber{background:#000;color:#fff}
-.taxi a.go{background:#ffd60a;color:#000}
+.taxi a.go{background:#ffd60a;color:#000}.taxi .meta b{color:var(--ink)}
 .taxi a.didi{background:#ff7d41;color:#fff}
 .ralt{display:grid;gap:8px;margin:8px 0}
 .ralt .r{display:flex;gap:8px;align-items:center;background:var(--fill2);border-radius:12px;padding:8px 10px}
@@ -2678,17 +2678,16 @@ $("iosheetIn").addEventListener("click",e=>{const b=e.target.closest("[data-ralt
   else{day.stops.splice(n+1,0,{id,memo:""});toast(`${n+2}번째에 ${BYID[id].name}을(를) 넣었어요`)}
   $("iosheet").hidden=true;changed()});
 
-/* ---------- 🚕 택시 앱 바로가기 (Uber는 목적지까지 · GO·DiDi는 목적지 복사 후 앱 열기) ---------- */
+/* ---------- 🚕 택시 앱 바로가기 (Uber는 앱 바로 실행 · GO·DiDi는 구글맵 택시 탭 경유) ---------- */
 function taxiHTML(lat,lng,name,addr){
-  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),nm=String(name||"목적지").replace(/^🏨\s*/,"");
+  // Uber: 공개된 앱 링크로 설치된 앱이 목적지까지 넣은 채 바로 열려요
+  // GO·DiDi: 웹에서 앱을 바로 여는 공개 링크가 없어요 → 구글맵 경로의 '택시' 탭에서 GO·DiDi를 고르면 목적지가 그대로 넘어가 앱이 열려요
+  const nm=String(name||"목적지").replace(/^🏨\s*/,"");
   const u=`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff%5Blatitude%5D=${lat}&dropoff%5Blongitude%5D=${lng}&dropoff%5Bnickname%5D=${encodeURIComponent(nm)}`;
-  const go=ios?"https://apps.apple.com/app/id1254341709":"https://play.google.com/store/apps/details?id=com.dena.automotive.taxibell";
-  const di=ios?"https://apps.apple.com/app/id1362398401":"https://play.google.com/store/apps/details?id=com.didiglobal.passenger";
-  const cp=esc((nm+(addr?" "+String(addr).replace(/^일본\s*/,""):"")).trim());
-  return `<div class="taxi"><a class="uber" href="${esc(u)}" target="_blank" rel="noopener" title="설치된 우버 앱이 목적지가 들어간 채로 열려요">🚕 Uber</a><a class="go" href="${go}" target="_blank" rel="noopener" data-txcopy="${cp}">GO</a><a class="didi" href="${di}" target="_blank" rel="noopener" data-txcopy="${cp}">DiDi</a><span class="meta" style="align-self:center">GO·DiDi는 스토어에서 '열기' · 목적지는 복사돼요</span></div>`;
+  const g=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  return `<div class="taxi"><a class="uber" href="${esc(u)}" target="_blank" rel="noopener" title="설치된 우버 앱이 목적지가 들어간 채로 열려요">🚕 Uber</a><a class="go" href="${esc(g)}" target="_blank" rel="noopener" data-txgm="1">GO · DiDi</a><span class="meta" style="align-self:center">GO·DiDi는 구글맵이 열리면 <b>택시</b> 탭 → GO 또는 DiDi 선택 (목적지가 그대로 넘어가요)</span></div>`;
 }
-document.addEventListener("click",e=>{const a=e.target.closest("[data-txcopy]");if(!a)return;
-  try{navigator.clipboard.writeText(a.dataset.txcopy).then(()=>toast("목적지를 복사했어요 · 택시 앱 목적지 칸에 붙여넣으세요"),()=>{})}catch(x){}});
+document.addEventListener("click",e=>{if(e.target.closest("[data-txgm]"))toast("구글맵에서 '택시' 탭을 누르고 GO나 DiDi를 고르세요")});
 
 /* ---------- ⏰ 출발 알림: 앱을 켜 둔 동안 오늘 일정의 출발 10분 전에 알려줘요 ---------- */
 const depWatch=(()=>{
