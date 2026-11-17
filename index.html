@@ -1061,6 +1061,13 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 #nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
+.hmodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.hmodes a{display:grid;justify-items:center;align-content:center;gap:3px;padding:12px 4px;min-height:84px;border-radius:14px;background:var(--fill);color:var(--ink);text-decoration:none;text-align:center}
+.hmodes .i{font-size:22px;line-height:1.1}
+.hmodes .t{font-weight:700;font-size:14.5px}
+.hmodes .m{font-size:12.5px;color:var(--muted);line-height:1.25}
+.hmodes a.best{background:#0a84ff;color:#fff}.hmodes a.best .m{color:#fff;opacity:.92}
+#hfrom{margin-top:6px}
 .qrow{display:flex;gap:8px;align-items:stretch;min-width:0}
 header .wrap{grid-template-columns:minmax(0,1fr)}
 .qrow #q{flex:1;min-width:0;width:auto}
@@ -2307,6 +2314,19 @@ $("hotelrow").addEventListener("click",e=>{
     if(h){useHotel(h,cur);changed();toast("숙소로 저장했어요 · 이름을 누르면 출발지로 쓸 수 있어요");if(window.fillHotelJa)window.fillHotelJa(h)}}
 });
 const dirUrl=(h,mode)=>`https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}&travelmode=${mode}`;
+// 숙소 가는 길: 지금 위치에서 수단별 예상 시간 (유모차 도보 · 지하철/JR/니시테츠 추정 · 차)
+function hotelTimes(h){
+  const paint=(from,label)=>{const box=$("hmodes");if(!box||!box.isConnected)return;const to=[h.lat,h.lng],k=kmOf(from,to);
+    const w=Math.max(1,walkMin(k)),te=transitEst(from,to),tr=te&&te.t<=w-5?te.t:null,dr=Math.round(k*1.4/20*60)+3,fare=taxiFare(k*1350);
+    const M={walking:`약 ${w<60?w+"분":Math.floor(w/60)+"시간 "+w%60+"분"}`,transit:tr?`약 ${tr}분`:"걷는 게 나아요",driving:`약 ${dr}분 · ${fare.toLocaleString()}엔`};
+    const best=k<1.2||!tr&&k<2.5?"walking":tr&&tr<=dr+12?"transit":"driving";
+    box.querySelectorAll("[data-hm]").forEach(a=>{const m=a.dataset.hm;a.querySelector(".m").textContent=M[m];a.classList.toggle("best",m===best)});
+    $("hfrom").textContent=`${label} · ${k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"} (직선)${tr&&te?` · 🚆 ${te.txt}`:""}`};
+  const fb=()=>{const t=jstISO(),day=plan.days.find(d=>d.date===t)||plan.days[cur];const last=day&&day.stops.map(x=>BYID[x.id]).filter(Boolean).pop();
+    if(last)paint([last.lat,last.lng],`내 위치를 못 가져와서 '${last.name}' 기준`);else{const [a,b]=hereLL();paint([a,b],"내 위치를 못 가져와서 기준 위치에서")}};
+  if(!navigator.geolocation)return fb();
+  navigator.geolocation.getCurrentPosition(p=>paint([p.coords.latitude,p.coords.longitude],"📍 지금 내 위치에서"),fb,{enableHighAccuracy:false,timeout:6000,maximumAge:60000});
+}
 function openHotelSheet(){
   const hs=plan.hotels||[];if(!hs.length)return;
   const h0=todaysHotel();
@@ -2317,14 +2337,15 @@ function openHotelSheet(){
   const show=h=>{$("hbody").innerHTML=`<div class="nm" style="font-weight:700;font-size:16px">${esc(h.name)}</div>
       ${h.addr?`<div class="meta">📍 ${esc(h.addr)}</div>`:""}
       ${h.addrJa?`<div class="meta">🇯🇵 <span class="ja" style="user-select:all">${esc(h.addrJa)}</span></div>`:""}
-      <div class="btnrow" style="margin-top:8px">
-        <a class="btn primary" href="${dirUrl(h,"transit")}" target="_blank" rel="noopener">🚇 대중교통 길찾기</a>
-        <a class="btn" href="${dirUrl(h,"walking")}" target="_blank" rel="noopener">🚶 도보</a>
-        <a class="btn" href="${dirUrl(h,"driving")}" target="_blank" rel="noopener">🚕 차량</a>
-      </div>
+      <div class="hmodes" id="hmodes">
+        <a href="${dirUrl(h,"transit")}" target="_blank" rel="noopener" data-hm="transit"><span class="i">🚇</span><span class="t">대중교통</span><span class="m">계산 중…</span></a>
+        <a href="${dirUrl(h,"walking")}" target="_blank" rel="noopener" data-hm="walking"><span class="i">🚶</span><span class="t">도보</span><span class="m">계산 중…</span></a>
+        <a href="${dirUrl(h,"driving")}" target="_blank" rel="noopener" data-hm="driving"><span class="i">🚕</span><span class="t">차·택시</span><span class="m">계산 중…</span></a>
+      </div><div class="meta" id="hfrom"></div>
       <div class="btnrow">${h.addrJa?`<button class="btn" type="button" id="hCopy">택시용 일본어 주소 복사</button>`:""}
         <button class="btn" type="button" id="hStart">오늘 일정 출발지로</button></div>
-      <div class="meta">길찾기는 구글맵 앱에서 지금 내 위치 기준으로 열려요.</div>`;
+      <div class="meta">파란 버튼이 거리에 맞는 추천 수단이에요. 시간은 유모차 기준 예상이고, 누르면 구글맵이 지금 위치 기준으로 열려요.</div>`;
+    hotelTimes(h);
     const c=$("hCopy");if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(h.addrJa);toast("일본어 주소를 복사했어요 · 택시 기사님께 보여주세요")}catch(e){window.prompt("복사해 주세요",h.addrJa)}};
     $("hStart").onclick=()=>{useHotel(h,cur);$("hsheet").hidden=true;changed();toast(`${cur+1}일차 출발지를 ${h.name}(으)로 바꿨어요`)};
   };
