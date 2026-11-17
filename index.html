@@ -1204,7 +1204,6 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
         <label>도착 <select id="pend"></select></label>
         <label>🕘 출발 시각 <input type="time" id="pt0" step="300"></label>
         <div class="babyrow"><span class="hl">👶 아기 시간</span>
-          <label>😴 낮잠 <input type="time" id="bNapA" step="900"> ~ <input type="time" id="bNapB" step="900"></label>
           <label>🍼 수유 <select id="bFeed"><option value="0">안 챙기기</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label>
           <label>⏱ 이동마다 여유 <select id="bBuf"><option value="0">없음</option><option value="10">+10분</option><option value="15">+15분</option><option value="20">+20분</option></select></label>
           <span class="meta">모든 날에 똑같이 적용돼요</span></div>
@@ -2118,7 +2117,7 @@ function paintTimes(){
   // 아기 시간
   const bb=plan.baby||{},tags={},sum=[];
   const at=(m)=>{for(let i=0;i<ds.length;i++){if(m>=arr[i]&&m<dep[i])return {i,stay:true};if(m<arr[i])return {i,stay:false}}return {i:ds.length,stay:false}};
-  if(bb.napA&&bb.napB&&ds.length){const a=toMin(bb.napA),b=toMin(bb.napB);const who=[];
+  if(false&&bb.napA&&bb.napB&&ds.length){   // 낮잠 시간 기능은 뺐어요 (저장된 값은 그대로 둬요)const a=toMin(bb.napA),b=toMin(bb.napB);const who=[];
     ds.forEach((d,i)=>{if(arr[i]<b&&dep[i]>a){(tags[i]=tags[i]||[]).push(`<span class="btag">😴 낮잠 시간${d.cat==="hotel"?" · 숙소에서 재우기":d.cat==="play"?" · 놀이 장소라 잠들기 어려울 수 있어요":""}</span>`);who.push(`${i+1}. ${d.name}`)}});
     sum.push(`😴 낮잠 ${bb.napA}~${bb.napB}: ${who.length?who.join(", ")+"에 있을 때예요. 유모차에서 재우거나 숙소에 들르는 것도 좋아요":"이동 중이에요. 유모차에서 재우기 좋아요"}`)}
   if(bb.feed&&ds.length){const end=endA||dep[ds.length-1];const fs=[];
@@ -2229,7 +2228,7 @@ function renderPlan(){
   $("stops").innerHTML=html;hydrate($("stops"));
   if(document.activeElement!==$("gmode"))$("gmode").value=baseMode();
   if(document.activeElement!==$("pt0")){const fi=flightInfo(day);$("pt0").value=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00")}
-  const bb=plan.baby||{};["bNapA","bNapB"].forEach((k,j)=>{if(document.activeElement!==$(k))$(k).value=j?bb.napB||"":bb.napA||""});$("bFeed").value=String(bb.feed||0);$("bBuf").value=String(bb.buf||0);
+  const bb=plan.baby||{};$("bFeed").value=String(bb.feed||0);$("bBuf").value=String(bb.buf||0);
   paintTimes();
   const wn=dayWarnings(day);
   $("plansum").textContent=ds.length?`${ds.length}곳 · 이동 거리 합계 직선 약 ${total.toFixed(1)}km (실제 길은 더 길어요)${day.date?(wn?` · ⚠ 휴무인 곳 ${wn}곳`:" · 휴무인 곳 없음"):" · 날짜를 넣으면 휴무일을 확인해 드려요"}`:"";
@@ -2277,7 +2276,7 @@ $("stops").addEventListener("change",e=>{const day=plan.days[cur];
   if(e.target.closest("[data-memo]"))renderPlan()});
 $("plantime").addEventListener("click",e=>{if(!e.target.closest("[data-setairport]")||!AIRPORT)return;const day=plan.days[cur];day.end=AIRPORT[0];day.endName=AIRPORT[1];changed();toast("도착지를 후쿠오카공항 국제선으로 정했어요")});
 $("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;saveSoon();paintTimes()});
-["bNapA","bNapB","bFeed","bBuf"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={napA:HHMM.test($("bNapA").value)?$("bNapA").value:"",napB:HHMM.test($("bNapB").value)?$("bNapB").value:"",feed:+$("bFeed").value||0,buf:+$("bBuf").value||0};saveSoon();paintTimes()}));
+["bFeed","bBuf"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={...(plan.baby||{}),feed:+$("bFeed").value||0,buf:+$("bBuf").value||0};saveSoon();paintTimes()}));
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
   plan.days[cur].date=v;if(plan.trip&&v){if(v<plan.trip.from)plan.trip.from=v;if(v>plan.trip.to)plan.trip.to=v}sortDays();fillTrip();changed()});
 $("pstart").addEventListener("change",e=>{const day=plan.days[cur];day.start=e.target.value;day.startName=e.target.selectedOptions[0].textContent;changed()});
