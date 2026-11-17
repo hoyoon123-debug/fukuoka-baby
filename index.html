@@ -2081,7 +2081,7 @@ function paintTimes(){
       fs.push(`<div>🍼 <b>${fmt(f)}</b> ${esc(txt)}</div>`)}
     if(fs.length)sum.push(`<div style="display:grid;gap:2px">${fs.join("")}</div>`)}
   // 비 예보: 야외 장소에 있을 시간에 비 확률 50% 이상이면 실내 대안
-  ds.forEach((d,i)=>{const p=isOutdoor(d)?rainAt(day.date,arr[i],dep[i]):null;if(p!=null&&p>=50)(tags[i]=tags[i]||[]).push(`<span class="btag rain">☔ 이 시간 비 ${p}%<button type="button" data-rainalt="${i}">실내 대안</button></span>`)});
+  ds.forEach((d,i)=>{const p=isOutdoor(d)?rainAt(day.date,arr[i],dep[i],[d.lat,d.lng]):null;if(p!=null&&p>=50)(tags[i]=tags[i]||[]).push(`<span class="btag rain">☔ 이 시간 비 ${p}%<button type="button" data-rainalt="${i}">실내 대안</button></span>`)});
   document.querySelectorAll("[data-bt]").forEach(el=>{el.innerHTML=(tags[el.dataset.bt]||[]).join("")});
   const pe=$("plantime");if(!pe)return;
   if(!ds.length){pe.innerHTML="";return}
@@ -2148,7 +2148,7 @@ function renderPlan(){
   renderToday();
   if(document.activeElement!==$("tFrom")&&document.activeElement!==$("tTo")){$("tFrom").value=plan.trip?plan.trip.from:"";$("tTo").value=plan.trip?plan.trip.to:""}
   $("tInfo").textContent=plan.trip?`${plan.days.filter(d=>d.date>=plan.trip.from&&d.date<=plan.trip.to).length}일 · 장소를 넣을 때 날짜를 골라요`:"기간을 정하면 날짜별 일차가 한 번에 만들어져요";
-  $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))}${wxIcon(x.date)} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
+  $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))}${wxIcon(x)} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
   $("pdate").value=day.date||"";
   renderFlights();paintWx(day);
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
@@ -2613,29 +2613,50 @@ $("nearby").addEventListener("click",e=>{
   toast(`${at+1}번째에 넣었어요 · 경로를 다시 계산해요`);changed();
 });
 
-/* ---------- 🌤 날씨 예보 (Open-Meteo · 키 없이 무료) · ☔ 비 오는 날 실내 대안 ---------- */
-var WXD=null,wxBusy=false;
-try{WXD=JSON.parse(localStorage.getItem("fk_wx")||"null")}catch(e){}
-function wxLoad(){
-  if(wxBusy||(WXD&&Date.now()-WXD.at<3*3600e3))return;wxBusy=true;
-  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&hourly=precipitation_probability&timezone=Asia%2FTokyo&forecast_days=16&wind_speed_unit=ms")
-    .then(r=>r.json()).then(j=>{if(!j||!j.daily||!j.daily.time)return;const days={};
-      j.daily.time.forEach((t,i)=>{days[t]={c:j.daily.weather_code[i],hi:Math.round(j.daily.temperature_2m_max[i]),lo:Math.round(j.daily.temperature_2m_min[i]),p:j.daily.precipitation_probability_max[i]??0,w:Math.round(j.daily.wind_speed_10m_max[i]||0),h:[]}});
-      ((j.hourly||{}).time||[]).forEach((t,i)=>{const d=days[t.slice(0,10)];if(d)d.h[+t.slice(11,13)]=j.hourly.precipitation_probability[i]});
-      WXD={at:Date.now(),days};try{localStorage.setItem("fk_wx",JSON.stringify(WXD))}catch(e){}
+/* ---------- 🌤 날씨 예보 (Open-Meteo · 키 없이 무료) · 그날 장소 위치 기준 · ☔ 비 오는 날 실내 대안 ---------- */
+// 위치를 약 5km 격자로 묶어 한 번에 받아요 (시내·다자이후·이토시마처럼 떨어진 곳은 따로)
+var WXD=null,wxBusy=false,wxFail=0;
+try{WXD=JSON.parse(localStorage.getItem("fk_wx2")||"null")}catch(e){}
+const WX_CENTER=[33.59,130.40];
+function wxKey(p){return (Math.round(p[0]*20)/20).toFixed(2)+","+(Math.round(p[1]*20)/20).toFixed(2)}
+function dayPts(day){if(!day)return [];const S=day.start&&/^-?\d/.test(day.start)?pt(day.start):null;
+  const ps=day.stops.map(x=>BYID[x.id]).filter(Boolean).map(d=>[d.lat,d.lng]);if(!ps.length&&S)ps.push(S);return ps}
+function dayCenter(day){const ps=dayPts(day);if(!ps.length)return WX_CENTER;return [ps.reduce((a,p)=>a+p[0],0)/ps.length,ps.reduce((a,p)=>a+p[1],0)/ps.length]}
+function wxNeed(){const t=jstISO(),last=addDays(t,15),ks=new Set([wxKey(WX_CENTER)]);
+  plan.days.forEach(d=>{if(!d.date||d.date<t||d.date>last)return;ks.add(wxKey(dayCenter(d)));dayPts(d).forEach(p=>ks.add(wxKey(p)))});
+  return [...ks].slice(0,30)}
+function wxLoad(force){
+  if(wxBusy)return;const need=wxNeed(),fresh=WXD&&WXD.g&&Date.now()-WXD.at<3*3600e3;
+  if(!force&&fresh&&need.every(k=>WXD.g[k]))return;if(!force&&Date.now()-wxFail<5*60e3)return;wxBusy=true;
+  const la=need.map(k=>k.split(",")[0]).join(","),lo=need.map(k=>k.split(",")[1]).join(",");
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&hourly=precipitation_probability&timezone=Asia%2FTokyo&forecast_days=16&wind_speed_unit=ms`)
+    .then(r=>r.json()).then(res=>{const arr=Array.isArray(res)?res:[res],g={};
+      arr.forEach((j,n)=>{if(!j||!j.daily||!j.daily.time)return;const days={};
+        j.daily.time.forEach((t,i)=>{days[t]={c:j.daily.weather_code[i],hi:Math.round(j.daily.temperature_2m_max[i]),lo:Math.round(j.daily.temperature_2m_min[i]),p:j.daily.precipitation_probability_max[i]??0,w:Math.round(j.daily.wind_speed_10m_max[i]||0),h:[]}});
+        ((j.hourly||{}).time||[]).forEach((t,i)=>{const d=days[t.slice(0,10)];if(d)d.h[+t.slice(11,13)]=j.hourly.precipitation_probability[i]});
+        g[need[n]]=days});
+      if(!Object.keys(g).length)return;
+      WXD={at:Date.now(),g};try{localStorage.setItem("fk_wx2",JSON.stringify(WXD))}catch(e){}
       if(view==="plan"){if(document.querySelector("#planwrap input:focus,#planwrap select:focus"))paintWx(plan.days[cur]);else renderPlan()}})
-    .catch(()=>{}).finally(()=>{wxBusy=false});
+    .catch(()=>{wxFail=Date.now()}).finally(()=>{wxBusy=false});
 }
-function wxDay(date){return date&&WXD&&WXD.days&&WXD.days[date]||null}
+function wxDay(date,p){if(!date||!WXD||!WXD.g)return null;p=p||WX_CENTER;const k=wxKey(p);
+  if(WXD.g[k]&&WXD.g[k][date])return WXD.g[k][date];
+  let best=null,bk=1e9;Object.keys(WXD.g).forEach(x=>{if(!WXD.g[x][date])return;const q=x.split(",").map(Number),d=kmOf(p,q);if(d<bk){bk=d;best=x}});   // 아직 못 받은 곳은 가장 가까운 지점
+  return best?WXD.g[best][date]:null}
 function wxEmoji(c){return c===0?"☀️":c<=2?"🌤":c===3?"☁️":c<=48?"🌫":c<=57?"🌦":c<=67?"🌧":c<=77?"🌨":c<=82?"🌧":c<=86?"🌨":"⛈"}
 function wxName(c){return c===0?"맑음":c<=2?"구름 조금":c===3?"흐림":c<=48?"안개":c<=57?"이슬비":c<=67?"비":c<=77?"눈":c<=82?"소나기":c<=86?"눈":"뇌우"}
-function wxIcon(date){const w=wxDay(date);return w?" "+wxEmoji(w.c):""}
-function rainAt(date,a,b){const w=wxDay(date);if(!w||!w.h||a==null||b==null)return null;let mx=null;
+function wxIcon(day){const w=day&&wxDay(day.date,dayCenter(day));return w?" "+wxEmoji(w.c):""}
+function rainAt(date,a,b,p){const w=wxDay(date,p);if(!w||!w.h||a==null||b==null)return null;let mx=null;
   for(let h=Math.max(0,Math.floor(a/60));h<=Math.min(23,Math.floor((Math.max(a,b-1))/60));h++){const v=w.h[h];if(v!=null&&(mx==null||v>mx))mx=v}return mx}
+function wxWhere(day){const ps=day.stops.map(x=>BYID[x.id]).filter(Boolean);if(!ps.length)return `${day.startName||"출발지"} 기준`;
+  const c=dayCenter(day);let n=ps[0],bk=1e9;ps.forEach(d=>{const k=kmOf(c,[d.lat,d.lng]);if(k<bk){bk=k;n=d}});
+  const spread=Math.max(...ps.map(d=>kmOf(c,[d.lat,d.lng])));
+  return `이날 장소들 위치 기준 (${n.name.replace(/^🏨\s*/,"")} 근처)${spread>4?" · 떨어진 장소는 그 위치 예보로 비를 따로 봐요":""}`}
 function paintWx(day){const box=$("wx");if(!box)return;wxLoad();
   const date=day&&day.date,t=jstISO();
   if(!date||date<t){box.hidden=true;box.innerHTML="";return}
-  const w=wxDay(date),out=[];
+  const w=wxDay(date,dayCenter(day)),out=[];
   if(w){
     out.push(`<div class="w1">${wxEmoji(w.c)} ${wxName(w.c)} · 낮 ${w.hi}℃ / 아침 ${w.lo}℃ · 비 ${w.p}% · 바람 ${w.w}m/s</div>`);
     const rs=[];let st=-1,mx=0;
@@ -2644,7 +2665,7 @@ function paintWx(day){const box=$("wx");if(!box)return;wxLoad();
     if(rs.length)out.push(`<div>☔ ${rs.map(([a,b,m])=>`${a}~${b}시 비 ${m}%`).join(", ")} · 야외 장소엔 '실내 대안' 버튼이 떠요 · 유모차 레인커버 챙기기</div>`);
     if(w.lo<=5)out.push(`<div>🧣 아침저녁 추워요 · 유모차 방풍커버·담요 챙기기</div>`);
     if(w.w>=8)out.push(`<div>💨 바람이 세요 · 바닷가(모모치·해변)는 체감이 더 추워요</div>`);
-    out.push(`<div class="meta">${new Date(WXD.at+9*3600e3).toISOString().slice(5,16).replace("-","/").replace("T"," ")} 받은 예보 · Open-Meteo</div>`);
+    out.push(`<div class="meta">📍 ${esc(wxWhere(day))} · ${new Date(WXD.at+9*3600e3).toISOString().slice(5,16).replace("-","/").replace("T"," ")} 받은 예보 · Open-Meteo</div>`);
   }else{
     const n=Math.round((new Date(date+"T00:00")-new Date(t+"T00:00"))/864e5),mo=+date.slice(5,7);
     out.push(`<div>📅 날씨 예보는 16일 전부터 보여요${n>15?` (지금 D-${n})`:" · 받는 중이에요"}${mo===12||mo<=2?" · 12월 후쿠오카는 보통 낮 13℃ · 아침 5℃ 안팎이고 바람 부는 흐린 날이 많아요":""}</div>`);
