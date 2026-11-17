@@ -1080,6 +1080,18 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 #nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
+/* 일정 날짜 설정 영역: 2칸 정렬로 높이 줄이기 */
+.dayhead{gap:10px;padding:12px 14px}
+.dh2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.dayhead .dh2 label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap}
+.dayhead .dh2 select,.dayhead .dh2 input{width:100%;min-height:38px;text-overflow:ellipsis}
+.hrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.hrow .hotelrow{display:contents}
+.hrow #pickStart,.hrow #hFind{padding:6px 10px;font-size:12.5px}
+.hrow .hchip button{max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dhbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.dhbtns>*{width:100%;min-height:40px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dhbtns select{text-align:center;text-align-last:center}
 .hmodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .hmodes a{display:grid;justify-items:center;align-content:center;gap:3px;padding:12px 4px;min-height:84px;border-radius:14px;background:var(--fill);color:var(--ink);text-decoration:none;text-align:center}
 .hmodes .i{font-size:22px;line-height:1.1}
@@ -1198,20 +1210,15 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
       <div class="days" id="days"></div>
       <div class="wx" id="wx" hidden></div>
       <div class="dayhead">
-        <label>날짜 <input type="date" id="pdate"></label>
-        <div class="hotelrow" id="hotelrow"></div>
-        <label>출발 <select id="pstart"></select> <button class="btn" id="pickStart" type="button">지도에서 숙소 찍기</button></label>
-        <label>도착 <select id="pend"></select></label>
-        <label>🕘 출발 시각 <input type="time" id="pt0" step="300"></label>
-        <div class="babyrow"><span class="hl">👶 아기 시간</span>
-          <label>🍼 수유 <select id="bFeed"><option value="0">안 챙기기</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label>
-          <label>⏱ 이동마다 여유 <select id="bBuf"><option value="0">없음</option><option value="10">+10분</option><option value="15">+15분</option><option value="20">+20분</option></select></label>
-          <span class="meta">모든 날에 똑같이 적용돼요</span></div>
-        <div class="btnrow">
-          <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선 계산</button>
-          <button class="btn" id="autoOrder" type="button">가까운 순으로 자동 정렬</button>
-          <a class="btn primary" id="gdir" target="_blank" rel="noopener">구글맵으로 동선 열기</a>
+        <div class="dh2"><label>날짜 <input type="date" id="pdate"></label><label>🕘 출발 <input type="time" id="pt0" step="300" aria-label="출발 시각"></label></div>
+        <div class="hrow"><div class="hotelrow" id="hotelrow"></div><button class="btn" id="pickStart" type="button" title="지도에서 숙소 위치 찍기">📍 지도 찍기</button></div>
+        <div class="dh2"><label>출발 <select id="pstart"></select></label><label>도착 <select id="pend"></select></label></div>
+        <div class="dh2 babyrow" title="아기 시간은 모든 날에 똑같이 적용돼요"><label>🍼 수유 <select id="bFeed"><option value="0">안 챙기기</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label><label>⏱ 여유 <select id="bBuf" aria-label="이동마다 여유"><option value="0">없음</option><option value="10">+10분</option><option value="15">+15분</option><option value="20">+20분</option></select></label></div>
+        <div class="dhbtns">
+          <a class="btn primary" id="gdir" target="_blank" rel="noopener">🗺 구글맵 동선</a>
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">기본: 도보</option><option value="transit">기본: 대중교통</option><option value="driving">기본: 차</option></select>
+          <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선</button>
+          <button class="btn" id="autoOrder" type="button">↕ 가까운 순 정렬</button>
         </div>
       </div>
       <div id="planmap"></div>
@@ -2206,7 +2213,7 @@ function renderPlan(){
   const eopts=[["","마지막 장소에서 끝"],["__back","↩ 출발지로 돌아오기"],...hopts,...STARTS];if(day.end&&!eopts.some(([v])=>v===day.end))eopts.push([day.end,day.endName||"도착지"]);
   $("pend").innerHTML=eopts.map(([v,t])=>`<option value="${v}"${v===(day.end||"")?" selected":""}>${esc(t)}</option>`).join("");
   renderHotels();
-  $("pickStart").classList.toggle("on",picking);$("pickStart").textContent=picking?"지도를 눌러 주세요…":"지도에서 숙소 찍기";
+  $("pickStart").classList.toggle("on",picking);$("pickStart").textContent=picking?"지도를 눌러 주세요…":"📍 지도 찍기";
   const S=pt(day.start),pts=[S],ds=day.stops.map(x=>BYID[x.id]);
   const LEGS=[];window.__legs=LEGS;
   let total=0,html=`<div class="startrow"><span class="no">출</span>${esc(day.startName||"출발지")}에서 출발</div>`;
@@ -2323,10 +2330,10 @@ function todaysHotel(){
 function renderHotels(){
   const hs=plan.hotels||[],day=plan.days[cur];
   const startIsHotel=hs.some(h=>hKey(h)===day.start);
-  $("hotelrow").innerHTML=`<span class="hl">🏨 내 숙소</span>`+
+  $("hotelrow").innerHTML=`<span class="hl" title="내 숙소">🏨</span>`+
     hs.map(h=>`<span class="hchip${hKey(h)===day.start?" on":""}"><button type="button" data-huse="${h.id}">${esc(h.name)}</button><button type="button" class="x" data-hdel="${h.id}" aria-label="${esc(h.name)} 삭제">✕</button></span>`).join("")+
     (!startIsHotel&&!STARTS.some(([v])=>v===day.start)?`<button class="btn" type="button" id="hFromStart">＋ 지금 출발지를 숙소로 저장</button>`:"")+
-    `<button class="btn" type="button" id="hFind" hidden>＋ 숙소 찾기</button>`+
+    `<button class="btn" type="button" id="hFind" hidden title="이름으로 숙소 찾기">＋ 숙소</button>`+
     (!hs.length?`<span class="meta">지도에서 숙소를 찍거나${window.GMAPS_KEY!==undefined?" 이름으로 찾아":""} 저장하면 매일 출발지로 쓰고, 언제든 숙소 가는 길을 바로 열 수 있어요.</span>`:"");
   if(window.onHotelRow)window.onHotelRow();
   $("goHotel").hidden=!hs.length;
@@ -2719,22 +2726,10 @@ function wxWhere(day){const ps=day.stops.map(x=>BYID[x.id]).filter(Boolean);if(!
 function paintWx(day){const box=$("wx");if(!box)return;wxLoad();
   const date=day&&day.date,t=jstISO();
   if(!date||date<t){box.hidden=true;box.innerHTML="";return}
-  const w=wxDay(date,dayCenter(day)),out=[];
-  if(w){
-    out.push(`<div class="w1">${wxEmoji(w.c)} ${wxName(w.c)} · 낮 ${w.hi}℃ / 아침 ${w.lo}℃ · 비 ${w.p}% · 바람 ${w.w}m/s</div>`);
-    const rs=[];let st=-1,mx=0;
-    for(let h=7;h<=21;h++){const v=w.h[h];if(v!=null&&v>=50){if(st<0){st=h;mx=v}else mx=Math.max(mx,v)}else if(st>=0){rs.push([st,h,mx]);st=-1}}
-    if(st>=0)rs.push([st,22,mx]);
-    if(rs.length)out.push(`<div>☔ ${rs.map(([a,b,m])=>`${a}~${b}시 비 ${m}%`).join(", ")} · 야외 장소엔 '실내 대안' 버튼이 떠요 · 유모차 레인커버 챙기기</div>`);
-    if(w.lo<=5)out.push(`<div>🧣 아침저녁 추워요 · 유모차 방풍커버·담요 챙기기</div>`);
-    if(w.w>=8)out.push(`<div>💨 바람이 세요 · 바닷가(모모치·해변)는 체감이 더 추워요</div>`);
-    out.push(`<div class="meta">📍 ${esc(wxWhere(day))} · ${new Date(WXD.at+9*3600e3).toISOString().slice(5,16).replace("-","/").replace("T"," ")} 받은 예보 · Open-Meteo</div>`);
-  }else{
-    const n=Math.round((new Date(date+"T00:00")-new Date(t+"T00:00"))/864e5),mo=+date.slice(5,7);
-    out.push(`<div>📅 날씨 예보는 16일 전부터 보여요${n>15?` (지금 D-${n})`:" · 받는 중이에요"}${mo===12||mo<=2?" · 12월 후쿠오카는 보통 낮 13℃ · 아침 5℃ 안팎이고 바람 부는 흐린 날이 많아요":""}</div>`);
-  }
-  if(isYearEnd(date))out.push(`<div>🎍 연말연시(12/29~1/3)엔 쉬거나 일찍 닫는 곳이 많아요 · 여행 7일 전부터 일정 속 장소의 특별 영업시간을 자동으로 확인해요</div>`);
-  box.innerHTML=out.join("");box.hidden=false;
+  const w=wxDay(date,dayCenter(day));
+  if(w)box.innerHTML=`<div class="w1">${wxEmoji(w.c)} ${wxName(w.c)} · 낮 ${w.hi}℃ / 아침 ${w.lo}℃ · 비 ${w.p}% · 바람 ${w.w}m/s</div>`;
+  else{const n=Math.round((new Date(date+"T00:00")-new Date(t+"T00:00"))/864e5);box.innerHTML=`<div class="w1" style="font-weight:500">📅 날씨 예보는 16일 전부터 보여요${n>15?` (D-${n})`:""}</div>`}
+  box.hidden=false;
 }
 var OUT_RE=/공원|公園|\bpark\b|농장|\bfarm\b|동물원|動物園|\bzoo\b|해변|해수욕|ビーチ|\bbeach\b|海浜|海の中道|우미노나카미치|정원|庭園|신사|神社|天満宮|텐만구|오호리|大濠|숲|森|전망대|展望/i;
 var INDOOR_T=/실내|오락실|박물관|미술관|museum|이벤트홀|회관|쇼핑몰|백화점|장난감|어린이집|상점/i;
@@ -3470,7 +3465,7 @@ $("optRoute").addEventListener("click", async () => {
     changed();
     toast(t0 && t1 < t0 ? `동선을 바꿨어요 · 이동 ${Math.round((t0 - t1) / 60)}분 단축` : "지금 순서가 이미 가장 빨라요");
   }catch(e){ toast("최적 동선을 계산하지 못했어요"); }
-  btn.disabled = false; btn.textContent = "🧭 최적 동선 계산";
+  btn.disabled = false; btn.textContent = "🧭 최적 동선";
 });
 })();
 
@@ -3567,7 +3562,7 @@ function addToPlan(c){
   if(day.stops.some(x => x.id === id)){ toast("이미 이 날 일정에 있어요"); return; }
   day.stops.push({id, memo: ""});
   sheet.hidden = true; changed();
-  toast(`${cur+1}일차에 넣었어요 · 🧭 최적 동선 계산으로 순서를 정리해 보세요`);
+  toast(`${cur+1}일차에 넣었어요 · 🧭 최적 동선으로 순서를 정리해 보세요`);
 }
 /* 검색 결과를 작은 지도에 번호로 표시 · 숙소/그날 일정과의 거리도 함께 */
 let apMap = null, apMks = [];
