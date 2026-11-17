@@ -1080,7 +1080,9 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .pi:last-child{border-bottom:0}
 .pi label{flex:1;display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 0;font-size:16px}
 .pi input[type=checkbox]{width:22px;height:22px;accent-color:var(--sea);flex:none;margin:0}
-.pi.on label span{color:var(--muted);text-decoration:line-through}
+.pi .ok{flex:none;font-size:12.5px;font-weight:700;color:#1f8a4c;background:rgba(52,199,89,.16);border-radius:999px;padding:4px 10px;white-space:nowrap}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pi .ok{color:#5ee08a;background:rgba(52,199,89,.2)}}
+:root[data-theme="dark"] .pi .ok{color:#5ee08a;background:rgba(52,199,89,.2)}
 .pi .x,.mrow .x{border:0;background:none;color:var(--muted);font-size:15px;min-width:44px;height:44px;cursor:pointer}
 .pbar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}.pbar i{display:block;height:100%;width:0;background:var(--sea);transition:width .3s}
 .mtot{background:var(--surface);border-radius:16px;padding:14px 16px;display:grid;gap:2px}
@@ -2760,7 +2762,7 @@ function renderPrep(){
   $("prepCnt").textContent=n?`${c}/${n} 챙김${c===n?" 🎉":""}`:"";
   $("prepBar").style.width=n?Math.round(c/n*100)+"%":"0";
   const rows=[...L.filter(x=>!x.c),...(prepHide?[]:L.filter(x=>x.c))];
-  $("prepList").innerHTML=rows.length?rows.map(x=>`<div class="pi${x.c?" on":""}"><label><input type="checkbox" data-pc="${esc(x.id)}"${x.c?" checked":""}><span>${esc(x.t)}</span></label><button type="button" class="x" data-pdel="${esc(x.id)}" aria-label="${esc(x.t)} 지우기">✕</button></div>`).join("")
+  $("prepList").innerHTML=rows.length?rows.map(x=>`<div class="pi${x.c?" on":""}"><label><input type="checkbox" data-pc="${esc(x.id)}"${x.c?" checked":""}><span>${esc(x.t)}</span></label>${x.c?`<span class="ok">✓ 준비완료</span>`:""}<button type="button" class="x" data-pdel="${esc(x.id)}" aria-label="${esc(x.t)} 지우기">✕</button></div>`).join("")
     :`<div class="empty" style="padding:22px 14px">${n?"다 챙겼어요 🎉":"아직 목록이 없어요. 위에 입력하거나 아래 <b>📋 기본 목록 넣기</b>를 눌러 보세요."}</div>`;
   $("prepTools").innerHTML=`<button class="btn" type="button" data-ptool="base">📋 아기 여행 기본 목록 넣기</button>${c?`<button class="btn" type="button" data-ptool="hide">${prepHide?"챙긴 것 보기":"챙긴 것 숨기기"}</button><button class="btn" type="button" data-ptool="reset">↺ 체크 모두 풀기</button>`:""}`;
 }
