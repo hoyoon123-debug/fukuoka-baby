@@ -1048,6 +1048,8 @@ h1 small{font-weight:400;font-size:13px;letter-spacing:0}
 .leg .lms button[aria-pressed="true"] .lt{display:inline}
 .appbtns{display:flex;gap:6px;margin-top:6px}
 .abtn{border:0;background:var(--fill);color:var(--sea);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
+.card .myph{height:150px}.card .myph img,.card .myph .noimg{width:100%;height:150px;object-fit:cover;display:block;background:var(--ph)}
+.pop .pph img,.pop .pph .noimg{width:100%;height:110px;object-fit:cover;border-radius:10px;display:block;margin-bottom:6px;background:var(--ph)}
 </style>
 
 <header>
@@ -1201,6 +1203,7 @@ function hydrate(root){
     else{const c=(IDX[id]||{}).pc;if(c>=0&&!PHDONE[c])need.add(c)}
   });
   need.forEach(c=>loadChunk(c).then(()=>hydrate(root)));
+  if(window.fillCustomPhotos&&root.querySelector("[data-gph]"))window.fillCustomPhotos(root);   // 내 장소·직접 추가한 곳 사진 (구글)
 }
 const krn=(x,b)=>x&&x.kr?`<span class="kr${b?" krb":""}">🗣 ${esc(x.kr)}</span>`:"";
 const phImg=(d,i,extra="")=>d.np>i?`<img data-ph="${esc(d.id)}:${i}" src="${PH[d.id]?.[i]||BLANK}" alt="${esc(d.name)} 사진" ${extra}>`:"";
@@ -1241,7 +1244,8 @@ function planBadge(d){const ds=inPlan(d.id);return ds.length?`<div class="inplan
 function myPlaces(){return (plan.custom||[]).filter(c=>c.saved&&IDX[c.id]).map(c=>IDX[c.id])}
 function mineCard(d){
   const c=(plan.custom||[]).find(x=>x.id===d.id)||{};
-  return `<article class="card mine"><div class="body">
+  const ph=d.gid?`<div class="strip n1 myph"><span class="noimg" data-gph="${esc(d.gid)}"></span></div><div class="credit">사진: Google 지도</div>`:"";
+  return `<article class="card mine">${ph}<div class="body">
     <div class="top"><div><div class="name">📌 ${esc(d.name)}${krn(d,1)}</div>
       <div class="meta">내가 찾은 장소${st.sort==="near"&&d.km!=null?` · 직선 ${d.km<1?Math.round(d.km*1000)+"m":d.km.toFixed(1)+"km"}`:""}</div></div>
       <span class="lv lv-mine">내 장소</span></div>
@@ -1317,7 +1321,7 @@ function todayHours(d){
   return sp.length?"오늘 "+sp.map(([a,b])=>f(a)+"~"+f(b)).join(", "):"오늘 휴무";
 }
 function pop(d){
-  if(d.cat==="custom")return `<div class="pop"><b>📌 ${esc(d.name)}</b>${krn(d,1)}<div class="meta">내가 찾은 장소</div>${d.addr?`<div class="meta">📍 ${esc(d.addr)}</div>`:""}${todayHours(d)?`<div class="meta">🕒 ${esc(todayHours(d))}</div>`:""}<div class="pbtns"><a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${planBadge(d)}</div>`;
+  if(d.cat==="custom")return `<div class="pop">${d.gid?`<div class="pph"><span class="noimg" data-gph="${esc(d.gid)}"></span></div>`:""}<b>📌 ${esc(d.name)}</b>${krn(d,1)}<div class="meta">내가 찾은 장소</div>${d.addr?`<div class="meta">📍 ${esc(d.addr)}</div>`:""}${todayHours(d)?`<div class="meta">🕒 ${esc(todayHours(d))}</div>`:""}<div class="pbtns"><a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${planBadge(d)}</div>`;
   const ph=phImg(d,0),th=todayHours(d);
   return `<div class="pop">${ph}<b>${esc(d.name)}</b>${krn(d,1)}<div class="meta">${esc(d.lv)} · ${esc(CAT_LABEL[d.cat]||"")}${d.rating?" · ★ "+d.rating:""}</div><div class="meta">📍 ${esc(d.addr)}</div>${th?`<div class="meta"${th==="오늘 휴무"?' style="color:var(--milk);font-weight:700"':""}>🕒 ${esc(th)}</div>`:""}${d.sum?esc(d.sum):""}${nsLine(d)}<div style="margin-top:4px">유모차 ${esc(d.stroller.s)} · 아이 후기 ${d.kidn}개</div>${d.tips[0]?`<div style="margin-top:4px">💡 ${esc(d.tips[0].t)}</div>`:""}<div class="pbtns">${d.url?`<a class="pbtn pri" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기</a>`:""}<a class="pbtn" href="${dirUrl(d,"transit")}" target="_blank" rel="noopener">🚇 길찾기</a><a class="pbtn" href="#" data-add="${esc(d.id)}">＋ 일정</a></div>${d.url?`<div class="meta" style="font-size:11.5px;margin-top:4px">구글맵에서 리뷰·사진·전화번호를 직접 볼 수 있어요</div>`:""}${planBadge(d)}</div>`;
 }
@@ -2424,7 +2428,7 @@ function renderNearby(day,S,ds){
    ${groups.length?groups.map(({i,g})=>{const open=nearOpen.has(i),show=open?g:g.slice(0,3);
      return `<div class="ngrp"><div class="ngh">${i?`<span class="no">${i}</span> ${esc(ds[i-1].name)}`:`<span class="no">출</span> ${esc(day.startName||"출발지")}`} 근처 <span class="meta">${(()=>{const [a,b]=win(i);return `${fmt(a)}~${fmt(b)}`})()} · ${g.length}곳</span>${mealOf(i)?`<span class="btag">${mealOf(i)}</span>`:""}</div>`
      +show.map(c=>`<div class="near${c.d.cat==="custom"?" mine":""}">
-      ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"></span>`}${c.d.url?"</a>":""}
+      ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"${c.d.gid?` data-gph="${esc(c.d.gid)}"`:""}></span>`}${c.d.url?"</a>":""}
       <div class="info">${c.d.url?`<a class="nm gml" href="${esc(c.d.url)}" target="_blank" rel="noopener">${esc(c.d.name)}${krn(c.d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>`:`<div class="nm">${esc(c.d.name)}</div>`}
         <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
         ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
