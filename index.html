@@ -1636,12 +1636,13 @@ if(window.ResizeObserver){const ro=new ResizeObserver(()=>{const p=$("prepForm")
 (()=>{const ORDER=["list","plan","prep","money"];let sx=0,sy=0,st=0,ok=false,drag=false;
   const NO="#mapwrap,#planmap,.row,.days,.mcats,.lms,input,textarea,select,.sheet,.strip,.gm-style,.dock,[data-noswipe]";
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches,B=document.body;
-  const setX=x=>B.style.setProperty("--swx",x+"px");
+  const M=document.querySelector("main")||B,setX=x=>M.style.setProperty("--swx",x+"px");   // main에만 걸어 전체 다시 그리기 줄임
   const end=()=>{drag=false;B.classList.remove("swdrag");setX(0)};
   document.addEventListener("touchstart",e=>{if(e.touches.length!==1){ok=false;return}const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();drag=false;
     ok=!e.target.closest(NO)&&!document.querySelector(".sheet:not([hidden])")},{passive:true});
   document.addEventListener("touchmove",e=>{if(!ok)return;const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-    if(!drag){if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.8){drag=true;B.classList.add("swdrag")}else if(Math.abs(dy)>12){ok=false;return}else return}
+    if(!drag){if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*2.2){drag=true;B.classList.add("swdrag")}else if(Math.abs(dy)>10){ok=false;return}else return}
+    if(Math.abs(dy)>36){ok=false;end();return}   // 끌다가 세로 스크롤로 바뀌면 가로 움직임 취소 (흔들림 방지)
     const i=ORDER.indexOf(view),edge=(dx>0&&i<=0)||(dx<0&&i>=ORDER.length-1);setX(edge?dx*.15:dx*.6)},{passive:true});
   document.addEventListener("touchcancel",()=>{ok=false;end()},{passive:true});
   document.addEventListener("touchend",e=>{if(!ok){if(drag)end();return}ok=false;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
@@ -2424,8 +2425,15 @@ $("days").addEventListener("click",e=>{const b=e.target.closest("[data-pday]");i
   if(b.dataset.pday==="new"){plan.days.push(newDay());cur=plan.days.length-1;changed()}
   else{cur=+b.dataset.pday;picking=false;renderPlan()}});
 // 누른 구간이 화면에서 같은 자리에 머물도록 (다시 그리기·경로 계산으로 높이가 바뀌어도 2초간 보정)
+// 이동수단 버튼을 눌러 내용 높이가 바뀌어도 그 구간이 화면에서 제자리에 있게 (사용자가 스크롤하면 바로 멈춰요 → 떨림 방지)
 function holdLeg(i,fn){const q=()=>document.querySelector(`#stops [data-leg="${i}"]`);const el=q(),top=el?el.getBoundingClientRect().top:null;fn();if(top==null)return;
-  const until=Date.now()+2500;const fix=()=>{const n=q();if(n){const d=n.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollBy(0,d)}if(Date.now()<until)requestAnimationFrame(fix)};fix()}
+  if(holdLeg.stop)holdLeg.stop();
+  let alive=true,lastY=window.scrollY;const until=Date.now()+1500,ev=["touchstart","wheel","keydown"];
+  const stop=()=>{alive=false;ev.forEach(t=>window.removeEventListener(t,stop,true));if(holdLeg.stop===stop)holdLeg.stop=null};holdLeg.stop=stop;
+  ev.forEach(t=>window.addEventListener(t,stop,{capture:true,passive:true}));
+  const fix=()=>{if(!alive)return;if(Math.abs(window.scrollY-lastY)>2){stop();return}   // 내가 안 한 스크롤 = 사용자 스크롤 → 멈춤
+    const n=q();if(n){const d=n.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollBy(0,d)}lastY=window.scrollY;
+    if(Date.now()<until)requestAnimationFrame(fix);else stop()};fix()}
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;holdLeg(n,()=>changed());return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
