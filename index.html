@@ -1307,6 +1307,15 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .pdtag{display:inline-block;font-size:11px;font-weight:700;color:var(--sea);background:color-mix(in srgb,var(--sea) 14%,transparent);border-radius:6px;padding:0 6px;margin:0 4px 0 6px;vertical-align:1px;line-height:18px;white-space:nowrap}
 .near .meta .pdtag{margin-left:0}
 .qitem .t .pdtag{align-self:flex-start;justify-self:start;width:fit-content;margin:3px 0 1px}
+.plantime:empty{display:none}
+.startrow .sn{min-width:0;flex:1}
+.qt0{display:inline-flex;align-items:center;gap:4px;margin-left:auto;flex:none;font-weight:600;color:var(--ink);vertical-align:middle}
+.qt0 input{font:inherit;font-size:15px;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--sea) 16%,var(--fill));border:1px solid color-mix(in srgb,var(--sea) 45%,transparent);border-radius:9px;padding:3px 6px;min-height:32px;max-width:120px}
+#qaddIn{background:color-mix(in srgb,var(--sea) 12%,var(--surface))!important;border:1.5px solid color-mix(in srgb,var(--sea) 55%,transparent)!important;color:var(--ink)}
+#qaddIn::placeholder{color:color-mix(in srgb,var(--sea) 70%,var(--muted));opacity:1}
+#qaddIn:focus{outline:none;border-color:var(--sea)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--sea) 25%,transparent)}
+.startrow .eta{margin-left:auto;font-size:14px;font-weight:700;color:var(--sea);white-space:nowrap;padding-left:8px}
+.startrow .eta:empty{display:none}
 </style>
 
 <header>
@@ -2305,6 +2314,7 @@ function paintTimes(){
   renderNearby(day,pt(day.start),ds);
   let t=dep[ds.length-1]||t0;
   const endA=R.endA;
+  {const ee=$("endEta");if(ee)ee.textContent=endA!=null?`🕘 ${fmt(endA)} 도착 예정`:""}   // 도착지 줄에 도착 예정 시각
   // 구간: 엘리베이터 · 택시
   L.forEach((l,i)=>{const el=document.querySelector(`[data-lex="${i}"]`);if(!el)return;const bits=[];
     if(l.mode==="transit"&&l.te&&l.te.fromLn!=="공항 국제선")bits.push(`🛗 엘리베이터: ${evTxt(l.te.from,l.te.fromLn)} · ${evTxt(l.te.to,l.te.toLn)}`);else if(l.mode==="transit"&&l.te)bits.push(`🛗 엘리베이터: ${evTxt(l.te.to,l.te.toLn)}`);
@@ -2343,7 +2353,7 @@ function paintTimes(){
     if(legOK){const late=R.endA-FI.dl;flH+=`<div class="${late>0?"warn":""}">${head}<br>✈ 국제선 터미널 도착 예상 <b>${fmt(R.endA)}</b> · ${late>0?`목표보다 ${late}분 늦어요`:`목표까지 ${-late}분 여유`}</div>`}
     else flH+=`<div>${head}<br><span class="warn">공항 도착 미계산</span> · ${toAirport?"공항까지 마지막 이동 시간이 아직 계산되지 않았어요":(day.end?`이 날 도착지가 '${esc(endName(day))}'(이)라 공항 도착을 알 수 없어요`:"이 날 도착지가 비어 있어요")} <button type="button" class="btn" data-setairport="1" style="padding:2px 10px">✈ 국제선 터미널을 도착지로</button></div>`;
   }
-  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소에서 출발"} <b>${fmt(fin)}</b> 예상</div>${sum.map(x=>(x.startsWith("<div")||x.startsWith("<details"))?x:`<div>${esc(x)}</div>`).join("")}`;
+  pe.innerHTML=flH+liveH+`${sum.map(x=>(x.startsWith("<div")||x.startsWith("<details"))?x:`<div>${esc(x)}</div>`).join("")}`;
 }
 function hoursAt(d,date,a,b){return spNote(d,date)+hoursAt0(d,date,a,b)}
 function hoursAt0(d,date,a,b){
@@ -2413,7 +2423,8 @@ function renderPlan(){
   $("pickStart").classList.toggle("on",picking);$("pickStart").textContent=picking?"지도를 눌러 주세요…":"📍 지도 찍기";
   const S=pt(day.start),pts=[S],ds=day.stops.map(x=>BYID[x.id]);
   const LEGS=[];window.__legs=LEGS;
-  let total=0,html=`<div class="startrow"><span class="no">출</span>${esc(day.startName||"출발지")}에서 출발</div>`;
+  const fi0=flightInfo(day),t0v=day.t0||(fi0.t0!=null?fmt(fi0.t0):"10:00");
+  let total=0,html=`<div class="startrow"><span class="no">출</span><span class="sn">${esc(day.startName||"출발지")}에서 출발</span><label class="qt0" title="이날 출발 시각">🕘<input type="time" id="pt0q" step="300" value="${t0v}" aria-label="이날 출발 시각"></label></div>`;
   ds.forEach((d,i)=>{
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legHTML(i,prev,cp,legMode(day,i),d);total+=L1.k;pts.push(cp);LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:prev,b:cp,m:null});
     html+=`${L1.html}
@@ -2427,7 +2438,7 @@ function renderPlan(){
   });
   const E=endPt(day,S);
   if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:pts[pts.length-1],b:E,m:null});pts.push(E);
-    html+=`${L1.html}<div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착</div>`}
+    html+=`${L1.html}<div class="startrow"><span class="no" style="border-color:var(--sea);color:var(--sea)">도</span>${esc(endName(day))}에 도착<b class="eta" id="endEta"></b></div>`}
   if((plan.hotels||[]).length)html+=`<div class="btnrow" style="margin:6px 0 2px">${plan.hotels.map(h=>`<button class="btn" type="button" data-hstop="${h.id}">＋ 🏨 ${esc(h.name)} 들르기</button>`).join("")}</div>`;
   if(!ds.length)html+=`<div class="empty" style="padding:28px 0">아직 넣은 곳이 없어요.<br>목록이나 지도에서 <b>＋ 일정에 넣기</b>를 눌러 추가하세요.</div>`;
   $("stops").innerHTML=html;hydrate($("stops"));
@@ -2494,7 +2505,9 @@ $("stops").addEventListener("change",e=>{const day=plan.days[cur];
   if(e.target.closest("[data-memo]"))renderPlan()});
 $("plantime").addEventListener("click",e=>{if(!e.target.closest("[data-setairport]")||!AIRPORT)return;const day=plan.days[cur];day.end=AIRPORT[0];day.endName=AIRPORT[1];changed();toast("도착지를 후쿠오카공항 국제선으로 정했어요")});
 $("pFeed0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.feed0=e.target.value;else delete day.feed0;saveSoon();paintTimes()});
-$("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;saveSoon();paintTimes()});
+$("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;const q=$("pt0q");if(q&&HHMM.test(e.target.value))q.value=e.target.value;saveSoon();paintTimes()});
+document.addEventListener("change",e=>{if(e.target.id!=="pt0q")return;const day=plan.days[cur],v=e.target.value;if(HHMM.test(v)){day.t0=v;$("pt0").value=v}else delete day.t0;saveSoon();paintTimes()});
+
 ["bFeed","bBuf"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={...(plan.baby||{}),feed:+$("bFeed").value||0,buf:+$("bBuf").value||0};saveSoon();paintTimes()}));
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
   plan.days[cur].date=v;if(plan.trip&&v){if(v<plan.trip.from)plan.trip.from=v;if(v>plan.trip.to)plan.trip.to=v}sortDays();fillTrip();changed()});
@@ -3215,11 +3228,12 @@ function renderFolds(day){
   const sn=String(day.startName||"출발지").replace(/^✈\s*|^🏨\s*/,""),en=day.end?String(day.endName||"").replace(/^✈\s*|^🏨\s*/,""):"마지막 장소";
   const fi=flightInfo(day),t0=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00"),bb=plan.baby||{};
   const pm=(()=>{try{return localStorage.getItem("fk_pmap")==="1"}catch(e){return false}})();
-  $("dhSum").innerHTML=`<span class="f1">⚙ 이날 설정 · 🕘 ${t0} 출발</span><span class="f2">${esc(sn)} → ${esc(en)}${bb.feed?` · 🍼 ${day.feed0||"출발 기준"} / ${bb.feed/60}시간`:""}</span><button type="button" class="fmap" id="pmTog" aria-pressed="${pm}" title="동선 지도 ${pm?"접기":"보기"}">🗺 ${pm?"지도 접기":"지도"}</button>`;
+  $("dhSum").innerHTML=`<span class="f1">⚙ 이날 설정</span><span class="f2">${esc(sn)} → ${esc(en)}${bb.feed?` · 🍼 ${day.feed0||"출발 기준"} / ${bb.feed/60}시간`:""}</span><button type="button" class="fmap" id="pmTog" aria-pressed="${pm}" title="동선 지도 ${pm?"접기":"보기"}">🗺 ${pm?"지도 접기":"지도"}</button>`;
   $("planmap").hidden=!pm;
   if(renderFolds.cur!==cur){renderFolds.cur=cur;$("dhBox").open=!day.stops.length;if(renderFolds.first===undefined){renderFolds.first=1;$("tripBox").open=!T}}
 }
-$("dhBox").addEventListener("click",e=>{const b=e.target.closest("#pmTog");if(!b)return;e.preventDefault();e.stopPropagation();
+$("dhBox").addEventListener("click",e=>{if(e.target.closest(".qt0")){e.preventDefault();return}   // 출발 시각 칸을 눌러도 접기/펼치기 안 되게
+  const b=e.target.closest("#pmTog");if(!b)return;e.preventDefault();e.stopPropagation();
   const on=b.getAttribute("aria-pressed")!=="true";try{localStorage.setItem("fk_pmap",on?"1":"")}catch(x){}$("planmap").hidden=!on;renderPlan();
   setTimeout(()=>{try{if(typeof pmap!=="undefined"&&pmap&&pmap.invalidateSize)pmap.invalidateSize()}catch(x){}window.dispatchEvent(new Event("resize"))},60)});
 
