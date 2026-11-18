@@ -2850,8 +2850,9 @@ function wxLoad(force){
       if(!Object.keys(g).length)return;
       WXD={at:Date.now(),g};try{localStorage.setItem("fk_wx2",JSON.stringify(WXD))}catch(e){}
       if(view==="plan"){if(document.querySelector("#planwrap input:focus,#planwrap select:focus"))paintWx(plan.days[cur]);else renderPlan()}})
-    .catch(()=>{wxFail=Date.now()}).finally(()=>{wxBusy=false});
+    .catch(e=>{wxFail=Date.now();window.__wxErr=String(e&&e.message||e).slice(0,60);if(view==="plan")paintWx(plan.days[cur])}).finally(()=>{wxBusy=false});
 }
+document.addEventListener("click",e=>{if(e.target.closest("#wxRetry")){window.__wxErr="";wxFail=0;wxLoad(true);toast("날씨를 다시 불러와요")}});
 function wxDay(date,p){if(!date||!WXD||!WXD.g)return null;p=p||WX_CENTER;const k=wxKey(p);
   if(WXD.g[k]&&WXD.g[k][date])return WXD.g[k][date];
   let best=null,bk=1e9;Object.keys(WXD.g).forEach(x=>{if(!WXD.g[x][date])return;const q=x.split(",").map(Number),d=kmOf(p,q);if(d<bk){bk=d;best=x}});   // 아직 못 받은 곳은 가장 가까운 지점
@@ -2870,7 +2871,9 @@ function paintWx(day){const box=$("wx");if(!box)return;wxLoad();
   if(!date||date<t){box.hidden=true;box.innerHTML="";return}
   const w=wxDay(date,dayCenter(day));
   if(w)box.innerHTML=`<div class="w1">${wxEmoji(w.c)} ${wxName(w.c)} · 낮 ${w.hi}℃ / 아침 ${w.lo}℃ · 비 ${w.p}% · 바람 ${w.w}m/s</div>`;
-  else{const n=Math.round((new Date(date+"T00:00")-new Date(t+"T00:00"))/864e5);box.innerHTML=`<div class="w1" style="font-weight:500">📅 날씨 예보는 16일 전부터 보여요${n>15?` (D-${n})`:""}</div>`}
+  else{const n=Math.round((new Date(date+"T00:00")-new Date(t+"T00:00"))/864e5);
+    box.innerHTML=n<=15&&window.__wxErr?`<div class="w1" style="font-weight:500">🌤 날씨를 불러오지 못했어요 <button type="button" class="btn" id="wxRetry" style="padding:2px 10px;font-size:12px;min-height:0">다시 시도</button> <span class="meta">(${esc(window.__wxErr)})</span></div>`
+      :`<div class="w1" style="font-weight:500">📅 날씨 예보는 16일 전부터 보여요${n>15?` (D-${n})`:" · 불러오는 중"}</div>`}
   box.hidden=false;
 }
 var OUT_RE=/공원|公園|\bpark\b|농장|\bfarm\b|동물원|動物園|\bzoo\b|해변|해수욕|ビーチ|\bbeach\b|海浜|海の中道|우미노나카미치|정원|庭園|신사|神社|天満宮|텐만구|오호리|大濠|숲|森|전망대|展望/i;
