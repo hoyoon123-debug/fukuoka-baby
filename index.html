@@ -3278,24 +3278,40 @@ async function legRoute(a, b, mode, depISO){
   }else res = pack(await call({origin: ll(a), destination: ll(b), travelMode: mode}));
   return cache[k] = res;
 }
-/* 직접 추가한 장소 사진: 구글 장소 사진 1장 (한 번 받으면 이 기기에 기억) */
-const GPH_KEY = "fk_gph";
+/* 직접 추가한 장소 사진: 구글 장소 사진 1장
+   ⚠ 구글 사진 주소(…/media?key=)는 화면에 보일 때마다 유료 요청으로 세져요.
+   그래서 장소당 딱 한 번만 '실제 이미지 주소(googleusercontent)'를 받아 이 기기에 기억하고, 그다음부터는 구글 요금 없이 보여줘요. */
+const GPH_KEY = "fk_gph2";
+try{ localStorage.removeItem("fk_gph"); }catch(e){}          // 예전 방식(볼 때마다 요금) 주소는 버려요
 let gph = {}; try{ gph = JSON.parse(localStorage.getItem(GPH_KEY) || "{}"); }catch(e){}
+const gphTried = new Set(), gphWait = {};
+function gphSave(){ try{ localStorage.setItem(GPH_KEY, JSON.stringify(gph)); }catch(e){} }
+async function gphGet(id){
+  if(gph[id] !== undefined) return gph[id];
+  if(gphTried.has(id)) return null;                          // 이번 실행에서 이미 시도한 곳은 다시 부르지 않아요
+  if(gphWait[id]) return gphWait[id];
+  gphTried.add(id);
+  return gphWait[id] = (async () => {
+    try{
+      const {Place} = await google.maps.importLibrary("places");
+      const pl = new Place({id}); await pl.fetchFields({fields: ["photos"]});
+      const ph = pl.photos && pl.photos[0]; if(!ph){ gph[id] = ""; gphSave(); return ""; }
+      const media = ph.getURI({maxWidth: 240, maxHeight: 240});
+      const r = await fetch(media + (media.includes("?") ? "&" : "?") + "skipHttpRedirect=true");
+      const j = r.ok ? await r.json() : null;
+      if(j && j.photoUri){ gph[id] = j.photoUri; gphSave(); return j.photoUri; }
+    }catch(e){}
+    return null;
+  })();
+}
 async function fillCustomPhotos(root){
   if(!root || typeof google === "undefined" || !google.maps || !google.maps.importLibrary) return;
   for(const el of root.querySelectorAll("[data-gph]")){
     const id = el.dataset.gph; el.removeAttribute("data-gph");
-    const put = u => { const im = document.createElement("img"); im.src = u; im.alt = ""; im.loading = "lazy";
-      im.onerror = () => { delete gph[id]; try{ localStorage.setItem(GPH_KEY, JSON.stringify(gph)); }catch(e){} }; el.replaceWith(im); };
-    if(gph[id]){ put(gph[id]); continue; }
-    try{
-      const {Place} = await google.maps.importLibrary("places");
-      const pl = new Place({id}); await pl.fetchFields({fields: ["photos"]});
-      const ph = pl.photos && pl.photos[0]; if(!ph) continue;
-      const u = ph.getURI({maxWidth: 240, maxHeight: 240});
-      gph[id] = u; try{ localStorage.setItem(GPH_KEY, JSON.stringify(gph)); }catch(e){}
-      put(u);
-    }catch(e){}
+    const u = await gphGet(id); if(!u || !el.isConnected) continue;
+    const im = document.createElement("img"); im.src = u; im.alt = ""; im.loading = "lazy";
+    im.onerror = () => { if(gph[id] === u){ delete gph[id]; gphSave(); } im.remove(); };   // 주소가 만료되면 다음 실행 때 한 번만 다시 받아요
+    el.replaceWith(im);
   }
 }
 window.fillCustomPhotos = fillCustomPhotos;
