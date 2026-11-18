@@ -1304,6 +1304,9 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 #stops .stop .fixadd{height:auto!important;min-height:0!important;width:auto!important;margin:0!important;line-height:1.4;border:0;background:transparent;color:var(--sea);font:inherit;font-size:13.5px;font-weight:600;padding:2px 0;cursor:pointer;text-align:left}
 #stops .stop .fixadd small{color:var(--muted);font-weight:500;font-size:11.5px;margin-left:4px}
 #plansum{display:none!important}   /* 검색창 아래 회색 요약 줄 숨김 (계산용으로만 남김) */
+.pdtag{display:inline-block;font-size:11px;font-weight:700;color:var(--sea);background:color-mix(in srgb,var(--sea) 14%,transparent);border-radius:6px;padding:0 6px;margin:0 4px 0 6px;vertical-align:1px;line-height:18px;white-space:nowrap}
+.near .meta .pdtag{margin-left:0}
+.qitem .t .pdtag{align-self:flex-start;justify-self:start;width:fit-content;margin:3px 0 1px}
 </style>
 
 <header>
@@ -1512,6 +1515,7 @@ function list(){
   return mine.concat(arr);
 }
 function inPlan(id){const out=[];plan.days.forEach((x,i)=>{if(x.stops.some(y=>y.id===id))out.push(i+1)});return out}
+function pdTag(id){const ds=inPlan(id);return ds.length?`<span class="pdtag" title="이미 일정에 있어요">📅 ${ds.map(n=>n+"일차").join("·")}</span>`:""}   // 이미 배정된 날 작은 표시
 function planBadge(d){const ds=inPlan(d.id);return ds.length?`<div class="inplan">📅 ${ds.map(n=>n+"일차").join(", ")} 일정에 있음</div>`:""}
 function myPlaces(){return (plan.custom||[]).filter(c=>c.saved&&IDX[c.id]).map(c=>IDX[c.id])}
 function mineCard(d){
@@ -2878,7 +2882,7 @@ function renderNearby(day,S,ds){
      +show.map(c=>`<div class="near${c.d.cat==="custom"?" mine":""}">
       ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"${c.d.gid?` data-gph="${esc(c.d.gid)}"`:""}></span>`}${c.d.url?"</a>":""}
       <div class="info">${c.d.url?`<a class="nm gml" href="${esc(c.d.url)}" target="_blank" rel="noopener">${esc(c.d.name)}${krn(c.d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>`:`<div class="nm">${esc(c.d.name)}</div>`}
-        <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span>${c.d.cat==="custom"&&(c.st==="off"||c.st==="closed")?` <span style="color:#d64545">그 시간 문 닫음</span>`:""} ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
+        <div class="meta">${pdTag(c.d.id)}<span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span>${c.d.cat==="custom"&&(c.st==="off"||c.st==="closed")?` <span style="color:#d64545">그 시간 문 닫음</span>`:""} ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
         ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
       <button class="btn" data-nadd="${esc(c.d.id)}" data-after="${c.after}">넣기</button></div>`).join("")
      +(g.length>3?`<button class="btn nmore" type="button" data-nopen="${i}">${open?"접기":`＋ ${g.length-3}곳 더 보기`}</button>`:"")+`</div>`}).join(""):`<div class="meta" style="padding:8px 0">이 조건으로 300m 안에 있는 곳이 없어요.</div>`}`;
@@ -3152,7 +3156,7 @@ function renderQadd(){const box=$("qaddRes"),inp=$("qaddIn");if(!box||!inp)retur
   if(!day||(!q&&!focus)){box.hidden=true;box.innerHTML="";return}
   const have=new Set(day.stops.map(x=>x.id)),from=qaddLast(day);
   const dist=d=>{const k=kmOf(from,[d.lat,d.lng]);return k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"};
-  const row=(d,attr,extra)=>`<button type="button" class="qitem${d.cat==="custom"?" mine":""}" ${attr}><span class="t"><b>${esc(d.name)}</b><span class="meta">${extra?extra+" · ":""}${esc(d.cat==="custom"?"내 장소":(CAT_LABEL[d.cat]||""))}${d.type?` · ${esc(d.type)}`:""} · ${dist(d)}</span></span><span class="qadd1">＋</span></button>`;
+  const row=(d,attr,extra)=>`<button type="button" class="qitem${d.cat==="custom"?" mine":""}" ${attr}><span class="t"><b>${esc(d.name)}</b>${pdTag(d.id)}<span class="meta">${extra?extra+" · ":""}${esc(d.cat==="custom"?"내 장소":(CAT_LABEL[d.cat]||""))}${d.type?` · ${esc(d.type)}`:""} · ${dist(d)}</span></span><span class="qadd1">＋</span></button>`;
   const out=[];
   const hs=(plan.hold||[]).map((x,i)=>({i,d:BYID[x.id]})).filter(o=>o.d&&(!q||(o.d.name+(o.d.kr||"")).toLowerCase().includes(q)));
   hs.forEach(o=>out.push(row(o.d,`data-qh="${o.i}"`,"📥 보관함")));
