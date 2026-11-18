@@ -3498,7 +3498,7 @@ async function route(points, mode, optimize){
   return res;
 }
 /* 한 구간 경로 (구간마다 이동 수단이 달라요) */
-const STROLLER_MPM = 58;                                    // 유모차·캐리어 보행 속도 3.5km/h (분당 58m)
+const STROLLER_MPM = 67;                                    // 유모차·캐리어 보행 속도 4km/h (분당 67m) · 앱 추정과 같은 속도
 const swm = m => Math.max(1, Math.round((m || 0) / STROLLER_MPM));
 async function legRoute(a, b, mode, depISO){
   // 대중교통은 날짜·현지 출발 시각이 다르면 다른 결과라 캐시 키에 포함
@@ -3677,7 +3677,7 @@ window.afterPlanRender = async function(day, ds, S){
     if(LG[i]){                                        // 시간표에 실제 이동 시간 반영
       const sec = parseInt(l.d) || 0;
       // 도보는 지도 경로 거리 × 유모차 속도 (여유 시간은 시간표에서 한 번만 더해요)
-      if(modes[i] === "TRANSIT" && l.walk){ const w = swm(l.m), e = l.gwalk ? null : transitEst(pts[i], pts[i+1]), ride = e && e.t <= w - 5; LG[i].min = ride ? e.t : w; LG[i].te = ride ? e : null; LG[i].est = !!ride; }
+      if(modes[i] === "TRANSIT" && l.walk){ const w = swm(l.m), e = transitEst(pts[i], pts[i+1]), ride = e && e.t <= w - 5; LG[i].min = ride ? e.t : w; LG[i].te = ride ? e : null; LG[i].est = !!ride; }
       else if(modes[i] === "WALK"){ LG[i].min = swm(l.m); LG[i].te = null; }
       else { LG[i].min = Math.round(sec / 60); if(modes[i] !== "TRANSIT") LG[i].te = null; LG[i].est = false; }
       if(modes[i] === "DRIVE") LG[i].m = l.m;
@@ -3688,7 +3688,7 @@ window.afterPlanRender = async function(day, ds, S){
     let txt, far = false;
     if(l.m < 50){ txt = "같은 곳·바로 옆"; }
     else if(m === "TRANSIT" && l.walk){                   // 구글이 대중교통 시간을 안 줄 때: 지하철 기준 예상
-      const w = swm(l.m), e = l.gwalk ? null : transitEst(pts[i], pts[i+1]);
+      const w = swm(l.m), e = transitEst(pts[i], pts[i+1]);   // 구글이 걷기만 줘도(일본 대중교통 데이터 없음) 지하철 추정과 비교
       if(e && e.t <= w - 5){ tot += e.t * 60; txt = `🚆 약 ${e.t}분 (추정 · 시간표 미확인) · ${e.txt}`; }
       else if(e || l.gwalk){ tot += w * 60; totm += l.m; txt = `🚶 걸어가는 게 나아요 · 유모차 ${w}분 · ${dist(l.m)} · 가까워서 전철 탈 필요 없어요`; }
       else{ unknown++; txt = `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 유모차 ${w}분`; }
