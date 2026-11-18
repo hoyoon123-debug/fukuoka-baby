@@ -1092,9 +1092,16 @@ header h1 .appbtns{margin-top:6px}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
 /* 일정: 바로 넣기 · 옮기기 */
-.qadd{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:8px;background:var(--surface);border-radius:16px;padding:12px 14px;margin:6px 0 4px}
+.qadd{position:relative;margin:0 0 8px}
 .qadd .qhd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-#qaddIn{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+#qaddIn{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box;min-height:44px}
+#qaddRes{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1200;background:var(--surface);border:.5px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-height:55vh;overflow:auto;padding:4px 12px}
+#qaddRes[hidden]{display:none}
+.qitem{width:100%;text-align:left;background:none;border:0;color:var(--ink);font:inherit;cursor:pointer}
+.qitem .t{display:grid;gap:1px}.qitem .t .meta{font-size:12px}
+.qitem .qadd1{flex:none;width:32px;height:32px;border-radius:50%;background:var(--sea);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
+.qitem:first-child{border-top:0}
+.qnew b{color:var(--sea)}
 .qres{display:grid}
 .qitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:.5px solid var(--line);min-height:52px}
 .qitem .t{flex:1;min-width:0}.qitem .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1319,14 +1326,12 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
           <button class="btn" id="autoOrder" type="button">↕ 가까운 순 정렬</button>
         </div>
       </div></details>
+      <div class="qadd" id="qadd"><input id="qaddIn" type="search" placeholder="🔎 장소 검색해서 이 날에 추가" enterkeyhint="search" autocomplete="off" aria-label="장소 검색해서 일정에 추가"><div id="qaddRes" hidden></div>
+        <div hidden><button class="btn" id="addPlace" type="button">＋ 내 장소 추가</button></div></div>
       <div id="planmap"></div>
       <div class="plansum" id="plansum"></div>
       <div class="plantime" id="plantime"></div>
       <div class="stops" id="stops"></div>
-      <div class="qadd" id="qadd"><div class="qhd"><b>＋ 이 날에 넣기</b><span class="meta">모아둔 장소·내 장소·보관함에서 찾아요</span></div>
-        <input id="qaddIn" type="search" placeholder="🔎 장소 이름 검색 (예: 캐널시티, 이치란)" enterkeyhint="search" autocomplete="off" aria-label="모아둔 장소 검색">
-        <div id="qaddRes"></div>
-        <button class="btn" id="addPlace" type="button" hidden style="justify-self:start">＋ 목록에 없는 곳은 내 장소 추가</button></div>
       <div id="nearby"></div>
       <div class="btnrow"><button class="btn" id="shareBtn" type="button">🔗 일정 공유 링크 복사</button><button class="btn" id="bkBtn" type="button">📦 백업·복원</button><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync"><span id="sync"></span> <button class="btn" id="famBtn" type="button" style="padding:2px 10px;font-size:12.5px">👨‍👩‍👧 가족과 같이 보기</button></div>
@@ -2763,12 +2768,12 @@ function renderNearby(day,S,ds){
   const box=$("nearby");
   if(!ds.length){box.innerHTML="";return}
   const pts=[S,...ds.map(d=>[d.lat,d.lng])],have=new Set(day.stops.map(x=>x.id));
-  const R=0.3,cands=[];   // 출발지·각 장소에서 300m 안 (가장 가까운 지점에 묶기)
+  const R=0.3,RM=1.5,cands=[];   // 가이드 장소는 300m 안 · 내 장소는 1.5km 안 (가장 가까운 지점에 묶기)
   D.concat(myPlaces()).forEach(d=>{
     if(have.has(d.id))return;
     const p=[d.lat,d.lng];let best=9,after=0;
     for(let i=0;i<pts.length;i++){const k=kmOf(p,pts[i]);if(k<best){best=k;after=i}}
-    if(best<=R)cands.push({d,km:best,after});
+    if(best<=(d.cat==="custom"?RM:R))cands.push({d,km:best,after});
   });
   // 그 지점에 있는 시간대(시간표 기준)에 문을 여는지 · 식사 시간이면 식당 먼저
   const T=window.__times||{t0:600,arr:[],dep:[]};
@@ -2781,29 +2786,31 @@ function renderNearby(day,S,ds){
   if(realOK){const ask={};
     for(let j=cands.length-1;j>=0;j--){const c=cands[j],o=pts[c.after],v=window.wmGet(o,[c.d.lat,c.d.lng]);
       if(v===undefined){(ask[c.after]=ask[c.after]||[]).push([c.d.lat,c.d.lng]);continue}
-      if(v===null||v[0]>R*1000){cands.splice(j,1);farN++;continue}
+      if(v===null||v[0]>(c.d.cat==="custom"?RM:R)*1000){if(c.d.cat==="custom"&&v===null)continue;cands.splice(j,1);farN++;continue}
       c.real=v[0];c.rmin=Math.max(1,Math.round(v[1]/60*1.15))}
     const ks=Object.keys(ask);if(ks.length&&!renderNearby.busy){renderNearby.busy=1;
       Promise.all(ks.map(i=>window.walkMatrix(pts[+i],ask[i]))).then(r=>{renderNearby.busy=0;if(r.some(Boolean)&&view==="plan"&&plan.days[cur]===day)renderNearby(day,S,ds)})}}
   let hidden=0;
-  for(let j=cands.length-1;j>=0;j--){const c=cands[j];c.st=openAt(c.d,c.after);if(c.st==="off"||c.st==="closed"){cands.splice(j,1);hidden++}}
+  for(let j=cands.length-1;j>=0;j--){const c=cands[j];c.st=openAt(c.d,c.after);if((c.st==="off"||c.st==="closed")&&c.d.cat!=="custom"){cands.splice(j,1);hidden++}}
   const boost=c=>{const m=mealOf(c.after);return m.startsWith("🍽")&&c.d.cat==="restaurant"?2:m.startsWith("☕")&&c.d.cat==="cafe"?1:0};
   const rank=d=>d.cat==="custom"?2:ORDER[d.lv];   // 내 장소는 '가능'과 같은 순위로 · 거리·영업시간 기준은 똑같이
   const CATS2=[["all","전체"],["nurse","🍼 수유실"],["restaurant","🍽 식당"],["cafe","☕ 카페"],["play","🎠 놀이"],["mall","🛍 쇼핑몰"],["mine","📌 내 장소"]];
   const pick=c=>nearCat==="all"||(nearCat==="mine"?c.d.cat==="custom":c.d.cat==="custom"?false:nearCat==="nurse"?(c.d.f.includes("수유실")||c.d.f.includes("기저귀교환대")||!!c.d.nurse):c.d.cat===nearCat);
-  const sorted=cands.filter(pick).sort((a,b)=>(boost(b)-boost(a))||(rank(b.d)-rank(a.d))||((TR[b.d.trust]||0)-(TR[a.d.trust]||0))||(a.km-b.km));
+  // 내 장소는 가까운 순으로 맨 앞 · 가이드 장소는 식사때·추천 순
+  const isM=c=>c.d.cat==="custom"?1:0;
+  const sorted=cands.filter(pick).sort((a,b)=>(isM(b)-isM(a))||(isM(a)&&isM(b)?a.km-b.km:0)||(boost(b)-boost(a))||(rank(b.d)-rank(a.d))||((TR[b.d.trust]||0)-(TR[a.d.trust]||0))||(a.km-b.km));
   const groups=pts.map((_,i)=>sorted.filter(c=>c.after===i)).map((g,i)=>({i,g})).filter(x=>x.g.length);
   const hasNurse=ds.some(d=>d.f.includes("수유실")||d.f.includes("기저귀교환대")||d.nurse);
   const nurseNear=cands.filter(c=>c.d.f.includes("수유실")||c.d.nurse).sort((a,b)=>a.km-b.km)[0];
   const tip=!hasNurse&&ds.length>=2&&nurseNear?`<div class="neartip">🍼 이 날 동선엔 수유실이 확인된 곳이 없어요. 가까운 곳: <b>${esc(nurseNear.d.name)}</b> (${nurseNear.after?nurseNear.after+"번":"출발지"} 근처 ${Math.round(nurseNear.km*1000)}m)</div>`:"";
-  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${realOK?"걷는 길":"직선"} ${R*1000}m 안${farN?` (돌아가야 해서 먼 ${farN}곳 제외)`:""}${day.date?` · 그 시간에 문 여는 곳만${hidden?` (닫힌 ${hidden}곳 숨김)`:""}`:" · 날짜를 넣으면 그 시간에 문 여는 곳만 보여줘요"}</span></div>${tip}
+  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${realOK?"걷는 길":"직선"} ${R*1000}m 안 (📌 내 장소는 1.5km)${farN?` (돌아가야 해서 먼 ${farN}곳 제외)`:""}${day.date?` · 그 시간에 문 여는 곳만${hidden?` (닫힌 ${hidden}곳 숨김)`:""}`:" · 날짜를 넣으면 그 시간에 문 여는 곳만 보여줘요"}</span></div>${tip}
    <div class="row">${CATS2.map(([k,v])=>`<button class="chip" data-ncat="${k}" aria-pressed="${nearCat===k}">${v}</button>`).join("")}</div>
    ${groups.length?groups.map(({i,g})=>{const open=nearOpen.has(i),show=open?g:g.slice(0,3);
      return `<div class="ngrp"><div class="ngh">${i?`<span class="no">${i}</span> ${esc(ds[i-1].name)}`:`<span class="no">출</span> ${esc(day.startName||"출발지")}`} 근처 <span class="meta">${(()=>{const [a,b]=win(i);return `${fmt(a)}~${fmt(b)}`})()} · ${g.length}곳</span>${mealOf(i)?`<span class="btag">${mealOf(i)}</span>`:""}</div>`
      +show.map(c=>`<div class="near${c.d.cat==="custom"?" mine":""}">
       ${c.d.url?`<a class="phl" href="${esc(c.d.url)}" target="_blank" rel="noopener">`:""}${c.d.np?phImg(c.d,0):`<span class="noimg"${c.d.gid?` data-gph="${esc(c.d.gid)}"`:""}></span>`}${c.d.url?"</a>":""}
       <div class="info">${c.d.url?`<a class="nm gml" href="${esc(c.d.url)}" target="_blank" rel="noopener">${esc(c.d.name)}${krn(c.d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>`:`<div class="nm">${esc(c.d.name)}</div>`}
-        <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span> ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
+        <div class="meta"><span class="lv lv-${c.d.cat==="custom"?"mine":esc(c.d.lv)}" style="padding:0 6px">${c.d.cat==="custom"?"📌 내 장소":esc(c.d.lv)}</span>${c.d.cat==="custom"&&(c.st==="off"||c.st==="closed")?` <span style="color:#d64545">그 시간 문 닫음</span>`:""} ${esc(CAT_LABEL[c.d.cat]||"")} · ${c.real!=null?`걷는 길 ${c.real}m · 유모차 ${c.rmin}분`:`직선 ${Math.round(c.km*1000)}m · 걸어서 ${Math.max(1,walkMin(c.km))}분`}${c.st==="open"?" · 🟢 그 시간 영업":c.st==="unk"&&day.date?" · ⚪ 영업시간 미확인":""}${c.d.f.includes("수유실")?" · 🍼":""}${c.d.f.includes("키즈메뉴")?" · 키즈메뉴":""}</div>
         ${c.d.sum?`<div class="meta">${esc(c.d.sum)}</div>`:""}</div>
       <button class="btn" data-nadd="${esc(c.d.id)}" data-after="${c.after}">넣기</button></div>`).join("")
      +(g.length>3?`<button class="btn nmore" type="button" data-nopen="${i}">${open?"접기":`＋ ${g.length-3}곳 더 보기`}</button>`:"")+`</div>`}).join(""):`<div class="meta" style="padding:8px 0">이 조건으로 300m 안에 있는 곳이 없어요.</div>`}`;
@@ -3069,28 +3076,34 @@ function bestPos(day,d){   // 동선이 가장 덜 꼬이는 자리 (직선거�
   for(let i=0;i<=day.stops.length;i++){const a=P[i],b=P[i+1];const c=b?kmOf(a,q)+kmOf(q,b)-kmOf(a,b):kmOf(a,q);if(c<bc){bc=c;bi=i}}
   return bi}
 function qaddLast(day){const L=day.stops.length?BYID[day.stops[day.stops.length-1].id]:null;return L?[L.lat,L.lng]:pt(day.start)}
-function renderQadd(){const box=$("qaddRes");if(!box)return;const day=plan.days[cur];if(!day){box.innerHTML="";return}
-  const q=($("qaddIn").value||"").trim().toLowerCase(),have=new Set(day.stops.map(x=>x.id)),from=qaddLast(day);
+function renderQadd(){const box=$("qaddRes"),inp=$("qaddIn");if(!box||!inp)return;const day=plan.days[cur];
+  const q=(inp.value||"").trim().toLowerCase(),focus=document.activeElement===inp;
+  if(!day||(!q&&!focus)){box.hidden=true;box.innerHTML="";return}
+  const have=new Set(day.stops.map(x=>x.id)),from=qaddLast(day);
   const dist=d=>{const k=kmOf(from,[d.lat,d.lng]);return k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"};
-  const row=(d,btn)=>`<div class="qitem${d.cat==="custom"?" mine":""}"><div class="t"><b>${esc(d.name)}</b><div class="meta">${esc(d.cat==="custom"?"내 장소":(CAT_LABEL[d.cat]||""))}${d.type?` · ${esc(d.type)}`:""} · ${dist(d)}</div></div>${btn}</div>`;
-  const H=plan.hold||[],out=[];
-  const hs=H.map((x,i)=>({x,i,d:BYID[x.id]})).filter(o=>o.d&&(!q||(o.d.name+(o.d.kr||"")+(o.d.addr||"")).toLowerCase().includes(q)));
-  if(hs.length)out.push(`<div class="qsec">📥 보관함 (날짜 미정) ${hs.length}</div>`+hs.map(o=>row(o.d,`<button class="btn primary" type="button" data-qh="${o.i}">넣기</button>`)).join(""));
+  const row=(d,attr,extra)=>`<button type="button" class="qitem${d.cat==="custom"?" mine":""}" ${attr}><span class="t"><b>${esc(d.name)}</b><span class="meta">${extra?extra+" · ":""}${esc(d.cat==="custom"?"내 장소":(CAT_LABEL[d.cat]||""))}${d.type?` · ${esc(d.type)}`:""} · ${dist(d)}</span></span><span class="qadd1">＋</span></button>`;
+  const out=[];
+  const hs=(plan.hold||[]).map((x,i)=>({i,d:BYID[x.id]})).filter(o=>o.d&&(!q||(o.d.name+(o.d.kr||"")).toLowerCase().includes(q)));
+  hs.forEach(o=>out.push(row(o.d,`data-qh="${o.i}"`,"📥 보관함")));
   let pool=[...myPlaces(),...D].filter(d=>!have.has(d.id));
-  if(q)pool=pool.filter(d=>(d.name+" "+(d.kr||"")+" "+(d.addr||"")+" "+(d.type||"")+" "+(typeof d.sum==="string"?d.sum:"")).toLowerCase().includes(q));
-  else pool=myPlaces().filter(d=>!have.has(d.id));
+  pool=q?pool.filter(d=>(d.name+" "+(d.kr||"")+" "+(d.addr||"")+" "+(d.type||"")+" "+(typeof d.sum==="string"?d.sum:"")).toLowerCase().includes(q)):myPlaces().filter(d=>!have.has(d.id));
   pool.sort((a,b)=>((b.cat==="custom")-(a.cat==="custom"))||(kmOf(from,[a.lat,a.lng])-kmOf(from,[b.lat,b.lng])));
-  const P=pool.slice(0,q?12:8);
-  if(P.length)out.push(`<div class="qsec">${q?`검색 결과 ${pool.length>12?"12+":pool.length}`:"📌 내 장소 (가까운 순)"}</div>`+P.map(d=>row(d,`<button class="btn primary" type="button" data-qa="${esc(d.id)}">넣기</button>`)).join(""));
-  else if(q)out.push(`<div class="meta" style="padding:8px 0">모아둔 곳에 없어요. 아래 <b>＋ 목록에 없는 곳은 내 장소 추가</b>로 구글에서 찾아 넣어 보세요.</div>`);
-  box.innerHTML=out.join("");}
+  pool.slice(0,q?8:5).forEach(d=>out.push(row(d,`data-qa="${esc(d.id)}"`)));
+  out.push(`<button type="button" class="qitem qnew" data-qnew="1"><span class="t"><b>＋ ${q?`'${esc(inp.value.trim())}' `:""}구글에서 찾아 내 장소로 추가</b><span class="meta">목록에 없는 곳 · 구글맵 링크도 돼요</span></span></button>`);
+  box.innerHTML=out.join("");box.hidden=false}
 $("qaddIn").addEventListener("input",renderQadd);
-$("qaddIn").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("qaddIn").blur()}});
+$("qaddIn").addEventListener("focus",()=>{renderQadd();   // 결과가 키보드에 가리지 않게 검색창을 화면 위쪽으로
+  setTimeout(()=>{const r=$("qaddIn").getBoundingClientRect(),h=document.querySelector("header").getBoundingClientRect().bottom;if(r.top>h+120||r.top<h)window.scrollBy({top:r.top-h-8,behavior:"smooth"})},250)});
+$("qaddIn").addEventListener("blur",()=>setTimeout(renderQadd,200));
+$("qaddIn").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();const f=$("qaddRes").querySelector(".qitem");if(f)f.click()}else if(e.key==="Escape"){$("qaddIn").value="";$("qaddIn").blur()}});
+$("qaddRes").addEventListener("mousedown",e=>e.preventDefault());   // 누르는 동안 검색창 포커스 유지
 $("qaddRes").addEventListener("click",e=>{const day=plan.days[cur];if(!day)return;
+  const nw=e.target.closest("[data-qnew]");if(nw){const q=$("qaddIn").value.trim();$("qaddIn").value="";$("qaddIn").blur();
+    if(window.openFinder){window.openFinder("stop");const ai=document.getElementById("apIn");if(ai&&q){ai.value=q;const g=document.getElementById("apGo");g&&g.click()}}else toast("구글 지도를 불러오는 중이에요 · 잠시 후 다시 눌러 주세요");return}
   const a=e.target.closest("[data-qa]"),h=e.target.closest("[data-qh]");if(!a&&!h)return;
   let st;if(a){const d=BYID[a.dataset.qa];if(!d)return;st={id:d.id,memo:""}}else{const H=plan.hold||[];st=H.splice(+h.dataset.qh,1)[0];if(!st)return}
   const d=BYID[st.id],pos=day.stops.length;day.stops.push(st);
-  $("qaddIn").value="";changed();toast(`${cur+1}일차 ${pos+1}번째에 ${d.name}을(를) 넣었어요`,{label:"동선에 맞추기",fn:()=>{const i=day.stops.indexOf(st);if(i<0)return;day.stops.splice(i,1);const b=bestPos(day,d);day.stops.splice(b,0,st);changed();toast(`${b+1}번째로 옮겼어요`)}})});
+  $("qaddIn").value="";$("qaddIn").blur();changed();toast(`${cur+1}일차 ${pos+1}번째에 ${d.name}을(를) 넣었어요`,{label:"동선에 맞추기",fn:()=>{const i=day.stops.indexOf(st);if(i<0)return;day.stops.splice(i,1);const b=bestPos(day,d);day.stops.splice(b,0,st);changed();toast(`${b+1}번째로 옮겼어요`)}})});
 function openMoveSheet(i){const day=plan.days[cur],x=day&&day.stops[i],d=x&&BYID[x.id];if(!d)return;
   const opts=plan.days.map((o,k)=>k===cur?"":`<button type="button" data-mvto="${i}:${k}"><span>${esc(dLabel(o,k))}</span><span class="meta">${o.stops.length}곳${o.date?"":" · 날짜 미정"}</span></button>`).join("");
   ioSheet(`<h3 style="margin:0 0 4px">📅 ${esc(d.name)} 옮기기</h3><div class="meta">메모·머무는 시간·예약 시각은 그대로 가져가요. 그날 동선에서 가장 덜 돌아가는 자리에 끼워 넣어요.</div>
