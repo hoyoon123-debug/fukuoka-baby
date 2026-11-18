@@ -2433,7 +2433,7 @@ function renderPlan(){
       <a class="gmlink" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기 ↗</a></div>
       <div class="sbody"><div class="tl" data-tl="${i}"></div><div data-bt="${i}"></div><div data-hn="${i}"></div>
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="📝 메모 (예: 예약번호, 주문할 메뉴)" aria-label="메모">
-      <div class="fixrow${day.stops[i].fix?"":" nofix"}"><button type="button" class="fixadd" data-fixadd="${i}">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 넣기 <small>예약했을 때만</small></button><span class="fxl">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각<small>예약했을 때만 넣어요</small></span><span class="fxr"><input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300" aria-label="${d.cat==="hotel"?"체크인":"예약"} 시각">${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}">지우기</button>`:""}</span></div></div>
+      <div class="fixrow"><button type="button" class="fixadd" data-fixadd="${i}">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 넣기 <small>예약했을 때만</small></button><span class="fxl">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각<small>예약했을 때만 넣어요</small></span><span class="fxr"><input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300" aria-label="${d.cat==="hotel"?"체크인":"예약"} 시각">${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}">지우기</button>`:""}</span></div></div>
       <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑ 위로</button><button data-mv="${i}:1" aria-label="아래로">↓ 아래로</button><button data-mday="${i}" aria-label="다른 날로 옮기기" title="다른 날로 옮기기">📅 다른 날</button><button data-rm="${i}" aria-label="빼기">✕ 빼기</button></div></div>`;
   });
   const E=endPt(day,S);
