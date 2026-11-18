@@ -1118,8 +1118,9 @@ header h1 .appbtns{flex-basis:100%}
 /* 준비물·경비: 입력칸은 화면 아래에 고정 (한 손 사용) · 위쪽만 스크롤 */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:1400;background:var(--mat,var(--bg));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line);
   padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto;box-sizing:border-box}
-#prepwrap{padding-bottom:84px}
-#moneywrap{padding-bottom:var(--mdock,230px)}
+#prepwrap{padding-bottom:calc(var(--pdock,100px) + 12px)}
+#moneywrap{padding-bottom:calc(var(--mdock,230px) + 12px)}
+main .wrap{padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))!important}
 .mform.dock{display:grid;gap:8px}
 .mform.dock .mcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
 .mform.dock .mcats::-webkit-scrollbar{display:none}
@@ -1130,12 +1131,15 @@ header h1 .appbtns{flex-basis:100%}
 .paytog button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14.5px;font-weight:600;border-radius:9px;padding:0 12px;cursor:pointer;white-space:nowrap}
 .paytog button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.2)}
 /* 스와이프 애니메이션: 고정 입력칸(.dock)은 제자리, 나머지 내용만 움직여요 */
-body.swdrag main .wrap>:not(#prepwrap):not(#moneywrap),body.swdrag #prepwrap>:not(.dock),body.swdrag #moneywrap>:not(.dock),body.swback main .wrap>:not(#prepwrap):not(#moneywrap),body.swback #prepwrap>:not(.dock),body.swback #moneywrap>:not(.dock){transform:translateX(var(--swx,0px))}
+body.swdrag main .wrap>:not(#prepwrap):not(#moneywrap),body.swdrag #prepwrap>:not(.dock),body.swdrag #moneywrap>:not(.dock),body.swback main .wrap>:not(#prepwrap):not(#moneywrap),body.swback #prepwrap>:not(.dock),body.swback #moneywrap>:not(.dock){transform:translate3d(var(--swx,0px),0,0);-webkit-transform:translate3d(var(--swx,0px),0,0);will-change:transform}
 body.swback main .wrap>:not(#prepwrap):not(#moneywrap),body.swback #prepwrap>:not(.dock),body.swback #moneywrap>:not(.dock){transition:transform .2s ease-out}
 body.swin-r main .wrap>:not(#prepwrap):not(#moneywrap),body.swin-r #prepwrap>:not(.dock),body.swin-r #moneywrap>:not(.dock){animation:swinR .28s cubic-bezier(.2,.8,.2,1)}
 body.swin-l main .wrap>:not(#prepwrap):not(#moneywrap),body.swin-l #prepwrap>:not(.dock),body.swin-l #moneywrap>:not(.dock){animation:swinL .28s cubic-bezier(.2,.8,.2,1)}
-@keyframes swinR{from{transform:translateX(42%);opacity:.3}to{transform:none;opacity:1}}
-@keyframes swinL{from{transform:translateX(-42%);opacity:.3}to{transform:none;opacity:1}}
+@keyframes swinR{from{transform:translate3d(42%,0,0);opacity:.3}to{transform:translate3d(0,0,0);opacity:1}}
+@-webkit-keyframes swinR{from{-webkit-transform:translate3d(42%,0,0);opacity:.3}to{-webkit-transform:translate3d(0,0,0);opacity:1}}
+@media (prefers-reduced-motion: reduce){@keyframes swinR{from{opacity:.4}to{opacity:1}}@keyframes swinL{from{opacity:.4}to{opacity:1}}}
+@keyframes swinL{from{transform:translate3d(-42%,0,0);opacity:.3}to{transform:translate3d(0,0,0);opacity:1}}
+@-webkit-keyframes swinL{from{-webkit-transform:translate3d(-42%,0,0);opacity:.3}to{-webkit-transform:translate3d(0,0,0);opacity:1}}
 main{overflow-x:clip}
 body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,0px))}
 /* 일정 날짜 설정 영역: 2칸 정렬로 높이 줄이기 */
@@ -1155,6 +1159,22 @@ body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,
 .dhbtns>*{width:100%;min-height:40px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dhbtns select{text-align:center;text-align-last:center}
 #optRoute,#autoOrder{display:none!important}
+/* 접는 줄 (여행 설정 · 이날 설정) */
+.fold{background:var(--surface);border-radius:14px;margin:0 0 8px}
+.fold>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center;padding:9px 12px;position:relative;padding-right:30px;min-height:44px;box-sizing:border-box}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::after{content:"›";position:absolute;right:12px;top:50%;transform:translateY(-55%);font-size:20px;color:var(--muted);transition:transform .2s}
+.fold[open]>summary::after{transform:translateY(-50%) rotate(90deg)}
+.fold .f1{font-size:13.5px;font-weight:700;grid-column:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fold .f2{font-size:12px;color:var(--muted);grid-column:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fold .fmap{grid-column:2;grid-row:1/3;border:0;background:var(--fill);color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;border-radius:999px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.fold .fmap[aria-pressed="true"]{background:#34c759;color:#fff}
+.fold .foldin{padding:0 12px 10px;display:grid;gap:8px}
+.fold .dayhead{border:0!important;margin:0!important;background:transparent!important;padding-top:0!important}
+.fold .flights{margin:0!important}
+.feedfold>summary{cursor:pointer;list-style:none}.feedfold>summary::-webkit-details-marker{display:none}
+.feedfold>summary::after{content:" ›";color:var(--muted)}.feedfold[open]>summary::after{content:" ⌄"}
+#planmap[hidden]{display:none}
 .toastbtn{white-space:nowrap;flex:none}
 /* 항공편·날씨: 글자 줄이고 높이 낮추기 */
 .flights{padding:8px 12px!important}
@@ -1280,10 +1300,13 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div id="mapwrap" hidden><div id="map"></div><div class="legend"><span id="lgG"><i style="background:#8e8e93"></i>아이랑 장소</span><span id="lgM"><i style="background:#0a84ff"></i>📌 내 장소</span><span id="lgN" hidden><i style="background:#c4456a"></i>수유실·기저귀</span><span id="lgL" hidden><i style="background:#8a5a2b"></i>유모차 보관</span><button class="nstog" id="nsTog" type="button" aria-pressed="false">🍼 수유실·기저귀 보기</button><button class="nstog lk" id="lkTog" type="button" aria-pressed="false">🧳 유모차 보관</button></div></div>
     <div id="planwrap" hidden>
       <div id="today"></div>
+      <details class="fold" id="tripBox"><summary id="tripSum">✈ 여행 설정</summary><div class="foldin">
       <div class="triprow"><div class="trh"><span class="hl">🗓 여행 기간</span><span class="meta" id="tInfo"></span></div><input type="date" id="tFrom" aria-label="여행 시작일"><span class="tsep">~</span><input type="date" id="tTo" aria-label="여행 마지막 날"><button class="btn primary" id="tApply" type="button">적용</button></div>
       <div class="flights" id="flights"></div>
+      </div></details>
       <div class="days" id="days"></div>
       <div class="wx" id="wx" hidden></div>
+      <details class="fold" id="dhBox"><summary id="dhSum">이날 설정</summary>
       <div class="dayhead">
         <div class="dh2"><label>날짜 <input type="date" id="pdate"></label><label>🕘 출발 <input type="time" id="pt0" step="300" aria-label="출발 시각"></label></div>
         <div class="hrow"><div class="hotelrow" id="hotelrow"></div><button class="btn" id="pickStart" type="button" title="지도에서 숙소 위치 찍기">📍 지도 찍기</button></div>
@@ -1295,7 +1318,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
           <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선</button>
           <button class="btn" id="autoOrder" type="button">↕ 가까운 순 정렬</button>
         </div>
-      </div>
+      </div></details>
       <div id="planmap"></div>
       <div class="plansum" id="plansum"></div>
       <div class="plantime" id="plantime"></div>
@@ -1597,6 +1620,11 @@ $("vList").addEventListener("click",()=>setView("list"));
 let preMapView="list";$("vMap").addEventListener("click",()=>{if(view==="map")setView(preMapView);else{preMapView=view;setView("map")}window.scrollTo({top:0})});
 $("vPlan").addEventListener("click",()=>setView("plan"));
 $("vPrep").addEventListener("click",()=>setView("prep"));
+// 아래 고정 입력칸 높이를 재서 그만큼 내용 아래 여백 (아이폰 홈 바·키보드 포함)
+if(window.ResizeObserver){const ro=new ResizeObserver(()=>{const p=$("prepForm"),m=$("mForm");
+  if(p&&p.offsetHeight){$("prepwrap").style.setProperty("--pdock",p.offsetHeight+"px");if(view==="prep")document.body.style.setProperty("--tdock",(p.offsetHeight+10)+"px")}
+  if(m&&m.offsetHeight){$("moneywrap").style.setProperty("--mdock",m.offsetHeight+"px");if(view==="money")document.body.style.setProperty("--tdock",(m.offsetHeight+10)+"px")}});
+  ro.observe($("prepForm"));ro.observe($("mForm"))}
 /* 좌우로 밀어서 탭 이동 + 손가락 따라 움직이는 애니메이션 (지도·가로로 넘기는 줄·입력칸 위에서는 제외) */
 (()=>{const ORDER=["list","plan","prep","money"];let sx=0,sy=0,st=0,ok=false,drag=false;
   const NO="#mapwrap,#planmap,.row,.days,.mcats,.lms,input,textarea,select,.sheet,.strip,.gm-style,.dock,[data-noswipe]";
@@ -1605,7 +1633,7 @@ $("vPrep").addEventListener("click",()=>setView("prep"));
   const end=()=>{drag=false;B.classList.remove("swdrag");setX(0)};
   document.addEventListener("touchstart",e=>{if(e.touches.length!==1){ok=false;return}const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();drag=false;
     ok=!e.target.closest(NO)&&!document.querySelector(".sheet:not([hidden])")},{passive:true});
-  document.addEventListener("touchmove",e=>{if(!ok||reduce)return;const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+  document.addEventListener("touchmove",e=>{if(!ok)return;const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(!drag){if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.8){drag=true;B.classList.add("swdrag")}else if(Math.abs(dy)>12){ok=false;return}else return}
     const i=ORDER.indexOf(view),edge=(dx>0&&i<=0)||(dx<0&&i>=ORDER.length-1);setX(edge?dx*.15:dx*.6)},{passive:true});
   document.addEventListener("touchcancel",()=>{ok=false;end()},{passive:true});
@@ -1613,7 +1641,7 @@ $("vPrep").addEventListener("click",()=>setView("prep"));
     const i=ORDER.indexOf(view),n=i+(dx<0?1:-1),go=Date.now()-st<800&&Math.abs(dx)>=70&&Math.abs(dx)>=Math.abs(dy)*1.8&&i>=0&&n>=0&&n<ORDER.length;
     if(!go){if(drag){B.classList.add("swback");end();setTimeout(()=>B.classList.remove("swback"),220)}return}
     end();setView(ORDER[n]);window.scrollTo({top:0});
-    if(!reduce){B.classList.remove("swin-l","swin-r");void B.offsetWidth;B.classList.add(dx<0?"swin-r":"swin-l");setTimeout(()=>B.classList.remove("swin-l","swin-r"),320)}},{passive:true});
+    B.classList.remove("swin-l","swin-r");void B.offsetWidth;B.classList.add(dx<0?"swin-r":"swin-l");setTimeout(()=>B.classList.remove("swin-l","swin-r"),reduce?200:340)},{passive:true});
 })();
 $("vMoney").addEventListener("click",()=>setView("money"));
 
@@ -2225,13 +2253,12 @@ function paintTimes(){
   if(bb.feed&&ds.length){const end=endA||dep[ds.length-1];const fs=[];
     // 기준: 이날 '첫 수유' 시각이 있으면 그 시각부터, 없으면 출발 시각 + 간격
     let f0=t0+bb.feed;if(HHMM.test(day.feed0||"")){f0=toMin(day.feed0);while(f0<t0)f0+=bb.feed}
-    if(HHMM.test(day.feed0||"")&&toMin(day.feed0)<t0)sum.push(`<div class="meta">🍼 첫 수유 ${day.feed0} 기준 · ${bb.feed/60}시간 간격</div>`);
     for(let f=f0;f<end;f+=bb.feed){const w=at(f);let txt;
       if(w.stay){const d=ds[w.i];if(hasNurse(d))txt=`${w.i+1}. ${d.name} 안에 수유실이 있어요`;else{const n=nearNS([d.lat,d.lng]);txt=n?`${w.i+1}. ${d.name} 근처 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:`${w.i+1}. ${d.name}에 있을 때`}
         (tags[w.i]=tags[w.i]||[]).push(`<span class="btag feed">🍼 ${fmt(f)} 수유${hasNurse(d)?" · 수유실 있음":""}</span>`)}
       else{const p=w.i<ds.length?(w.i?[ds[w.i-1].lat,ds[w.i-1].lng]:pt(day.start)):[ds[ds.length-1].lat,ds[ds.length-1].lng];const n=nearNS(p);txt=`이동 중 · ${n?`가까운 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:"이동 전후에 챙기기"}`}
       fs.push(`<div>🍼 <b>${fmt(f)}</b> ${esc(txt)}</div>`)}
-    if(fs.length)sum.push(`<div style="display:grid;gap:2px">${fs.join("")}</div>`)}
+    if(fs.length)sum.push(`<details class="feedfold"><summary>🍼 수유 ${fs.length}번 · ${fs.slice(0,3).map(x=>(x.match(/<b>(\d\d:\d\d)<\/b>/)||[])[1]).filter(Boolean).join(", ")}${fs.length>3?" …":""} <span class="meta">(${HHMM.test(day.feed0||"")?"첫 수유 "+day.feed0:"출발"} 기준 · ${bb.feed/60}시간)</span></summary><div style="display:grid;gap:2px;padding-top:4px">${fs.join("")}</div></details>`)}
   // 비 예보: 야외 장소에 있을 시간에 비 확률 50% 이상이면 실내 대안
   ds.forEach((d,i)=>{const p=isOutdoor(d)?rainAt(day.date,arr[i],dep[i],[d.lat,d.lng]):null;if(p!=null&&p>=50)(tags[i]=tags[i]||[]).push(`<span class="btag rain">☔ 이 시간 비 ${p}%<button type="button" data-rainalt="${i}">실내 대안</button></span>`)});
   document.querySelectorAll("[data-bt]").forEach(el=>{el.innerHTML=(tags[el.dataset.bt]||[]).join("")});
@@ -2248,7 +2275,7 @@ function paintTimes(){
     if(legOK){const late=R.endA-FI.dl;flH+=`<div class="${late>0?"warn":""}">${head}<br>✈ 국제선 터미널 도착 예상 <b>${fmt(R.endA)}</b> · ${late>0?`목표보다 ${late}분 늦어요`:`목표까지 ${-late}분 여유`}</div>`}
     else flH+=`<div>${head}<br><span class="warn">공항 도착 미계산</span> · ${toAirport?"공항까지 마지막 이동 시간이 아직 계산되지 않았어요":(day.end?`이 날 도착지가 '${esc(endName(day))}'(이)라 공항 도착을 알 수 없어요`:"이 날 도착지가 비어 있어요")} <button type="button" class="btn" data-setairport="1" style="padding:2px 10px">✈ 국제선 터미널을 도착지로</button></div>`;
   }
-  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소에서 출발"} <b>${fmt(fin)}</b> 예상</div>${sum.map(x=>x.startsWith("<div")?x:`<div>${esc(x)}</div>`).join("")}`;
+  pe.innerHTML=flH+liveH+`<div>🕘 ${fmt(t0)} 출발 → ${endA!=null?`${esc(endName(day))} 도착`:"마지막 장소에서 출발"} <b>${fmt(fin)}</b> 예상</div>${sum.map(x=>(x.startsWith("<div")||x.startsWith("<details"))?x:`<div>${esc(x)}</div>`).join("")}`;
 }
 function hoursAt(d,date,a,b){return spNote(d,date)+hoursAt0(d,date,a,b)}
 function hoursAt0(d,date,a,b){
@@ -2308,7 +2335,7 @@ function renderPlan(){
    if(el){const left=Math.max(0,el.offsetLeft-box.offsetLeft-(box.clientWidth-el.offsetWidth)/2);const moved=renderPlan.lastCur!==cur;renderPlan.lastCur=cur;
      if(Math.abs(box.scrollLeft-left)>2)box.scrollTo({left,behavior:moved&&!matchMedia("(prefers-reduced-motion: reduce)").matches?"smooth":"auto"})}}
   $("pdate").value=day.date||"";
-  renderFlights();paintWx(day);renderQadd();
+  renderFlights();paintWx(day);renderQadd();renderFolds(day);
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
   const opts=[...hopts,...STARTS];if(!opts.some(([v])=>v===day.start))opts.unshift([day.start,day.startName||"숙소"]);
   $("pstart").innerHTML=opts.map(([v,t])=>`<option value="${v}"${v===day.start?" selected":""}>${esc(t)}</option>`).join("");
@@ -2704,7 +2731,7 @@ function hoursLine(d){if(d.cat==="hotel")return "🏨 숙소 들르기";const h=
 function renderToday(){
   const box=$("today"),t=jstISO(),i=plan.days.findIndex(d=>d.date===t);
   if(i<0){
-    if(plan.trip&&plan.trip.from>t){const n=Math.round((new Date(plan.trip.from+"T00:00")-new Date(t+"T00:00"))/864e5);box.innerHTML=`<div class="meta" style="margin-bottom:6px">✈ 여행까지 D-${n} · 여행 당일에는 여기에 '오늘 할 일'이 떠요</div>`}
+    if(plan.trip&&plan.trip.from>t){box.innerHTML=""}   // 여행 전 D-day는 위 '여행 설정' 줄에 보여요
     else box.innerHTML="";return}
   const day=plan.days[i],st=day.stops.map((x,j)=>({x,j,d:BYID[x.id]})).filter(o=>o.d),left=st.filter(o=>!o.x.done),nx=left[0];
   const warns=left.slice(nx?1:0).map(o=>{const h=hoursNow(o.d);return h.st==="off"?`⚠ ${o.d.name}: 오늘 휴무`:h.st==="closed"?`⚠ ${o.d.name}: 오늘 영업 끝`:h.st==="soon"?`⏰ ${o.d.name}: ${fmt(h.close)} 마감`:""}).filter(Boolean);
@@ -3075,6 +3102,25 @@ $("iosheetIn").addEventListener("click",e=>{const b=e.target.closest("[data-mvto
   else{const to=plan.days[+k];const pos=bestPos(to,d);to.stops.splice(pos,0,st);undo=()=>{const j=to.stops.indexOf(st);if(j>=0)to.stops.splice(j,1);from.stops.splice(n,0,x);cur=fromDay;changed()};
     toast(`${dLabel(to,+k)} ${pos+1}번째로 옮겼어요`,{label:"그날 보기",fn:()=>{cur=+k;changed()}})}
   $("iosheet").hidden=true;changed()});
+
+/* ---------- 일정 탭 위쪽 접기: 여행 설정 · 이날 설정 · 동선 지도 ---------- */
+function mdw(iso){if(!ISO.test(iso||""))return "";const x=new Date(iso+"T00:00");return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`}
+function renderFolds(day){
+  const T=plan.trip,t=jstISO(),F=plan.flights||{};
+  const dd=T&&T.from>t?` · D-${Math.round((new Date(T.from+"T00:00")-new Date(t+"T00:00"))/864e5)}`:"";
+  const fl=(ic,f)=>f&&f.no?`${ic} ${esc(f.no)} ${esc(f.dep||"--:--")}→${esc(f.arr||"--:--")}`:"";
+  const fls=[fl("🛫",F.out),fl("🛬",F.back)].filter(Boolean).join(" · ");
+  $("tripSum").innerHTML=`<span class="f1">✈ ${T?`${mdw(T.from)} ~ ${mdw(T.to)} · ${Math.round((new Date(T.to)-new Date(T.from))/864e5)+1}일${dd}`:"여행 기간·항공편 정하기"}</span>${fls?`<span class="f2">${fls}</span>`:""}`;
+  const sn=String(day.startName||"출발지").replace(/^✈\s*|^🏨\s*/,""),en=day.end?String(day.endName||"").replace(/^✈\s*|^🏨\s*/,""):"마지막 장소";
+  const fi=flightInfo(day),t0=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00"),bb=plan.baby||{};
+  const pm=(()=>{try{return localStorage.getItem("fk_pmap")==="1"}catch(e){return false}})();
+  $("dhSum").innerHTML=`<span class="f1">⚙ 이날 설정 · 🕘 ${t0} 출발</span><span class="f2">${esc(sn)} → ${esc(en)}${bb.feed?` · 🍼 ${day.feed0||"출발 기준"} / ${bb.feed/60}시간`:""}</span><button type="button" class="fmap" id="pmTog" aria-pressed="${pm}" title="동선 지도 ${pm?"접기":"보기"}">🗺 ${pm?"지도 접기":"지도"}</button>`;
+  $("planmap").hidden=!pm;
+  if(renderFolds.cur!==cur){renderFolds.cur=cur;$("dhBox").open=!day.stops.length;if(renderFolds.first===undefined){renderFolds.first=1;$("tripBox").open=!T}}
+}
+$("dhBox").addEventListener("click",e=>{const b=e.target.closest("#pmTog");if(!b)return;e.preventDefault();e.stopPropagation();
+  const on=b.getAttribute("aria-pressed")!=="true";try{localStorage.setItem("fk_pmap",on?"1":"")}catch(x){}$("planmap").hidden=!on;renderPlan();
+  setTimeout(()=>{try{if(typeof pmap!=="undefined"&&pmap&&pmap.invalidateSize)pmap.invalidateSize()}catch(x){}window.dispatchEvent(new Event("resize"))},60)});
 
 render();
 </script>
