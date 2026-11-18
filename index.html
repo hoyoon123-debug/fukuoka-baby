@@ -1316,6 +1316,14 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 #qaddIn:focus{outline:none;border-color:var(--sea)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--sea) 25%,transparent)}
 .startrow .eta{margin-left:auto;font-size:14px;font-weight:700;color:var(--sea);white-space:nowrap;padding-left:8px}
 .startrow .eta:empty{display:none}
+/* 이날 설정 배치: 항목 이름은 위에 작게, 입력칸은 아래 꽉 차게 */
+#dhBox .dh2,#dhBox .dh3{align-items:end}
+#dhBox .dh2 label,#dhBox .dh3 label{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+#dhBox .dh3{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}
+#dhBox .dh2 select,#dhBox .dh3 select,#dhBox .dh3 input{width:100%;min-height:40px;font-size:14px;background:var(--fill)!important;border:0!important;border-radius:10px!important;color:var(--ink);padding:6px 10px}
+#dhBox .hchip button{max-width:15em}
+#dhBox .dhbtns>*{min-height:42px}
+#dhBox #gmode{background:var(--fill)!important;border:0!important;color:var(--ink);border-radius:10px}
 </style>
 
 <header>
@@ -1362,10 +1370,10 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
       <div class="wx" id="wx" hidden></div>
       <details class="fold" id="dhBox"><summary id="dhSum">이날 설정</summary>
       <div class="dayhead">
-        <div class="dh2"><label>날짜 <input type="date" id="pdate"></label><label>🕘 출발 <input type="time" id="pt0" step="300" aria-label="출발 시각"></label></div>
-        <div class="hrow"><div class="hotelrow" id="hotelrow"></div><button class="btn" id="pickStart" type="button" title="지도에서 숙소 위치 찍기">📍 지도 찍기</button></div>
+        <div hidden><input type="date" id="pdate"><input type="time" id="pt0" step="300" aria-label="출발 시각"><button class="btn" id="pickStart" type="button">📍 지도 찍기</button></div><!-- 날짜·출발 시각은 위 날짜 탭·출발지 줄에서 -->
+        <div class="hrow"><div class="hotelrow" id="hotelrow"></div></div>
         <div class="dh2"><label>출발 <select id="pstart"></select></label><label>도착 <select id="pend"></select></label></div>
-        <div class="dh3 babyrow" title="첫 수유 시각은 날마다 따로 · 수유 간격과 이동 여유는 모든 날 같아요"><label title="이날 첫 수유 시각">🍼<input type="time" id="pFeed0" step="300" aria-label="이날 첫 수유 시각"></label><label class="nolab"><select id="bFeed" aria-label="수유 간격"><option value="0">수유 안내 끔</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label><label class="nolab"><select id="bBuf" aria-label="이동마다 여유"><option value="0">여유 0</option><option value="10">여유 10분</option><option value="15">여유 15분</option><option value="20">여유 20분</option></select></label></div>
+        <div class="dh3 babyrow" title="첫 수유 시각은 날마다 따로 · 수유 간격과 이동 여유는 모든 날 같아요"><label title="이날 첫 수유 시각">🍼 이날 첫 수유<input type="time" id="pFeed0" step="300" aria-label="이날 첫 수유 시각"></label><label>수유 간격<select id="bFeed" aria-label="수유 간격"><option value="0">안내 끔</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label><label>이동마다 여유<select id="bBuf" aria-label="이동마다 여유"><option value="0">없음</option><option value="10">10분</option><option value="15">15분</option><option value="20">20분</option></select></label></div>
         <div class="dhbtns">
           <a class="btn primary" id="gdir" target="_blank" rel="noopener">🗺 구글맵 동선</a>
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">기본: 도보</option><option value="transit">기본: 대중교통</option><option value="driving">기본: 차</option></select>
