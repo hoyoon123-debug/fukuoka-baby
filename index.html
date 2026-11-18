@@ -1165,6 +1165,7 @@ body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,
 .dhbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .dhbtns>*{width:100%;min-height:40px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dhbtns select{text-align:center;text-align-last:center}
+#swapDay{grid-column:1/-1}
 #optRoute,#autoOrder{display:none!important}
 /* 접는 줄 (여행 설정 · 이날 설정) */
 .fold{background:var(--surface);border-radius:14px;margin:0 0 8px}
@@ -1324,6 +1325,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">기본: 도보</option><option value="transit">기본: 대중교통</option><option value="driving">기본: 차</option></select>
           <button class="btn primary" id="optRoute" type="button" hidden>🧭 최적 동선</button>
           <button class="btn" id="autoOrder" type="button">↕ 가까운 순 정렬</button>
+          <button class="btn" id="swapDay" type="button">🔁 다른 날과 일정 바꾸기</button>
         </div>
       </div></details>
       <div class="qadd" id="qadd"><input id="qaddIn" type="search" placeholder="🔎 장소 검색해서 이 날에 추가" enterkeyhint="search" autocomplete="off" aria-label="장소 검색해서 일정에 추가"><div id="qaddRes" hidden></div>
@@ -3140,6 +3142,19 @@ $("iosheetIn").addEventListener("click",e=>{const b=e.target.closest("[data-mvto
   else{const to=plan.days[+k];const pos=bestPos(to,d);to.stops.splice(pos,0,st);undo=()=>{const j=to.stops.indexOf(st);if(j>=0)to.stops.splice(j,1);from.stops.splice(n,0,x);cur=fromDay;changed()};
     toast(`${dLabel(to,+k)} ${pos+1}번째로 옮겼어요`,{label:"그날 보기",fn:()=>{cur=+k;changed()}})}
   $("iosheet").hidden=true;changed()});
+
+/* ---------- 하루 일정 통째로 다른 날과 맞바꾸기 (날짜·출발/도착 숙소는 그 날짜에 그대로) ---------- */
+const SWAPK=["stops","t0","feed0","endMode"];
+function dayPeek(o){const n=o.stops.map(x=>BYID[x.id]).filter(Boolean).map(d=>d.name);return n.length?n.slice(0,2).join(", ")+(n.length>2?` 외 ${n.length-2}곳`:""):"일정 없음"}
+function swapDays(i,k){const A=plan.days[i],B=plan.days[k];if(!A||!B||i===k)return;
+  SWAPK.forEach(f=>{const x=A[f],y=B[f];if(y===undefined)delete A[f];else A[f]=y;if(x===undefined)delete B[f];else B[f]=x})}
+$("swapDay").addEventListener("click",()=>{const day=plan.days[cur];if(!day)return;
+  const opts=plan.days.map((o,k)=>k===cur?"":`<button type="button" data-swto="${k}"><span>${esc(dLabel(o,k))}</span><span class="meta">${esc(dayPeek(o))}</span></button>`).join("");
+  ioSheet(`<h3 style="margin:0 0 4px">🔁 ${esc(dLabel(day,cur))} 일정 바꾸기</h3><div class="meta">고른 날과 장소·출발 시각·첫 수유 시각을 통째로 맞바꿔요. 날짜와 숙소(출발·도착)는 그대로예요.</div>
+    <div class="mvlist">${opts||`<div class="meta">다른 날이 없어요. 여행 기간을 먼저 정해 주세요.</div>`}</div>`)});
+$("iosheetIn").addEventListener("click",e=>{const b=e.target.closest("[data-swto]");if(!b)return;const k=+b.dataset.swto,i=cur;
+  swapDays(i,k);$("iosheet").hidden=true;cur=k;changed();
+  toast(`${dLabel(plan.days[k],k)}(으)로 옮기고, 그날 일정은 ${dLabel(plan.days[i],i)}(으)로 바꿨어요`,{label:"되돌리기",fn:()=>{swapDays(i,k);cur=i;changed()}})});
 
 /* ---------- 일정 탭 위쪽 접기: 여행 설정 · 이날 설정 · 동선 지도 ---------- */
 function mdw(iso){if(!ISO.test(iso||""))return "";const x=new Date(iso+"T00:00");return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`}
