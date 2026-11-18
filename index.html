@@ -2098,44 +2098,66 @@ const TLINES=[
  ["니시테츠 덴진오무타선",5,1.5,[["니시테츠후쿠오카(텐진)",33.58995,130.39897],["야쿠인",33.58268,130.40166],["니시테츠히라오",33.57382,130.40625],["다카미야",33.56721,130.41455],["오하시",33.55915,130.427],["이지리",33.55221,130.44316],["잣쇼노쿠마",33.54713,130.46294],["가스가바루",33.53799,130.47313],["시라키바루",33.52879,130.48269],["시모오리",33.52255,130.48902],["도후로마에",33.51171,130.50796],["니시테츠후쓰카이치",33.5021,130.51791]]],
  ["니시테츠 다자이후선",8,4,[["니시테츠후쓰카이치",33.5021,130.51791],["니시테츠고조",33.51116,130.52641],["다자이후",33.51832,130.53118]]],
  ["니시테츠 가이즈카선",8,3,[["가이즈카",33.63153,130.42538],["나지마",33.64273,130.43222],["니시테츠지하야",33.64903,130.43999],["가시이미야마에",33.65453,130.44246],["니시테츠가시이",33.6602,130.44135],["가시이카엔마에",33.67022,130.43466],["도노하루",33.68036,130.43444],["와지로",33.68897,130.42971],["미토마",33.70222,130.42257],["니시테츠신구",33.71394,130.43677]]],
- ["공항 국제선",0,0,[["후쿠오카공항 국제선",33.5853,130.4510]]]];
+ ["공항 국제선",0,0,[["후쿠오카공항 국제선",33.5853,130.4510]]],
+ // ---- 먼 곳: 신칸센·특급 (5번째 칸 = 구간별 분 · 시간은 대표 열차 기준 추정) ----
+ ["신칸센",7,0,[["고쿠라",33.8868,130.8829],["하카타",33.5897,130.4207],["신토스",33.3558,130.4163],["구루메",33.3197,130.5231],["구마모토",32.7898,130.6886],["가고시마추오",31.5837,130.5413]],[16,13,6,20,45]],
+ ["특급 릴레이 가모메·니시큐슈 신칸센",10,0,[["하카타",33.5897,130.4207],["다케오온센",33.1947,130.0222],["나가사키",32.7522,129.8695]],[62,30]],
+ ["특급 소닉",10,0,[["하카타",33.5897,130.4207],["고쿠라",33.8868,130.8829],["벳푸",33.2795,131.5005],["오이타",33.2333,131.6064]],[45,72,12]],
+ ["특급 유후인노모리·유후",10,0,[["하카타",33.5897,130.4207],["구루메",33.3197,130.5231],["유후인",33.2659,131.3555]],[27,103]],
+ ["특급 하우스텐보스",10,0,[["하카타",33.5897,130.4207],["하우스텐보스",33.0890,129.7943]],[105]],
+ ["니시테츠 특급",7,0,[["니시테츠후쿠오카(텐진)",33.58995,130.39897],["니시테츠후쓰카이치",33.5021,130.51791],["니시테츠구루메",33.3127,130.5203],["니시테츠야나가와",33.1636,130.4215]],[13,15,20]],
+ ["JR 지쿠히선 가라쓰 방면",10,0,[["지쿠젠마에바루",33.55701,130.19899],["가라쓰",33.4484,129.9681]],[35]],
+ ["JR 모지코 방면",8,0,[["고쿠라",33.8868,130.8829],["모지코",33.9452,130.9620]],[13]]];
+const TLONG=/신칸센|특급|가라쓰|모지코/;   // 신칸센·특급의 기다림 값은 시간표에 맞춰 가는 여유(평균 배차 간격 아님)
 // 갈아타기·버스 [역A, 역B, 분, 설명]
 const TXFER=[["지하철 공항선:텐진","지하철 나나쿠마선:텐진미나미",10],["지하철 공항선:나카스카와바타","지하철 하코자키선:나카스카와바타",4],["지하철 공항선:하카타","지하철 나나쿠마선:하카타",7],
  ["지하철 공항선:하카타","JR 가고시마선:하카타",6],["지하철 나나쿠마선:하카타","JR 가고시마선:하카타",6],["지하철 공항선:메이노하마","JR 지쿠히선:메이노하마",2],
  ["지하철 하코자키선:가이즈카","니시테츠 가이즈카선:가이즈카",5],["지하철 공항선:텐진","니시테츠 덴진오무타선:니시테츠후쿠오카(텐진)",8],["지하철 나나쿠마선:텐진미나미","니시테츠 덴진오무타선:니시테츠후쿠오카(텐진)",7],
  ["지하철 나나쿠마선:야쿠인","니시테츠 덴진오무타선:야쿠인",5],["JR 가고시마선:가시이","JR 가시이선:가시이",4],["JR 가고시마선:가시이","니시테츠 가이즈카선:니시테츠가시이",8],
  ["JR 가시이선:와지로","니시테츠 가이즈카선:와지로",5],["JR 가고시마선:지하야","니시테츠 가이즈카선:니시테츠지하야",4],["니시테츠 덴진오무타선:니시테츠후쓰카이치","니시테츠 다자이후선:니시테츠후쓰카이치",3],
- ["공항 국제선:후쿠오카공항 국제선","지하철 공항선:후쿠오카공항",22,"국제선↔국내선 무료 셔틀버스"],["공항 국제선:후쿠오카공항 국제선","JR 가고시마선:하카타",30,"니시테츠 버스 국제선→하카타역"]];
+ ["공항 국제선:후쿠오카공항 국제선","지하철 공항선:후쿠오카공항",22,"국제선↔국내선 무료 셔틀버스"],["공항 국제선:후쿠오카공항 국제선","JR 가고시마선:하카타",30,"니시테츠 버스 국제선→하카타역"],
+ ["JR 가고시마선:하카타","신칸센:하카타",8],["지하철 공항선:하카타","신칸센:하카타",10],["신칸센:하카타","특급 릴레이 가모메·니시큐슈 신칸센:하카타",8],
+ ["JR 가고시마선:하카타","특급 소닉:하카타",4],["JR 가고시마선:하카타","특급 유후인노모리·유후:하카타",4],["JR 가고시마선:하카타","특급 하우스텐보스:하카타",4],
+ ["신칸센:하카타","특급 소닉:하카타",8],["신칸센:하카타","특급 유후인노모리·유후:하카타",8],["신칸센:고쿠라","특급 소닉:고쿠라",6],["신칸센:고쿠라","JR 모지코 방면:고쿠라",6],["특급 소닉:고쿠라","JR 모지코 방면:고쿠라",4],
+ ["신칸센:구루메","특급 유후인노모리·유후:구루메",6],["지하철 공항선:하카타","특급 소닉:하카타",8],["지하철 공항선:하카타","특급 릴레이 가모메·니시큐슈 신칸센:하카타",10],
+ ["니시테츠 덴진오무타선:니시테츠후쿠오카(텐진)","니시테츠 특급:니시테츠후쿠오카(텐진)",2],["니시테츠 덴진오무타선:니시테츠후쓰카이치","니시테츠 특급:니시테츠후쓰카이치",2],["지하철 공항선:텐진","니시테츠 특급:니시테츠후쿠오카(텐진)",8],
+ ["JR 지쿠히선:지쿠젠마에바루","JR 지쿠히선 가라쓰 방면:지쿠젠마에바루",2]];
 const TST={};TLINES.forEach(([ln,,,st])=>st.forEach(([n,la,lo])=>TST[ln+":"+n]=[la,lo]));
 let SUB_G=null;
 function subGraph(){if(SUB_G)return SUB_G;const g={};const add=(a,b,w,k)=>{(g[a]=g[a]||[]).push([b,w,k]);(g[b]=g[b]||[]).push([a,w,k])};
-  TLINES.forEach(([ln,,per,st])=>st.forEach((x,i)=>{if(i)add(ln+":"+st[i-1][0],ln+":"+x[0],per,"ride")}));TXFER.forEach(([a,b,w,d])=>add(a,b,w,d||"xfer"));return SUB_G=g}
+  TLINES.forEach(([ln,,per,st,em])=>st.forEach((x,i)=>{if(i)add(ln+":"+st[i-1][0],ln+":"+x[0],em?em[i-1]:per,"ride")}));TXFER.forEach(([a,b,w,d])=>add(a,b,w,d||"xfer"));return SUB_G=g}
 const walkMin=k=>Math.round(k*1.3/3.5*60);
 function transitEst(a,b){  // 유모차 기준: 역까지 걷기 + 엘리베이터·개찰 3분 + 기다림 + 탑승 + 환승 + 역에서 걷기
   const g=subGraph(),dist={},prev={},WAIT=Object.fromEntries(TLINES.map(([ln,w])=>[ln,w]));
   const INTL=TST["공항 국제선:후쿠오카공항 국제선"],atA=kmOf(a,INTL)<0.5,atB=kmOf(b,INTL)<0.5;   // 국제선 터미널에선 활주로 건너 걸어갈 수 없음
-  Object.entries(TST).forEach(([id,p])=>{const k=kmOf(a,p);if(atA&&!id.startsWith("공항 국제선"))return;if(k<=1.6){const c=walkMin(k)+3+WAIT[id.split(":")[0]];if(!(dist[id]<=c)){dist[id]=c;prev[id]=null}}});
+  const FAR=kmOf(a,b)>12,cab=k=>Math.round(k*1.4/25*60)+5,taxiA={},walkable=p=>Object.values(TST).some(q=>kmOf(p,q)<=1.6);
+  const okA=FAR&&!walkable(a),okB=FAR&&!walkable(b);   // 먼 길이고 걸어갈 역이 없을 때만 역까지 택시로 연결
+  const acc=(k,ok)=>k<=1.6?walkMin(k):ok&&k<=12?cab(k):null;
+  Object.entries(TST).forEach(([id,p])=>{const k=kmOf(a,p);if(atA&&!id.startsWith("공항 국제선"))return;const m=acc(k,okA);if(m!==null){const c=m+3+WAIT[id.split(":")[0]];if(!(dist[id]<=c)){dist[id]=c;prev[id]=null;taxiA[id]=k>1.6?cab(k):0}}});
   if(!Object.keys(dist).length)return null;
   const Q=new Set(Object.keys(dist)),seen=new Set();
   while(Q.size){let u=null;Q.forEach(x=>{if(u===null||dist[x]<dist[u])u=x});Q.delete(u);seen.add(u);
     (g[u]||[]).forEach(([v,w,k])=>{if(seen.has(v))return;const c=dist[u]+w+(k==="xfer"?WAIT[v.split(":")[0]]:0);if(!(dist[v]<=c)){dist[v]=c;prev[v]=[u,k];Q.add(v)}})}
   let best=null;
-  Object.keys(dist).forEach(id=>{const k=kmOf(TST[id],b);if(k>1.6)return;if(atB&&!id.startsWith("공항 국제선"))return;const t=dist[id]+3+walkMin(k);if(!best||t<best.t)best={t:Math.round(t),id}});
+  Object.keys(dist).forEach(id=>{const k=kmOf(TST[id],b),m=acc(k,okB);if(m===null)return;if(atB&&!id.startsWith("공항 국제선"))return;const t=dist[id]+3+m;if(!best||t<best.t)best={t:Math.round(t),id,cb:k>1.6?m:0}});
   if(!best)return null;
   const path=[];let x=best.id;while(prev[x]){const [p,k]=prev[x];path.unshift({from:p,to:x,k});x=p}
   if(!path.some(e=>e.k==="ride"||(e.k!=="xfer")))return null;
   const segs=[];path.forEach(e=>{const ln=e.to.split(":")[0];
     if(e.k==="ride"){const l=segs[segs.length-1];if(l&&l.k==="ride"&&l.ln===ln)l.to=e.to.split(":")[1];else segs.push({k:"ride",ln,from:e.from.split(":")[1],to:e.to.split(":")[1]})}
     else if(e.k!=="xfer")segs.push({k:"bus",ln:e.k,from:e.from.split(":")[1],to:e.to.split(":")[1]})});
-  const first=x.split(":"),last=best.id.split(":");
-  return {t:best.t,from:first[1],fromLn:first[0],to:last[1],toLn:last[0],xf:Math.max(0,segs.length-1),segs,
-    txt:segs.map(s=>s.k==="bus"?`🚌 ${s.ln}`:`${s.ln} ${s.from}→${s.to}`).join(" → ")};
+  const first=x.split(":"),last=best.id.split(":"),ca=taxiA[x]||0,cb=best.cb||0,lg=segs.some(s=>TLONG.test(s.ln));
+  const parts=segs.map(s=>s.k==="bus"?`🚌 ${s.ln}`:`${TLONG.test(s.ln)?"🚄 ":""}${s.ln} ${s.from}→${s.to}`);
+  if(ca)parts.unshift(`🚕 택시 ${ca}분 → ${first[1]}역`);if(cb)parts.push(`🚕 택시 ${cb}분`);
+  return {t:best.t,from:first[1],fromLn:first[0],to:last[1],toLn:last[0],xf:Math.max(0,segs.length-1),segs,long:lg,cabA:ca,cabB:cb,
+    txt:parts.join(" → ")};
 }
 function transitTxt(a,b){
   const k=kmOf(a,b),w=walkMin(k),e=transitEst(a,b);
   if(!e)return `🚆 가까운 역이 없어요 · 버스·택시는 '길 보기'로 확인 · 걸으면 ${w}분`;
   if(e.t>w-5)return `🚶 걸어가는 게 나아요 · 약 ${w}분 · 가까워서 전철 탈 필요 없어요`;
-  return `🚆 약 ${e.t}분 (추정 · 시간표 미확인) · ${e.txt}`;
+  const hm=e.t>=60?`${Math.floor(e.t/60)}시간 ${e.t%60}분`:`${e.t}분`;
+  return `🚆 약 ${hm} (추정 · 시간표 미확인) · ${e.txt}${e.long?" · 🎫 신칸센·특급은 배차가 드물어요 → 시간표·좌석 지정 확인":""}`;
 }
 window.transitTxt=transitTxt;window.transitEst=transitEst;
 function legInfo(a,b,mode){
