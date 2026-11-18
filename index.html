@@ -1091,12 +1091,29 @@ header h1 .appbtns{margin-top:6px}
 #nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
+/* 일정: 바로 넣기 · 옮기기 */
+.qadd{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:8px;background:var(--surface);border-radius:16px;padding:12px 14px;margin:6px 0 4px}
+.qadd .qhd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#qaddIn{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+.qres{display:grid}
+.qitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:.5px solid var(--line);min-height:52px}
+.qitem .t{flex:1;min-width:0}.qitem .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qitem .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qitem .btn{flex:none;min-height:38px}
+.qsec{font-size:12.5px;color:var(--muted);font-weight:700;padding:8px 0 2px}
+.qitem.mine b::before{content:"📌 "}
+.mvlist{display:grid;gap:8px;margin:10px 0}
+.mvlist button{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:12px 14px;min-height:48px;border:0;border-radius:12px;background:var(--fill);color:var(--ink);font:inherit;font-size:15px;cursor:pointer}
+.mvlist button .meta{font-size:12.5px}
+.mvlist button.hold{background:color-mix(in srgb,var(--sea) 14%,var(--fill))}
 /* 상단 버튼 (긴급·숙소 길): 제목 오른쪽에 작게 */
 header h1{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}
 header h1 .ttl{flex:1 1 auto;min-width:0}
 .topbtns{display:flex;gap:6px;margin-left:auto}
 .tbtn{border:0;border-radius:999px;font:inherit;font-family:var(--body);font-size:13px;font-weight:700;padding:6px 11px;min-height:32px;background:var(--sea);color:#fff;cursor:pointer;white-space:nowrap;letter-spacing:0}
 .tbtn.sos{background:#ff375f}
+.tbtn.map{background:var(--fill);color:var(--ink);font-size:16px;padding:4px 10px}
+.tbtn.map[aria-pressed="true"]{background:#34c759;color:#fff}
 header h1 .appbtns{flex-basis:100%}
 /* 준비물·경비: 입력칸은 화면 아래에 고정 (한 손 사용) · 위쪽만 스크롤 */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:1400;background:var(--mat,var(--bg));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line);
@@ -1109,6 +1126,9 @@ header h1 .appbtns{flex-basis:100%}
 .mform.dock .mcats button{flex:none;min-height:36px;padding:6px 11px}
 .mform.dock #mPrev:empty{display:none}
 .msets{display:grid;gap:4px}
+.paytog{display:grid;grid-template-columns:1fr 1fr;flex:none;background:var(--fill);border-radius:12px;padding:3px;gap:3px;min-height:44px}
+.paytog button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14.5px;font-weight:600;border-radius:9px;padding:0 12px;cursor:pointer;white-space:nowrap}
+.paytog button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.2)}
 /* 스와이프 애니메이션: 고정 입력칸(.dock)은 제자리, 나머지 내용만 움직여요 */
 body.swdrag main .wrap>:not(#prepwrap):not(#moneywrap),body.swdrag #prepwrap>:not(.dock),body.swdrag #moneywrap>:not(.dock),body.swback main .wrap>:not(#prepwrap):not(#moneywrap),body.swback #prepwrap>:not(.dock),body.swback #moneywrap>:not(.dock){transform:translateX(var(--swx,0px))}
 body.swback main .wrap>:not(#prepwrap):not(#moneywrap),body.swback #prepwrap>:not(.dock),body.swback #moneywrap>:not(.dock){transition:transform .2s ease-out}
@@ -1121,6 +1141,10 @@ body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,
 /* 일정 날짜 설정 영역: 2칸 정렬로 높이 줄이기 */
 .dayhead{gap:10px;padding:12px 14px}
 .dh2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.dh3{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,.9fr);gap:6px}
+.dayhead .dh3 label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px;align-items:center;white-space:nowrap;font-size:13px}
+.dayhead .dh3 label.nolab{grid-template-columns:minmax(0,1fr)}
+.dayhead .dh3 select,.dayhead .dh3 input{width:100%;min-height:38px;min-width:0;font-size:14px}
 .dayhead .dh2 label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap}
 .dayhead .dh2 select,.dayhead .dh2 input{width:100%;min-height:38px;text-overflow:ellipsis}
 .hrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -1130,6 +1154,15 @@ body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,
 .dhbtns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .dhbtns>*{width:100%;min-height:40px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dhbtns select{text-align:center;text-align-last:center}
+#optRoute,#autoOrder{display:none!important}
+.toastbtn{white-space:nowrap;flex:none}
+/* 항공편·날씨: 글자 줄이고 높이 낮추기 */
+.flights{padding:8px 12px!important}
+.flights summary{font-size:12.5px!important;gap:2px!important}
+.flights .fls{font-size:12px!important;gap:6px!important;line-height:1.35}
+.flights summary .flt{font-size:12.5px}
+.wx{padding:6px 12px!important;font-size:12.5px!important}
+.wx .w1{font-size:12.5px!important;font-weight:600;line-height:1.35}   /* 최적 동선·가까운 순 정렬은 안 써서 숨김 */
 .hmodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .hmodes a{display:grid;justify-items:center;align-content:center;gap:3px;padding:12px 4px;min-height:84px;border-radius:14px;background:var(--fill);color:var(--ink);text-decoration:none;text-align:center}
 .hmodes .i{font-size:22px;line-height:1.1}
@@ -1213,7 +1246,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 
 <header>
   <div class="wrap">
-    <div class="titlerow"><h1><span class="ttl">후쿠오카 한서랑</span><span class="topbtns"><button class="tbtn sos" id="goSOS" type="button">🆘 긴급</button><button class="tbtn" id="goHotel" type="button" hidden>🏨 숙소 길</button></span><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
+    <div class="titlerow"><h1><span class="ttl">후쿠오카 한서랑</span><span class="topbtns"><button class="tbtn map" id="vMap" type="button" aria-pressed="false" aria-label="지도" title="지도">🗺</button><button class="tbtn sos" id="goSOS" type="button">🆘 긴급</button><button class="tbtn" id="goHotel" type="button" hidden>🏨 숙소 길</button></span><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
     <div class="qrow"><input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색"><button class="btn" id="myAdd" type="button" title="구글맵 링크나 이름으로 내 장소 추가">＋ 내 장소 추가</button></div>
     <div class="row" id="cats"></div>
     <div class="row" id="areas"></div>
@@ -1255,7 +1288,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
         <div class="dh2"><label>날짜 <input type="date" id="pdate"></label><label>🕘 출발 <input type="time" id="pt0" step="300" aria-label="출발 시각"></label></div>
         <div class="hrow"><div class="hotelrow" id="hotelrow"></div><button class="btn" id="pickStart" type="button" title="지도에서 숙소 위치 찍기">📍 지도 찍기</button></div>
         <div class="dh2"><label>출발 <select id="pstart"></select></label><label>도착 <select id="pend"></select></label></div>
-        <div class="dh2 babyrow" title="아기 시간은 모든 날에 똑같이 적용돼요"><label>🍼 수유 <select id="bFeed"><option value="0">안 챙기기</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label><label>⏱ 여유 <select id="bBuf" aria-label="이동마다 여유"><option value="0">없음</option><option value="10">+10분</option><option value="15">+15분</option><option value="20">+20분</option></select></label></div>
+        <div class="dh3 babyrow" title="첫 수유 시각은 날마다 따로 · 수유 간격과 이동 여유는 모든 날 같아요"><label title="이날 첫 수유 시각">🍼<input type="time" id="pFeed0" step="300" aria-label="이날 첫 수유 시각"></label><label class="nolab"><select id="bFeed" aria-label="수유 간격"><option value="0">수유 안내 끔</option><option value="120">2시간마다</option><option value="150">2시간 반마다</option><option value="180">3시간마다</option><option value="210">3시간 반마다</option><option value="240">4시간마다</option></select></label><label class="nolab"><select id="bBuf" aria-label="이동마다 여유"><option value="0">여유 0</option><option value="10">여유 10분</option><option value="15">여유 15분</option><option value="20">여유 20분</option></select></label></div>
         <div class="dhbtns">
           <a class="btn primary" id="gdir" target="_blank" rel="noopener">🗺 구글맵 동선</a>
           <select id="gmode" aria-label="이동 수단" class="btn"><option value="walking">기본: 도보</option><option value="transit">기본: 대중교통</option><option value="driving">기본: 차</option></select>
@@ -1267,8 +1300,11 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
       <div class="plansum" id="plansum"></div>
       <div class="plantime" id="plantime"></div>
       <div class="stops" id="stops"></div>
+      <div class="qadd" id="qadd"><div class="qhd"><b>＋ 이 날에 넣기</b><span class="meta">모아둔 장소·내 장소·보관함에서 찾아요</span></div>
+        <input id="qaddIn" type="search" placeholder="🔎 장소 이름 검색 (예: 캐널시티, 이치란)" enterkeyhint="search" autocomplete="off" aria-label="모아둔 장소 검색">
+        <div id="qaddRes"></div>
+        <button class="btn" id="addPlace" type="button" hidden style="justify-self:start">＋ 목록에 없는 곳은 내 장소 추가</button></div>
       <div id="nearby"></div>
-      <button class="btn primary" id="addPlace" type="button" hidden style="justify-self:start">＋ 내 장소 추가</button>
       <div class="btnrow"><button class="btn" id="shareBtn" type="button">🔗 일정 공유 링크 복사</button><button class="btn" id="bkBtn" type="button">📦 백업·복원</button><button class="btn" id="delDay" type="button">이 날 삭제</button></div>
       <div class="sync"><span id="sync"></span> <button class="btn" id="famBtn" type="button" style="padding:2px 10px;font-size:12.5px">👨‍👩‍👧 가족과 같이 보기</button></div>
     </div>
@@ -1285,7 +1321,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
       <div class="msets"><div class="addrow"><label class="meta" style="display:flex;align-items:center;gap:6px;flex:1">날짜 <input type="date" id="mDate" aria-label="날짜"></label><label class="meta rate" style="display:flex;align-items:center;gap:4px">100엔 = <input id="mRateIn" inputmode="decimal" aria-label="환율" style="width:5em">원</label></div><div class="meta" id="mRate"></div></div>
       <form id="mForm" class="mform dock" autocomplete="off">
         <div class="mcats" id="mCats"></div>
-        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select></div>
+        <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><input type="hidden" id="mPay" value="cash"><span class="paytog" id="mPayT" role="group" aria-label="결제 수단"><button type="button" data-pay="cash" aria-pressed="true">💴 현금</button><button type="button" data-pay="card" aria-pressed="false">💳 카드</button></span></div>
         <div class="meta" id="mPrev"></div>
         <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button><button class="btn primary" type="submit">기록</button></div>
       </form>
@@ -1558,11 +1594,11 @@ $("sort").addEventListener("change",e=>{st.sort=e.target.value;$("here").hidden=
 $("here").addEventListener("change",()=>{reset();render()});
 function setView(v){view=v;[["vList","list"],["vMap","map"],["vPlan","plan"],["vPrep","prep"],["vMoney","money"]].forEach(([id,k])=>$(id).setAttribute("aria-pressed",String(k===v)));render();window.scrollTo(0,0)}
 $("vList").addEventListener("click",()=>setView("list"));
-$("vMap").addEventListener("click",()=>setView("map"));
+let preMapView="list";$("vMap").addEventListener("click",()=>{if(view==="map")setView(preMapView);else{preMapView=view;setView("map")}window.scrollTo({top:0})});
 $("vPlan").addEventListener("click",()=>setView("plan"));
 $("vPrep").addEventListener("click",()=>setView("prep"));
 /* 좌우로 밀어서 탭 이동 + 손가락 따라 움직이는 애니메이션 (지도·가로로 넘기는 줄·입력칸 위에서는 제외) */
-(()=>{const ORDER=["list","map","plan","prep","money"];let sx=0,sy=0,st=0,ok=false,drag=false;
+(()=>{const ORDER=["list","plan","prep","money"];let sx=0,sy=0,st=0,ok=false,drag=false;
   const NO="#mapwrap,#planmap,.row,.days,.mcats,.lms,input,textarea,select,.sheet,.strip,.gm-style,.dock,[data-noswipe]";
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches,B=document.body;
   const setX=x=>B.style.setProperty("--swx",x+"px");
@@ -1610,7 +1646,7 @@ const LM1={w:"walking",t:"transit",d:"driving"};
 const HHMM=/^([01]\d|2[0-3]):[0-5]\d$/;
 // 앱이 아직 모르는 항목(새 버전에서 생긴 설정 등)은 지우지 않고 그대로 보관해요.
 // 그래서 두 폰의 앱 버전이 잠깐 달라도 예전 버전이 저장하면서 새 항목을 날리지 않아요.
-const K_TOP=["days","custom","hotels","trip","baby","flights","prefs","prep","money","updatedAt"],K_DAY=["id","date","start","startName","end","endName","stops","endMode","t0"],
+const K_TOP=["days","custom","hotels","trip","baby","flights","prefs","prep","money","hold","updatedAt"],K_DAY=["id","date","start","startName","end","endName","stops","endMode","t0","feed0"],
   K_STOP=["id","memo","done","mode","stay","fix","ta","td"],K_HOTEL=["id","name","lat","lng","addr","addrJa"],K_BABY=["napA","napB","feed","buf"],
   K_FL=["no","date","dep","arr","memo","buf"],K_PREF=["gmode"],K_TRIP=["from","to"],K_PREP=["id","t","c"],K_MONEY=["rate","items"],K_MI=["id","d","y","c","m","pay","tf"];
 const MCATS={food:"🍜 식사",cafe:"☕ 카페·간식",shop:"🛍 쇼핑",baby:"👶 아기용품",move:"🚇 교통·택시",ticket:"🎟 입장료",stay:"🏨 숙소",etc:"🧾 기타"};
@@ -1625,8 +1661,10 @@ function fixPlan(p){
   regHotels(p.hotels);
   p.days=p.days.map(d=>({...keepExtra(d,K_DAY),id:d.id||uid(),date:d.date||"",start:d.start||STARTS[0][0],startName:d.startName||"출발지",end:typeof d.end==="string"?d.end.slice(0,40):"",endName:typeof d.endName==="string"?d.endName.slice(0,60):"",
     stops:(d.stops||[]).filter(x=>x&&BYID[x.id]).map(x=>{const o={...keepExtra(x,K_STOP),id:x.id,memo:x.memo||""};if(x.done)o.done=true;if(LMODES[x.mode])o.mode=x.mode;if(x.stay>0&&x.stay<=600)o.stay=+x.stay;if(HHMM.test(x.fix||""))o.fix=x.fix;if(HHMM.test(x.ta||""))o.ta=x.ta;if(HHMM.test(x.td||""))o.td=x.td;return o}),
-    ...(LMODES[d.endMode]?{endMode:d.endMode}:{}),...(HHMM.test(d.t0||"")?{t0:d.t0}:{})}));
-  const used=new Set(p.days.flatMap(d=>d.stops.map(x=>x.id)));
+    ...(LMODES[d.endMode]?{endMode:d.endMode}:{}),...(HHMM.test(d.t0||"")?{t0:d.t0}:{}),...(HHMM.test(d.feed0||"")?{feed0:d.feed0}:{})}));
+  // 📥 보관함 (날짜 미정으로 빼 둔 일정)
+  p.hold=(Array.isArray(p.hold)?p.hold:[]).filter(x=>x&&BYID[x.id]).slice(0,200).map(x=>{const o={...keepExtra(x,K_STOP),id:x.id,memo:String(x.memo||"").slice(0,200)};if(x.stay>0&&x.stay<=600)o.stay=+x.stay;if(HHMM.test(x.fix||""))o.fix=x.fix;delete o.done;delete o.ta;delete o.td;delete o.mode;return o});
+  const used=new Set([...p.days.flatMap(d=>d.stops.map(x=>x.id)),...p.hold.map(x=>x.id)]);
   p.custom.forEach(c=>{if(c.saved===undefined)c.saved=true});
   p.custom=p.custom.filter(c=>used.has(c.id)||c.saved);
   p.trip=p.trip&&ISO.test(p.trip.from||"")&&ISO.test(p.trip.to||"")?{...keepExtra(p.trip,K_TRIP),from:p.trip.from,to:p.trip.to}:null;
@@ -1639,7 +1677,7 @@ function fixPlan(p){
   const mo=p.money&&typeof p.money==="object"?p.money:{};
   p.money={...keepExtra(mo,K_MONEY),rate:+mo.rate>0&&+mo.rate<100?+mo.rate:0,items:(Array.isArray(mo.items)?mo.items:[]).filter(x=>x&&x.id&&+x.y>0).slice(0,2000)
     .map(x=>({...keepExtra(x,K_MI),id:String(x.id),d:ISO.test(x.d||"")?x.d:"",y:Math.min(99999999,Math.round(+x.y)),c:MCATS[x.c]?x.c:"etc",m:String(x.m||"").slice(0,60),...(x.pay==="card"?{pay:"card"}:{}),...(x.tf?{tf:true}:{})}))};
-  return {...top,days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs,prep:p.prep,money:p.money};
+  return {...top,days:p.days,custom:p.custom,hotels:p.hotels,trip:p.trip,baby:p.baby,flights:p.flights,prefs:p.prefs,prep:p.prep,money:p.money,hold:p.hold};
 }
 function addCustom(c){if(!plan.custom)plan.custom=[];const o=plan.custom.find(x=>x.id===c.id);if(o)o.saved=true;else plan.custom.push(Object.assign({},c,{saved:true}));regCustom([c])}
 function persist(){
@@ -1760,7 +1798,7 @@ $("famBtn").addEventListener("click",()=>{
 /* ---------- 전체 일정 백업·복원·공유 링크 ---------- */
 // 백업·공유 데이터에는 API 키나 '가족과 같이 보기' 연결 정보(초대 권한)를 넣지 않아요
 const BK_KEY="fk_backups";
-function planData(p){p=p||plan;return {...keepExtra(p,K_TOP),days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{},prep:p.prep||[],money:p.money||{rate:0,items:[]}}}
+function planData(p){p=p||plan;return {...keepExtra(p,K_TOP),days:p.days,custom:p.custom||[],hotels:p.hotels||[],trip:p.trip||null,baby:p.baby||{},flights:p.flights||{},prefs:p.prefs||{},prep:p.prep||[],money:p.money||{rate:0,items:[]},hold:p.hold||[]}}
 function exportObj(){const o=JSON.parse(JSON.stringify(planData()));(o.custom||[]).forEach(c=>{delete c.ohTried;delete c.idTried;delete c.rtTried});return {app:"fukuoka-baby",v:2,at:new Date().toISOString(),plan:o}}
 function listBackups(){try{return JSON.parse(localStorage.getItem(BK_KEY)||"[]")}catch(e){return []}}
 function saveBackup(reason,p,notify){
@@ -1774,7 +1812,7 @@ function planRange(p){const ds=(p.days||[]).map(d=>d.date).filter(Boolean).sort(
 const rangeTxt=r=>`${r.n}일${r.from?` (${r.from}${r.to&&r.to!==r.from?" ~ "+r.to:""})`:""} · 장소 ${r.stops}곳${r.fl?` · 항공편 ${r.fl}`:""}${r.custom?` · 내 장소 ${r.custom}곳`:""}`;
 function mergeMissing(inc){   // 가져온 데이터에 없는 항목은 지금 설정을 그대로 유지
   const out=Object.assign({},inc);
-  ["baby","flights","prefs","prep","money"].forEach(k=>{if(inc[k]==null)out[k]=plan[k]?JSON.parse(JSON.stringify(plan[k])):undefined});
+  ["baby","flights","prefs","prep","money","hold"].forEach(k=>{if(inc[k]==null)out[k]=plan[k]?JSON.parse(JSON.stringify(plan[k])):undefined});
   if(inc.trip===undefined)out.trip=plan.trip||null;
   if(inc.__legacy){const byDate={};plan.days.forEach(d=>{if(d.date)byDate[d.date]=d});
     out.days=(inc.days||[]).map(d=>{const o=d.date&&byDate[d.date];if(!o)return d;const r=Object.assign({},d);if(!r.t0&&o.t0)r.t0=o.t0;if(!r.endMode&&o.endMode)r.endMode=o.endMode;
@@ -2185,7 +2223,10 @@ function paintTimes(){
     ds.forEach((d,i)=>{if(arr[i]<b&&dep[i]>a){(tags[i]=tags[i]||[]).push(`<span class="btag">😴 낮잠 시간${d.cat==="hotel"?" · 숙소에서 재우기":d.cat==="play"?" · 놀이 장소라 잠들기 어려울 수 있어요":""}</span>`);who.push(`${i+1}. ${d.name}`)}});
     sum.push(`😴 낮잠 ${bb.napA}~${bb.napB}: ${who.length?who.join(", ")+"에 있을 때예요. 유모차에서 재우거나 숙소에 들르는 것도 좋아요":"이동 중이에요. 유모차에서 재우기 좋아요"}`)}
   if(bb.feed&&ds.length){const end=endA||dep[ds.length-1];const fs=[];
-    for(let f=t0+bb.feed;f<end;f+=bb.feed){const w=at(f);let txt;
+    // 기준: 이날 '첫 수유' 시각이 있으면 그 시각부터, 없으면 출발 시각 + 간격
+    let f0=t0+bb.feed;if(HHMM.test(day.feed0||"")){f0=toMin(day.feed0);while(f0<t0)f0+=bb.feed}
+    if(HHMM.test(day.feed0||"")&&toMin(day.feed0)<t0)sum.push(`<div class="meta">🍼 첫 수유 ${day.feed0} 기준 · ${bb.feed/60}시간 간격</div>`);
+    for(let f=f0;f<end;f+=bb.feed){const w=at(f);let txt;
       if(w.stay){const d=ds[w.i];if(hasNurse(d))txt=`${w.i+1}. ${d.name} 안에 수유실이 있어요`;else{const n=nearNS([d.lat,d.lng]);txt=n?`${w.i+1}. ${d.name} 근처 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:`${w.i+1}. ${d.name}에 있을 때`}
         (tags[w.i]=tags[w.i]||[]).push(`<span class="btag feed">🍼 ${fmt(f)} 수유${hasNurse(d)?" · 수유실 있음":""}</span>`)}
       else{const p=w.i<ds.length?(w.i?[ds[w.i-1].lat,ds[w.i-1].lng]:pt(day.start)):[ds[ds.length-1].lat,ds[ds.length-1].lng];const n=nearNS(p);txt=`이동 중 · ${n?`가까운 수유실: ${n.x.n} (${n.k<1?Math.round(n.k*1000)+"m":n.k.toFixed(1)+"km"})`:"이동 전후에 챙기기"}`}
@@ -2261,9 +2302,13 @@ function renderPlan(){
   renderToday();
   if(document.activeElement!==$("tFrom")&&document.activeElement!==$("tTo")){$("tFrom").value=plan.trip?plan.trip.from:"";$("tTo").value=plan.trip?plan.trip.to:""}
   $("tInfo").textContent=plan.trip?`${plan.days.filter(d=>d.date>=plan.trip.from&&d.date<=plan.trip.to).length}일 · 장소를 넣을 때 날짜를 골라요`:"기간을 정하면 날짜별 일차가 한 번에 만들어져요";
-  $("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))}${wxIcon(x)} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
+  const dsc=$("days").scrollLeft;$("days").innerHTML=plan.days.map((x,i)=>`<button class="seg" data-pday="${i}" aria-pressed="${i===cur}">${esc(dLabel(x,i))}${wxIcon(x)} (${x.stops.length})${dayWarnings(x)?" ⚠":""}</button>`).join("")+`<button class="seg" data-pday="new">＋ 날 추가</button>`;
+  // 고른 날짜를 가운데로 (날짜가 바뀔 때만 부드럽게 이동)
+  {const box=$("days"),el=box.querySelector('[aria-pressed="true"]');box.scrollLeft=dsc;
+   if(el){const left=Math.max(0,el.offsetLeft-box.offsetLeft-(box.clientWidth-el.offsetWidth)/2);const moved=renderPlan.lastCur!==cur;renderPlan.lastCur=cur;
+     if(Math.abs(box.scrollLeft-left)>2)box.scrollTo({left,behavior:moved&&!matchMedia("(prefers-reduced-motion: reduce)").matches?"smooth":"auto"})}}
   $("pdate").value=day.date||"";
-  renderFlights();paintWx(day);
+  renderFlights();paintWx(day);renderQadd();
   const hopts=(plan.hotels||[]).map(h=>[hKey(h),"🏨 "+h.name]);
   const opts=[...hopts,...STARTS];if(!opts.some(([v])=>v===day.start))opts.unshift([day.start,day.startName||"숙소"]);
   $("pstart").innerHTML=opts.map(([v,t])=>`<option value="${v}"${v===day.start?" selected":""}>${esc(t)}</option>`).join("");
@@ -2282,7 +2327,7 @@ function renderPlan(){
       <div class="tl" data-tl="${i}"></div><div data-bt="${i}"></div><div data-hn="${i}"></div>
       <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 예약번호, 주문할 메뉴)" aria-label="메모">
       <div class="fixrow"><label>⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 <input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300"></label>${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}" style="padding:0 8px;white-space:nowrap">지우기</button>`:""}</div></div>
-      <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
+      <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-mday="${i}" aria-label="다른 날로 옮기기" title="다른 날로 옮기기">📅</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
   });
   const E=endPt(day,S);
   if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:pts[pts.length-1],b:E,m:null});pts.push(E);
@@ -2292,6 +2337,7 @@ function renderPlan(){
   $("stops").innerHTML=html;hydrate($("stops"));
   if(document.activeElement!==$("gmode"))$("gmode").value=baseMode();
   if(document.activeElement!==$("pt0")){const fi=flightInfo(day);$("pt0").value=day.t0||(fi.t0!=null?fmt(fi.t0):"10:00")}
+  if(document.activeElement!==$("pFeed0"))$("pFeed0").value=day.feed0||"";
   const bb=plan.baby||{};$("bFeed").value=String(bb.feed||0);$("bBuf").value=String(bb.buf||0);
   paintTimes();
   const wn=dayWarnings(day);
@@ -2327,6 +2373,7 @@ function holdLeg(i,fn){const q=()=>document.querySelector(`#stops [data-leg="${i
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;holdLeg(n,()=>changed());return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
+  const md=e.target.closest("[data-mday]");if(md){openMoveSheet(+md.dataset.mday);return}
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
   const st=e.target.closest("[data-st]");if(st){const [i,dv]=st.dataset.st.split(":").map(Number),x=day.stops[i],d=BYID[x.id];x.stay=Math.min(480,Math.max(15,(x.stay||STAY[d.cat]||60)+dv));saveSoon();paintTimes();return}
   const ck=e.target.closest("[data-ck]");if(ck){const [i,k]=ck.dataset.ck.split(":"),x=day.stops[+i],nm=fmt(jstNow().m);
@@ -2342,6 +2389,7 @@ $("stops").addEventListener("change",e=>{const day=plan.days[cur];
   const fx=e.target.closest("[data-fix]");if(fx){const st=day.stops[+fx.dataset.fix];if(HHMM.test(fx.value))st.fix=fx.value;else delete st.fix;changed();return}
   if(e.target.closest("[data-memo]"))renderPlan()});
 $("plantime").addEventListener("click",e=>{if(!e.target.closest("[data-setairport]")||!AIRPORT)return;const day=plan.days[cur];day.end=AIRPORT[0];day.endName=AIRPORT[1];changed();toast("도착지를 후쿠오카공항 국제선으로 정했어요")});
+$("pFeed0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.feed0=e.target.value;else delete day.feed0;saveSoon();paintTimes()});
 $("pt0").addEventListener("change",e=>{const day=plan.days[cur];if(HHMM.test(e.target.value))day.t0=e.target.value;else delete day.t0;saveSoon();paintTimes()});
 ["bFeed","bBuf"].forEach(k=>$(k).addEventListener("change",()=>{plan.baby={...(plan.baby||{}),feed:+$("bFeed").value||0,buf:+$("bBuf").value||0};saveSoon();paintTimes()}));
 $("pdate").addEventListener("change",e=>{const v=e.target.value;if(v&&plan.days.some((d,i)=>i!==cur&&d.date===v)){toast("그 날짜는 이미 다른 일차에 있어요");e.target.value=plan.days[cur].date||"";return}
@@ -2974,6 +3022,10 @@ $("mForm").addEventListener("submit",e=>{e.preventDefault();
   if($("mPay").value==="card")it.pay="card";if($("mTf").getAttribute("aria-pressed")==="true")it.tf=true;if(f&&f.me)it.by=f.me;
   M.items.push(it);$("mY").value="";$("mMemo").value="";$("mTf").setAttribute("aria-pressed","false");$("mY").blur();$("mMemo").blur();saveSoon();renderMoney();
   toast(`${y.toLocaleString()}엔 (≈ ${won(y).toLocaleString()}원) 기록했어요`)});
+// 결제 수단: 현금/카드 버튼 (마지막에 고른 걸 기억)
+function setPay(v){$("mPay").value=v;$("mPayT").querySelectorAll("[data-pay]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.pay===v)));try{localStorage.setItem("fk_pay",v)}catch(e){}}
+try{if(localStorage.getItem("fk_pay")==="card")setPay("card")}catch(e){}
+$("mPayT").addEventListener("click",e=>{const b=e.target.closest("[data-pay]");if(b)setPay(b.dataset.pay)});
 $("mTf").addEventListener("click",()=>{const b=$("mTf"),on=b.getAttribute("aria-pressed")!=="true";b.setAttribute("aria-pressed",String(on));if(on)toast("면세(사후 환급) 대상으로 기록해요 · 결제할 때 여권을 보여주고 영수증을 챙기세요")});
 $("mMemo").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("mForm").requestSubmit()}});
 $("mRateIn").addEventListener("change",e=>{const v=parseFloat(String(e.target.value).replace(/,/g,""));const M=plan.money||(plan.money={rate:0,items:[]});
@@ -2982,6 +3034,47 @@ $("mList").addEventListener("click",e=>{const t=e.target.closest("[data-mtf]");i
   const d=e.target.closest("[data-mdel]");if(!d)return;const I=(plan.money||{}).items||[],i=I.findIndex(x=>x.id===d.dataset.mdel);if(i<0)return;
   const [x]=I.splice(i,1);saveSoon();renderMoney();toast(`${x.y.toLocaleString()}엔 기록을 지웠어요`,{label:"되돌리기",fn:()=>{I.splice(Math.min(i,I.length),0,x);saveSoon();renderMoney()}})});
 
+
+/* ---------- ＋ 이 날에 넣기 (모아둔 장소·내 장소·보관함 검색) · 📅 다른 날로 옮기기 ---------- */
+function bestPos(day,d){   // 동선이 가장 덜 꼬이는 자리 (직선거리 기준)
+  const S=pt(day.start),E=endPt(day,S),P=[S,...day.stops.map(x=>{const o=BYID[x.id];return [o.lat,o.lng]})];if(E)P.push(E);
+  const q=[d.lat,d.lng];let bi=day.stops.length,bc=1e9;
+  for(let i=0;i<=day.stops.length;i++){const a=P[i],b=P[i+1];const c=b?kmOf(a,q)+kmOf(q,b)-kmOf(a,b):kmOf(a,q);if(c<bc){bc=c;bi=i}}
+  return bi}
+function qaddLast(day){const L=day.stops.length?BYID[day.stops[day.stops.length-1].id]:null;return L?[L.lat,L.lng]:pt(day.start)}
+function renderQadd(){const box=$("qaddRes");if(!box)return;const day=plan.days[cur];if(!day){box.innerHTML="";return}
+  const q=($("qaddIn").value||"").trim().toLowerCase(),have=new Set(day.stops.map(x=>x.id)),from=qaddLast(day);
+  const dist=d=>{const k=kmOf(from,[d.lat,d.lng]);return k<1?Math.round(k*1000)+"m":k.toFixed(1)+"km"};
+  const row=(d,btn)=>`<div class="qitem${d.cat==="custom"?" mine":""}"><div class="t"><b>${esc(d.name)}</b><div class="meta">${esc(d.cat==="custom"?"내 장소":(CAT_LABEL[d.cat]||""))}${d.type?` · ${esc(d.type)}`:""} · ${dist(d)}</div></div>${btn}</div>`;
+  const H=plan.hold||[],out=[];
+  const hs=H.map((x,i)=>({x,i,d:BYID[x.id]})).filter(o=>o.d&&(!q||(o.d.name+(o.d.kr||"")+(o.d.addr||"")).toLowerCase().includes(q)));
+  if(hs.length)out.push(`<div class="qsec">📥 보관함 (날짜 미정) ${hs.length}</div>`+hs.map(o=>row(o.d,`<button class="btn primary" type="button" data-qh="${o.i}">넣기</button>`)).join(""));
+  let pool=[...myPlaces(),...D].filter(d=>!have.has(d.id));
+  if(q)pool=pool.filter(d=>(d.name+" "+(d.kr||"")+" "+(d.addr||"")+" "+(d.type||"")+" "+(typeof d.sum==="string"?d.sum:"")).toLowerCase().includes(q));
+  else pool=myPlaces().filter(d=>!have.has(d.id));
+  pool.sort((a,b)=>((b.cat==="custom")-(a.cat==="custom"))||(kmOf(from,[a.lat,a.lng])-kmOf(from,[b.lat,b.lng])));
+  const P=pool.slice(0,q?12:8);
+  if(P.length)out.push(`<div class="qsec">${q?`검색 결과 ${pool.length>12?"12+":pool.length}`:"📌 내 장소 (가까운 순)"}</div>`+P.map(d=>row(d,`<button class="btn primary" type="button" data-qa="${esc(d.id)}">넣기</button>`)).join(""));
+  else if(q)out.push(`<div class="meta" style="padding:8px 0">모아둔 곳에 없어요. 아래 <b>＋ 목록에 없는 곳은 내 장소 추가</b>로 구글에서 찾아 넣어 보세요.</div>`);
+  box.innerHTML=out.join("");}
+$("qaddIn").addEventListener("input",renderQadd);
+$("qaddIn").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("qaddIn").blur()}});
+$("qaddRes").addEventListener("click",e=>{const day=plan.days[cur];if(!day)return;
+  const a=e.target.closest("[data-qa]"),h=e.target.closest("[data-qh]");if(!a&&!h)return;
+  let st;if(a){const d=BYID[a.dataset.qa];if(!d)return;st={id:d.id,memo:""}}else{const H=plan.hold||[];st=H.splice(+h.dataset.qh,1)[0];if(!st)return}
+  const d=BYID[st.id],pos=day.stops.length;day.stops.push(st);
+  $("qaddIn").value="";changed();toast(`${cur+1}일차 ${pos+1}번째에 ${d.name}을(를) 넣었어요`,{label:"동선에 맞추기",fn:()=>{const i=day.stops.indexOf(st);if(i<0)return;day.stops.splice(i,1);const b=bestPos(day,d);day.stops.splice(b,0,st);changed();toast(`${b+1}번째로 옮겼어요`)}})});
+function openMoveSheet(i){const day=plan.days[cur],x=day&&day.stops[i],d=x&&BYID[x.id];if(!d)return;
+  const opts=plan.days.map((o,k)=>k===cur?"":`<button type="button" data-mvto="${i}:${k}"><span>${esc(dLabel(o,k))}</span><span class="meta">${o.stops.length}곳${o.date?"":" · 날짜 미정"}</span></button>`).join("");
+  ioSheet(`<h3 style="margin:0 0 4px">📅 ${esc(d.name)} 옮기기</h3><div class="meta">메모·머무는 시간·예약 시각은 그대로 가져가요. 그날 동선에서 가장 덜 돌아가는 자리에 끼워 넣어요.</div>
+    <div class="mvlist">${opts||`<div class="meta">다른 날이 없어요. 여행 기간을 먼저 정해 주세요.</div>`}<button type="button" class="hold" data-mvto="${i}:hold"><span>📥 보관함 (날짜 미정으로 빼 두기)</span><span class="meta">나중에 '이 날에 넣기'에서 다시 넣어요</span></button></div>`)}
+$("iosheetIn").addEventListener("click",e=>{const b=e.target.closest("[data-mvto]");if(!b)return;const [i,k]=b.dataset.mvto.split(":"),from=plan.days[cur],n=+i;const x=from&&from.stops[n];if(!x)return;
+  const st={...x};delete st.done;delete st.ta;delete st.td;delete st.mode;from.stops.splice(n,1);const d=BYID[x.id],fromDay=cur;
+  let undo;
+  if(k==="hold"){(plan.hold=plan.hold||[]).push(st);undo=()=>{const j=plan.hold.indexOf(st);if(j>=0)plan.hold.splice(j,1);from.stops.splice(n,0,x);changed()};toast(`${d.name}을(를) 보관함으로 뺐어요`,{label:"되돌리기",fn:undo})}
+  else{const to=plan.days[+k];const pos=bestPos(to,d);to.stops.splice(pos,0,st);undo=()=>{const j=to.stops.indexOf(st);if(j>=0)to.stops.splice(j,1);from.stops.splice(n,0,x);cur=fromDay;changed()};
+    toast(`${dLabel(to,+k)} ${pos+1}번째로 옮겼어요`,{label:"그날 보기",fn:()=>{cur=+k;changed()}})}
+  $("iosheet").hidden=true;changed()});
 
 render();
 </script>
