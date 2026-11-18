@@ -1270,6 +1270,39 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .ralt{display:grid;gap:8px;margin:8px 0}
 .ralt .r{display:flex;gap:8px;align-items:center;background:var(--fill2);border-radius:12px;padding:8px 10px}
 .ralt .r .t{flex:1;min-width:0}
+
+/* ---- 일정 카드 정리: 위 = 사진·이름·정보 / 가운데 = 시간·머무는 시간·메모·예약 / 아래 = 버튼 줄 ---- */
+#stops .stop{grid-template-columns:28px 64px minmax(0,1fr);grid-template-areas:"no ph info" "body body body" "ctl ctl ctl";align-items:start;gap:10px 10px;padding:12px}
+#stops .stop>.no{grid-area:no;width:28px;height:28px;font-size:13px;margin-top:2px}
+#stops .stop>.phl{grid-area:ph}
+#stops .stop img,#stops .stop .noimg{width:64px;height:64px;border-radius:10px}
+#stops .stop>.info{grid-area:info;display:flex;flex-direction:column;gap:4px;min-width:0}
+#stops .stop .nm{font-size:16px;line-height:1.3}
+#stops .stop .info .meta{font-size:12.5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#stops .stop .gmlink{align-self:flex-start;font-size:12.5px;font-weight:600;color:var(--sea);text-decoration:none;padding:2px 0}
+#stops .stop>.sbody{grid-area:body;display:flex;flex-direction:column;gap:8px;min-width:0;border-top:.5px solid var(--line);padding-top:10px}
+#stops .stop .tl{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0;font-size:15px}
+#stops .stop .tl .tt{font-weight:700;font-size:15.5px}
+#stops .stop .tl .tt i{font-style:normal;color:var(--muted);font-weight:500;margin:0 2px}
+#stops .stop .stw,#stops .stop .fixrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}
+#stops .stop .stl,#stops .stop .fxl{display:flex;flex-direction:column;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.3}
+#stops .stop .stl small,#stops .stop .fxl small{font-size:11.5px;font-weight:500;color:var(--muted)}
+#stops .stop .stp{flex:none;border-radius:10px}
+#stops .stop .stp button{font-size:18px;padding:0 12px;line-height:34px}
+#stops .stop .stp span{min-width:64px;font-size:14px}
+#stops .stop .tl .ck{align-self:flex-start;padding:6px 14px;font-size:13.5px}
+#stops .stop .fxr{display:flex;align-items:center;gap:6px;flex:none}
+#stops .stop .fixrow input{font-size:14px;padding:6px 8px;min-height:34px}
+#stops .stop .fixrow .btn{padding:0 10px;min-height:34px;font-size:13px;white-space:nowrap}
+#stops .stop .memo{margin:0;font-size:14px;padding:8px 10px}
+#stops .stop .hrs{margin:0;font-size:12.5px}
+#stops .stop>.ctl{grid-area:ctl;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0}
+#stops .stop>.ctl button{width:auto;height:36px;margin:0;border:0;border-radius:10px;background:var(--fill);color:var(--ink);font-size:13px;font-weight:600;white-space:nowrap}
+#stops .stop>.ctl button[data-rm]{background:transparent;color:var(--muted);border:1px solid var(--line);height:36px;font-size:13px}
+#stops .stop .fixrow.nofix .fxl,#stops .stop .fixrow.nofix .fxr{display:none}
+#stops .stop .fixrow:not(.nofix) .fixadd{display:none}
+#stops .stop .fixadd{height:auto!important;min-height:0!important;width:auto!important;margin:0!important;line-height:1.4;border:0;background:transparent;color:var(--sea);font:inherit;font-size:13.5px;font-weight:600;padding:2px 0;cursor:pointer;text-align:left}
+#stops .stop .fixadd small{color:var(--muted);font-weight:500;font-size:11.5px;margin-left:4px}
 </style>
 
 <header>
@@ -2252,8 +2285,8 @@ function paintTimes(){
   const stTxt=v=>v<60?v+"분":v%60?Math.floor(v/60)+"시간 "+v%60+"분":v/60+"시간";
   ds.forEach((d,i)=>{const a=arr[i],stay=stayOf(i),fx=SS[i].fix,w=R.W[i],lt=R.LT[i],x=SS[i];
     const tl=document.querySelector(`[data-tl="${i}"]`);
-    if(tl)tl.innerHTML=(x.ta?`<span>📍 ${x.ta} 도착${x.td?` · 👋 ${x.td} 출발`:` · ${fmt(dep[i])}쯤 출발`}</span>`:`🕘 ${fmt(a)}~${fmt(dep[i])}`)
-      +(x.td?"":`<span class="stp"><button type="button" data-st="${i}:-15" aria-label="15분 줄이기">−</button><span>${stTxt(stay)}</span><button type="button" data-st="${i}:15" aria-label="15분 늘리기">＋</button></span>`)
+    if(tl)tl.innerHTML=(x.ta?`<span class="tt">📍 ${x.ta} 도착${x.td?` · 👋 ${x.td} 출발`:` · ${fmt(dep[i])}쯤 출발`}</span>`:`<span class="tt">🕘 ${fmt(a)} 도착 <i>→</i> ${fmt(dep[i])} 출발</span>`)
+      +(x.td?"":`<span class="stw"><span class="stl">⏳ 여기서 머무는 시간<small>늘리면 다음 장소 도착이 늦어져요</small></span><span class="stp"><button type="button" data-st="${i}:-15" aria-label="머무는 시간 15분 줄이기">−</button><span>${stTxt(stay)}</span><button type="button" data-st="${i}:15" aria-label="머무는 시간 15분 늘리기">＋</button></span></span>`)
       +(isToday?(x.td?`<button type="button" class="ck" data-ck="${i}:undo">되돌리기</button>`:x.ta?`<button type="button" class="ck go" data-ck="${i}:td">👋 출발해요</button>`:`<button type="button" class="ck go" data-ck="${i}:ta">📍 도착했어요</button>`):"")
       +(w&&!x.ta?`<span class="wait">⏳ ${fx} ${d.cat==="hotel"?"체크인":"예약"}까지 ${w}분 여유</span>`:"")+(lt&&!x.ta?`<span class="late">⚠ ${fx} ${d.cat==="hotel"?"체크인":"예약"}보다 ${lt}분 늦어요</span>`:"");
     const hn=document.querySelector(`[data-hn="${i}"]`);
@@ -2380,11 +2413,12 @@ function renderPlan(){
     const prev=pts[pts.length-1],cp=[d.lat,d.lng],L1=legHTML(i,prev,cp,legMode(day,i),d);total+=L1.k;pts.push(cp);LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:prev,b:cp,m:null});
     html+=`${L1.html}
     <div class="stop${day.stops[i].done?" done":""}"><span class="no">${i+1}</span><a class="phl" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="${esc(d.name)} 구글맵에서 보기">${d.cat==="hotel"?`<span class="noimg" style="display:grid;place-items:center;font-size:28px">🏨</span>`:d.np?phImg(d,0):`<span class="noimg"${d.gid?` data-gph="${esc(d.gid)}"`:""}></span>`}</a>
-      <div class="info"><a class="nm gml" href="${esc(d.url)}" target="_blank" rel="noopener" title="구글맵에서 보기">${esc(d.name)}${krn(d,1)} <span class="gmi">🗺 구글맵 ↗</span></a>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
-      <div class="tl" data-tl="${i}"></div><div data-bt="${i}"></div><div data-hn="${i}"></div>
-      <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="메모 (예: 예약번호, 주문할 메뉴)" aria-label="메모">
-      <div class="fixrow"><label>⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 <input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300"></label>${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}" style="padding:0 8px;white-space:nowrap">지우기</button>`:""}</div></div>
-      <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑</button><button data-mv="${i}:1" aria-label="아래로">↓</button><button data-mday="${i}" aria-label="다른 날로 옮기기" title="다른 날로 옮기기">📅</button><button data-rm="${i}" aria-label="빼기">✕</button></div></div>`;
+      <div class="info"><a class="nm gml" href="${esc(d.url)}" target="_blank" rel="noopener" title="구글맵에서 보기">${esc(d.name)}${krn(d,1)}</a>${d.cat==="hotel"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">숙소 들르기</span> 쉬기·짐 맡기기·낮잠</div>`:d.cat==="custom"?`<div class="meta"><span class="lv lv-직접" style="padding:0 6px">직접 추가</span> ${esc((d.addr||"").replace(/^일본\s*/,"").slice(0,40))}</div>`:`<div class="meta"><span class="lv lv-${esc(d.lv)}" style="padding:0 6px">${esc(d.lv)}</span> ${esc(CAT_LABEL[d.cat]||"")}${d.f.includes("수유실")?" · 🍼수유실":""} · 유모차 ${esc(d.stroller.s)}</div>`}
+      <a class="gmlink" href="${esc(d.url)}" target="_blank" rel="noopener">🗺 구글맵에서 보기 ↗</a></div>
+      <div class="sbody"><div class="tl" data-tl="${i}"></div><div data-bt="${i}"></div><div data-hn="${i}"></div>
+      <input class="memo" data-memo="${i}" value="${esc(day.stops[i].memo)}" placeholder="📝 메모 (예: 예약번호, 주문할 메뉴)" aria-label="메모">
+      <div class="fixrow${day.stops[i].fix?"":" nofix"}"><button type="button" class="fixadd" data-fixadd="${i}">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각 넣기 <small>예약했을 때만</small></button><span class="fxl">⏰ ${d.cat==="hotel"?"체크인":"예약"} 시각<small>예약했을 때만 넣어요</small></span><span class="fxr"><input type="time" data-fix="${i}" value="${esc(day.stops[i].fix||"")}" step="300" aria-label="${d.cat==="hotel"?"체크인":"예약"} 시각">${day.stops[i].fix?`<button type="button" class="btn" data-unfix="${i}">지우기</button>`:""}</span></div></div>
+      <div class="ctl"><button data-mv="${i}:-1" aria-label="위로">↑ 위로</button><button data-mv="${i}:1" aria-label="아래로">↓ 아래로</button><button data-mday="${i}" aria-label="다른 날로 옮기기" title="다른 날로 옮기기">📅 다른 날</button><button data-rm="${i}" aria-label="빼기">✕ 빼기</button></div></div>`;
   });
   const E=endPt(day,S);
   if(E&&ds.length){const L1=legHTML(ds.length,pts[pts.length-1],E,legMode(day,ds.length),null);total+=L1.k;LEGS.push({min:L1.min,mode:L1.mode,te:L1.te,a:pts[pts.length-1],b:E,m:null});pts.push(E);
@@ -2437,6 +2471,7 @@ function holdLeg(i,fn){const q=()=>document.querySelector(`#stops [data-leg="${i
 $("stops").addEventListener("click",e=>{const day=plan.days[cur];
   const lm=e.target.closest("[data-lmode]");if(lm){const [i,m]=lm.dataset.lmode.split(":");const n=+i;if(n<day.stops.length)day.stops[n].mode=m;else day.endMode=m;holdLeg(n,()=>changed());return}
   const mv=e.target.closest("[data-mv]");if(mv){const [i,dir]=mv.dataset.mv.split(":").map(Number),j=i+dir;if(j<0||j>=day.stops.length)return;[day.stops[i],day.stops[j]]=[day.stops[j],day.stops[i]];changed();return}
+  const fa=e.target.closest("[data-fixadd]");if(fa){const r=fa.closest(".fixrow");r.classList.remove("nofix");const inp=r.querySelector("input[type=time]");if(inp){inp.focus();try{inp.showPicker&&inp.showPicker()}catch(x){}}return}
   const md=e.target.closest("[data-mday]");if(md){openMoveSheet(+md.dataset.mday);return}
   const rm=e.target.closest("[data-rm]");if(rm){day.stops.splice(+rm.dataset.rm,1);changed();return}
   const st=e.target.closest("[data-st]");if(st){const [i,dv]=st.dataset.st.split(":").map(Number),x=day.stops[i],d=BYID[x.id];x.stay=Math.min(480,Math.max(15,(x.stay||STAY[d.cat]||60)+dv));saveSoon();paintTimes();return}
