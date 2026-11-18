@@ -1091,6 +1091,25 @@ header h1 .appbtns{margin-top:6px}
 #nearAlert .nbtns a,#nearAlert .nbtns button{flex:1;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:700;background:var(--fill);color:var(--sea)}
 #nearAlert .nbtns a.pri{background:var(--sea);color:#fff}
 #nearAlert.dep{border-color:#0a84ff}
+/* 상단 버튼 (긴급·숙소 길): 제목 오른쪽에 작게 */
+header h1{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}
+header h1 .ttl{flex:1 1 auto;min-width:0}
+.topbtns{display:flex;gap:6px;margin-left:auto}
+.tbtn{border:0;border-radius:999px;font:inherit;font-family:var(--body);font-size:13px;font-weight:700;padding:6px 11px;min-height:32px;background:var(--sea);color:#fff;cursor:pointer;white-space:nowrap;letter-spacing:0}
+.tbtn.sos{background:#ff375f}
+header h1 .appbtns{flex-basis:100%}
+/* 준비물·경비: 입력칸은 화면 아래에 고정 (한 손 사용) · 위쪽만 스크롤 */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:1400;background:var(--mat,var(--bg));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto;box-sizing:border-box}
+#prepwrap{padding-bottom:84px}
+#moneywrap{padding-bottom:var(--mdock,230px)}
+.mform.dock{display:grid;gap:8px}
+.mform.dock .mcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
+.mform.dock .mcats::-webkit-scrollbar{display:none}
+.mform.dock .mcats button{flex:none;min-height:36px;padding:6px 11px}
+.mform.dock #mPrev:empty{display:none}
+.msets{display:grid;gap:4px}
+body.toolmode .toast{bottom:calc(var(--tdock,96px) + env(safe-area-inset-bottom,0px))}
 /* 일정 날짜 설정 영역: 2칸 정렬로 높이 줄이기 */
 .dayhead{gap:10px;padding:12px 14px}
 .dh2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
@@ -1186,7 +1205,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 
 <header>
   <div class="wrap">
-    <div class="titlerow"><h1>후쿠오카 한서랑<span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
+    <div class="titlerow"><h1><span class="ttl">후쿠오카 한서랑</span><span class="topbtns"><button class="tbtn sos" id="goSOS" type="button">🆘 긴급</button><button class="tbtn" id="goHotel" type="button" hidden>🏨 숙소 길</button></span><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
     <div class="qrow"><input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색"><button class="btn" id="myAdd" type="button" title="구글맵 링크나 이름으로 내 장소 추가">＋ 내 장소 추가</button></div>
     <div class="row" id="cats"></div>
     <div class="row" id="areas"></div>
@@ -1248,20 +1267,19 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div id="prepwrap" hidden>
       <div class="tool-h"><b>🧳 준비물</b><span class="meta" id="prepCnt"></span></div>
       <div class="pbar"><i id="prepBar"></i></div>
-      <form id="prepForm" class="addrow" autocomplete="off"><input id="prepIn" placeholder="준비물 입력 (예: 분유 스틱)" maxlength="60" enterkeyhint="done" aria-label="준비물"><button class="btn primary" type="submit">추가</button></form>
       <div class="plist" id="prepList"></div>
       <div class="btnrow" id="prepTools"></div>
       <div class="meta">가족과 같이 보기로 연결돼 있으면 체크한 내용이 와이프 폰에도 같이 보여요.</div>
+      <form id="prepForm" class="addrow dock" autocomplete="off"><input id="prepIn" placeholder="준비물 입력 (예: 분유 스틱)" maxlength="60" enterkeyhint="done" aria-label="준비물"><button class="btn primary" type="submit">추가</button></form>
     </div>
     <div id="moneywrap" hidden>
       <div class="mtot" id="mTot"></div>
-      <form id="mForm" class="mform" autocomplete="off">
-        <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button><button class="btn primary" type="submit">기록</button></div>
-        <div class="meta" id="mPrev"></div>
+      <div class="msets"><div class="addrow"><label class="meta" style="display:flex;align-items:center;gap:6px;flex:1">날짜 <input type="date" id="mDate" aria-label="날짜"></label><label class="meta rate" style="display:flex;align-items:center;gap:4px">100엔 = <input id="mRateIn" inputmode="decimal" aria-label="환율" style="width:5em">원</label></div><div class="meta" id="mRate"></div></div>
+      <form id="mForm" class="mform dock" autocomplete="off">
         <div class="mcats" id="mCats"></div>
         <div class="addrow"><input id="mMemo" placeholder="메모 (예: 이치란 점심)" maxlength="60" aria-label="메모"><select id="mPay" aria-label="결제 수단"><option value="cash">💴 현금</option><option value="card">💳 카드</option></select></div>
-        <div class="addrow"><label class="meta" style="display:flex;align-items:center;gap:6px;flex:1">날짜 <input type="date" id="mDate" aria-label="날짜"></label><label class="meta rate" style="display:flex;align-items:center;gap:4px">100엔 = <input id="mRateIn" inputmode="decimal" aria-label="환율" style="width:5em">원</label></div>
-        <div class="meta" id="mRate"></div>
+        <div class="meta" id="mPrev"></div>
+        <div class="addrow"><input id="mY" inputmode="numeric" placeholder="금액 (엔)" aria-label="금액(엔)" maxlength="11" enterkeyhint="done"><button type="button" class="tfbtn" id="mTf" aria-pressed="false">🧾 면세</button><button class="btn primary" type="submit">기록</button></div>
       </form>
       <div id="mSum"></div>
       <div id="mList"></div>
@@ -1276,8 +1294,6 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 </main>
 <div class="sheet" id="sheet" hidden><div class="wrap2"><h3 id="sheetTitle">어느 날에 넣을까요?</h3><input id="sheetMemo" class="memo" maxlength="120" enterkeyhint="done" placeholder="📝 장소 메모 (예: 예약번호, 꼭 먹을 메뉴, 친구 추천)" aria-label="장소 메모" style="width:100%;margin:2px 0 8px"><div class="btnrow" id="sheetDays"></div><label class="sheetdate">📅 다른 날짜 고르기 <input type="date" id="sheetDate"></label><button class="btn" id="sheetSave" type="button" hidden>📌 일정엔 안 넣고 내 장소에만 저장</button><button class="btn" id="sheetClose" type="button">닫기</button></div></div>
 <div class="toast" id="toast" hidden></div>
-<button class="fab" id="goHotel" type="button" hidden>🏨 숙소 가는 길</button>
-<button class="fab nurse" id="goSOS" type="button">🆘 긴급·일본어</button>
 <div class="sheet" id="sossheet" hidden><div class="wrap2"><h3>🆘 무엇이 필요하세요?</h3>
   <div class="sosmenu">
     <button type="button" id="sNurse"><span>🍼</span>수유실·기저귀 교환 찾기</button>
@@ -1500,7 +1516,7 @@ function render(){
   $("prepwrap").hidden=view!=="prep"; $("moneywrap").hidden=view!=="money";
   document.body.classList.toggle("planmode",view==="plan");
   document.body.classList.toggle("toolmode",view==="prep"||view==="money");
-  if(view==="prep"){ $("more").hidden=true; renderPrep(); return; }
+  if(view==="prep"){ $("more").hidden=true; document.body.style.setProperty("--tdock","96px"); renderPrep(); return; }
   if(view==="money"){ $("more").hidden=true; renderMoney(); return; }
   $("goHotel").hidden=!(plan.hotels&&plan.hotels.length);
   if(view==="plan"){ $("more").hidden=true; renderPlan(); return; }
@@ -1537,6 +1553,15 @@ $("vList").addEventListener("click",()=>setView("list"));
 $("vMap").addEventListener("click",()=>setView("map"));
 $("vPlan").addEventListener("click",()=>setView("plan"));
 $("vPrep").addEventListener("click",()=>setView("prep"));
+/* 좌우로 밀어서 탭 이동 (지도·가로로 넘기는 줄·입력칸 위에서는 제외) */
+(()=>{const ORDER=["list","map","plan","prep","money"];let sx=0,sy=0,st=0,ok=false;
+  const NO="#mapwrap,#planmap,.row,.days,.mcats,.lms,input,textarea,select,.sheet,.strip,.gm-style,.dock,[data-noswipe]";
+  document.addEventListener("touchstart",e=>{if(e.touches.length!==1){ok=false;return}const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();
+    ok=!e.target.closest(NO)&&!document.querySelector(".sheet:not([hidden])")},{passive:true});
+  document.addEventListener("touchend",e=>{if(!ok)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Date.now()-st>600||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8)return;
+    const i=ORDER.indexOf(view),n=i+(dx<0?1:-1);if(i<0||n<0||n>=ORDER.length)return;setView(ORDER[n]);window.scrollTo({top:0})},{passive:true});
+})();
 $("vMoney").addEventListener("click",()=>setView("money"));
 
 /* ---------- 일정(동선) ---------- */
@@ -2906,6 +2931,7 @@ function renderMoney(){fxLoad();
   $("mRateIn").placeholder=String(Math.round(krwRate()*100));
   $("mRate").textContent=M.rate>0?"직접 넣은 환율로 계산해요 · 칸을 비우면 자동 환율로 돌아가요":fxAuto?`자동 환율 (${new Date(fxAuto.at).toLocaleDateString("ko-KR")} 기준) · 카드는 실제 청구 금액이 조금 달라요`:"환율을 아직 못 받아서 100엔 = 930원으로 계산하고 있어요";
   prevAmt();
+  requestAnimationFrame(()=>{const f=$("mForm");if(f&&f.offsetHeight){$("moneywrap").style.setProperty("--mdock",(f.offsetHeight+16)+"px");document.body.style.setProperty("--tdock",(f.offsetHeight+12)+"px")}});
   // 🧾 면세(사후 환급): 같은 날·같은 가게(메모) 세전 5,000엔(세포함 5,500엔) 미만이면 ⚠
   const T=I.filter(x=>x.tf),grp={},low={};T.forEach(x=>{const k=x.d+"|"+(x.m||"").trim();(grp[k]=grp[k]||[]).push(x)});
   Object.values(grp).forEach(g=>{if(g.reduce((a,x)=>a+x.y,0)<5500)g.forEach(x=>low[x.id]=1)});
