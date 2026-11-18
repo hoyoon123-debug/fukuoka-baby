@@ -2790,7 +2790,7 @@ function renderNearby(day,S,ds){
   const box=$("nearby");
   if(!ds.length){box.innerHTML="";return}
   const pts=[S,...ds.map(d=>[d.lat,d.lng])],have=new Set(day.stops.map(x=>x.id));
-  const R=0.3,RM=1.5,cands=[];   // 가이드 장소는 300m 안 · 내 장소는 1.5km 안 (가장 가까운 지점에 묶기)
+  const R=0.3,RM=0.3,cands=[];   // 가이드 장소·내 장소 모두 300m 안 (가장 가까운 지점에 묶기)
   D.concat(myPlaces()).forEach(d=>{
     if(have.has(d.id))return;
     const p=[d.lat,d.lng];let best=9,after=0;
@@ -2825,7 +2825,7 @@ function renderNearby(day,S,ds){
   const hasNurse=ds.some(d=>d.f.includes("수유실")||d.f.includes("기저귀교환대")||d.nurse);
   const nurseNear=cands.filter(c=>c.d.f.includes("수유실")||c.d.nurse).sort((a,b)=>a.km-b.km)[0];
   const tip=!hasNurse&&ds.length>=2&&nurseNear?`<div class="neartip">🍼 이 날 동선엔 수유실이 확인된 곳이 없어요. 가까운 곳: <b>${esc(nurseNear.d.name)}</b> (${nurseNear.after?nurseNear.after+"번":"출발지"} 근처 ${Math.round(nurseNear.km*1000)}m)</div>`:"";
-  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${realOK?"걷는 길":"직선"} ${R*1000}m 안 (📌 내 장소는 1.5km)${farN?` (돌아가야 해서 먼 ${farN}곳 제외)`:""}${day.date?` · 그 시간에 문 여는 곳만${hidden?` (닫힌 ${hidden}곳 숨김)`:""}`:" · 날짜를 넣으면 그 시간에 문 여는 곳만 보여줘요"}</span></div>${tip}
+  box.innerHTML=`<div class="nearhead"><b>이 동선 근처 아이랑 추천</b><span class="meta"> · 출발지·각 장소에서 ${realOK?"걷는 길":"직선"} ${R*1000}m 안${farN?` (돌아가야 해서 먼 ${farN}곳 제외)`:""}${day.date?` · 그 시간에 문 여는 곳만${hidden?` (닫힌 ${hidden}곳 숨김)`:""}`:" · 날짜를 넣으면 그 시간에 문 여는 곳만 보여줘요"}</span></div>${tip}
    <div class="row">${CATS2.map(([k,v])=>`<button class="chip" data-ncat="${k}" aria-pressed="${nearCat===k}">${v}</button>`).join("")}</div>
    ${groups.length?groups.map(({i,g})=>{const open=nearOpen.has(i),show=open?g:g.slice(0,3);
      return `<div class="ngrp"><div class="ngh">${i?`<span class="no">${i}</span> ${esc(ds[i-1].name)}`:`<span class="no">출</span> ${esc(day.startName||"출발지")}`} 근처 <span class="meta">${(()=>{const [a,b]=win(i);return `${fmt(a)}~${fmt(b)}`})()} · ${g.length}곳</span>${mealOf(i)?`<span class="btag">${mealOf(i)}</span>`:""}</div>`
