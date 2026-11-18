@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>후쿠오카 아기랑</title>
+<title>후쿠오카 한서랑</title>
 <meta name="theme-color" content="#1f5f8b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아기랑">
@@ -998,6 +998,8 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(22px,6.6vw,30px);l
 h1 small{white-space:normal;word-break:keep-all}
 .near,.stop,.card,.meta{word-break:keep-all;overflow-wrap:anywhere}
 h1 small{font-weight:400;font-size:13px;letter-spacing:0}
+header h1{font-size:20px!important;line-height:1.15}
+header h1 .appbtns{margin-top:6px}
 /* 세그먼트 컨트롤 */
 .views{background:var(--fill);border:0;border-radius:9px;padding:2px;gap:0}
 .views button{border-radius:7px;color:var(--ink);font-weight:500;font-size:13.5px;padding:5px 14px}
@@ -1184,7 +1186,7 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 
 <header>
   <div class="wrap">
-    <div class="titlerow"><h1>후쿠오카 아기랑<small>아이 동반 후기가 확인된 식당 · 카페 · 쇼핑몰</small><span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
+    <div class="titlerow"><h1>후쿠오카 한서랑<span class="appbtns"><button type="button" class="abtn" id="nearBtn" aria-pressed="false">📍 근처 알림</button><button type="button" class="abtn" id="depBtn" aria-pressed="false">⏰ 출발 알림</button><button type="button" class="abtn" id="appInstall" hidden>📲 앱 설치</button><button type="button" class="abtn" id="appShare">📤 앱 보내기</button></span></h1><div class="views"><button id="vList" aria-pressed="true">목록</button><button id="vMap" aria-pressed="false">지도</button><button id="vPlan" aria-pressed="false">일정</button><button id="vPrep" aria-pressed="false">준비물</button><button id="vMoney" aria-pressed="false">경비</button></div></div>
     <div class="qrow"><input id="q" type="search" placeholder="이름·메뉴·지역 검색" aria-label="검색"><button class="btn" id="myAdd" type="button" title="구글맵 링크나 이름으로 내 장소 추가">＋ 내 장소 추가</button></div>
     <div class="row" id="cats"></div>
     <div class="row" id="areas"></div>
