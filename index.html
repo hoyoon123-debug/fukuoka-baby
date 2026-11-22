@@ -1327,6 +1327,19 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .nswd{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--milk-soft);font-size:13.5px;line-height:1.5;color:var(--ink)}
 .nswd b{display:block;font-size:12px;color:var(--milk);margin-bottom:2px}
 .nswd a{color:var(--sea);font-weight:600;white-space:nowrap}
+.icnbox{background:var(--fill);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px;line-height:1.5}
+.icnbox>b:first-child{display:block;font-size:13px;color:var(--sea);margin-bottom:2px}
+.icnt{margin:12px 0 6px}.icnt>b{font-size:16px}
+.icnl{list-style:none;padding:0;margin:8px 0;display:grid;gap:8px}
+.icnl li{background:var(--milk-soft);border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.45}
+.icnl .icnw{display:block;font-size:12px;font-weight:700;color:var(--milk)}
+.icnl a,.icnmore a{color:var(--sea);font-weight:600;white-space:nowrap}
+.icnmaps{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:6px}
+.icnmaps img{width:100%;border-radius:10px;display:block;background:#fff}
+.icnmaps a{color:var(--sea);font-weight:600;font-size:13px;text-decoration:none}.icnmaps a span{display:block;text-align:center;margin-top:3px;color:var(--muted);font-weight:600}
+.icnmore{margin-top:8px}.icnmore summary{cursor:pointer;color:var(--sea);font-weight:600;font-size:14px;padding:6px 0}
+.icnbtn{padding:4px 12px;font-size:13px;margin:2px 0}
+#icnsheet .wrap2{max-height:86vh;overflow:auto}
 </style>
 
 <header>
@@ -1432,8 +1445,11 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <button type="button" id="sSick"><span>🏥</span>아이가 아파요</button>
     <button type="button" id="sPhrase"><span>💬</span>일본어 카드</button>
     <button type="button" id="sLocker" style="grid-column:1/-1"><span>🧳</span>유모차 맡기기 (특대 코인로커·짐 보관)</button>
+    <button type="button" id="sIcn" style="grid-column:1/-1"><span>🇰🇷</span>인천공항 유모차 대여·유아휴게실</button>
   </div>
   <button class="btn" type="button" id="sosClose">닫기</button></div></div>
+<div class="sheet" id="icnsheet" hidden><div class="wrap2"><h3>🇰🇷 인천공항 유모차·유아휴게실</h3><div id="icnbody"></div>
+  <button class="btn" type="button" id="icnClose">닫기</button></div></div>
 <div class="sheet" id="psheet" hidden><div class="wrap2"><h3>💬 보여 주는 일본어 카드</h3>
   <div class="row" id="pcats"></div>
   <div class="kidin">아이 <input type="number" id="kidM" min="0" max="72" inputmode="numeric"> 개월 · 체온 <input type="number" id="kidT" step="0.1" min="34" max="43" inputmode="decimal"> ℃ <span class="meta">(병원 카드에 들어가요)</span></div>
@@ -2356,6 +2372,8 @@ function paintTimes(){
   const fin=R.fin;
   const liveH=live?`<div class="${delay>10?"warn":""}">⏱ ${Math.abs(delay)<=10?"계획대로 가고 있어요":delay>0?`계획보다 ${delay}분 늦어지고 있어요`:`계획보다 ${-delay}분 여유가 생겼어요`}${risk.length?` · ${esc(risk.join(" · "))}`:delay>30?" · 머무는 시간을 줄이거나 한 곳을 빼는 걸 고려해 보세요":""}</div>`:"";
   let flH="";
+  const icnB=`<button type="button" class="btn icnbtn" data-icn="1">🇰🇷 인천공항 유모차·수유실</button>`;
+  if(FI.out)flH+=`<div>${icnB}</div>`;
   if(FI.out)flH+=`<div>🛬 ${esc(FI.out.no||"가는 편")} ${FI.out.arr} 도착 → 입국·짐 찾기 약 ${FL_PREP}분${day.t0?` · 출발 시각은 직접 정한 ${day.t0} 기준`:` → ${fmt(t0)} 공항 출발로 계산했어요`}</div>`;
   if(FI.back){
     // 공항 도착 시각은 '도착지 = 후쿠오카공항 국제선'이고 마지막 구간(→공항)이 계산됐을 때만
@@ -2364,8 +2382,33 @@ function paintTimes(){
     if(legOK){const late=R.endA-FI.dl;flH+=`<div class="${late>0?"warn":""}">${head}<br>✈ 국제선 터미널 도착 예상 <b>${fmt(R.endA)}</b> · ${late>0?`목표보다 ${late}분 늦어요`:`목표까지 ${-late}분 여유`}</div>`}
     else flH+=`<div>${head}<br><span class="warn">공항 도착 미계산</span> · ${toAirport?"공항까지 마지막 이동 시간이 아직 계산되지 않았어요":(day.end?`이 날 도착지가 '${esc(endName(day))}'(이)라 공항 도착을 알 수 없어요`:"이 날 도착지가 비어 있어요")} <button type="button" class="btn" data-setairport="1" style="padding:2px 10px">✈ 국제선 터미널을 도착지로</button></div>`;
   }
+  if(FI.back)flH+=`<div>${icnB} <span class="meta">도착하면 T2 1F 안내데스크에서 유모차 빌릴 수 있어요</span></div>`;
   pe.innerHTML=flH+liveH+`${sum.map(x=>(x.startsWith("<div")||x.startsWith("<details"))?x:`<div>${esc(x)}</div>`).join("")}`;
 }
+/* ---------- 인천공항 유모차 대여·유아휴게실 (인천공항 공식 안내 airport.kr/ap_ko/949 · 2026-11 확인) ---------- */
+const ICN_SRC="https://www.airport.kr/ap_ko/949/subview.do",ICN_IMG=n=>`https://www.airport.kr/sites/ap_ko/images/sub/children-map${n}.jpg`;
+const ICN={
+  T2:{name:"제2여객터미널 (T2)",note:"아시아나항공은 2026년 1월 14일부터 T2를 써요 (OZ 항공편 출국·도착 모두 T2)",
+    rows:[["3F 출국 · 면세구역 (보안검색 후)","221 · 231 · 243 · 257 · 268 · 278번 게이트 부근 (6곳)",5],
+          ["3F 출국 · 일반구역 (체크인 카운터 쪽)","동편 · 서편",5],
+          ["1F 도착 · 일반구역","도착층 동편 2곳 · 서편 1곳",4],
+          ["B1 · 일반구역","지하 버스터미널 동편 · 서편",6]]},
+  T1:{name:"제1여객터미널 (T1)",note:"",
+    rows:[["3F 출국 · 면세구역","25 · 29 · 45번 게이트 부근",2],["3F 출국 · 일반구역","K · D 체크인 카운터 부근",2],["4F 면세구역","25번 게이트 부근",3],
+          ["1F 도착 · 일반구역","B 입국장 · E 입국장 부근",1],["탑승동 3F 면세구역","119번 게이트 부근",7]]}};
+function icnHTML(){const T=k=>{const t=ICN[k];return `<div class="icnt"><b>${t.name}</b>${t.note?`<div class="meta">✈ ${t.note}</div>`:""}
+    <ul class="icnl">${t.rows.map(([w,x,m])=>`<li><span class="icnw">${w}</span>${x} <a href="${ICN_IMG(m)}" target="_blank" rel="noopener">지도 ↗</a></li>`).join("")}</ul>
+    <div class="icnmaps">${[...new Set(t.rows.map(r=>r[2]))].map(m=>{const fl=t.rows.find(r=>r[2]===m)[0].split(" · ")[0].replace(" 출국","").replace(" 도착","");
+      return `<a href="${ICN_IMG(m)}" target="_blank" rel="noopener"><img loading="lazy" src="${ICN_IMG(m)}" alt="${fl} 지도" onerror="this.nextSibling&&this.nextSibling.remove();this.replaceWith('🗺 ${fl} 지도 ↗')"><span>${fl}</span></a>`}).join("")}</div></div>`};
+  return `<div class="icnbox"><b>🚼 유모차 대여</b>공항 안 <b>모든 안내데스크</b>에서 <b>무료</b>로 빌려줘요 (도착층·출국층 안내데스크) · 문의 1577-2600 (07:00~22:00)</div>
+  <div class="icnbox"><b>🍼 유아휴게실에 있는 것</b>수유실 · 기저귀 교환대 · 세면대 · 젖병 소독기 · 정수기 · 체중계</div>
+  ${T("T2")}<details class="icnmore"><summary>제1여객터미널(T1)·탑승동도 보기</summary>${T("T1")}</details>
+  <div class="btnrow"><a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("인천국제공항 제2여객터미널")}" target="_blank" rel="noopener">🗺 구글맵 T2</a><a class="btn" href="${ICN_SRC}" target="_blank" rel="noopener">공식 안내 ↗</a></div>
+  <div class="meta" style="margin-top:6px">지도 그림은 인천공항 홈페이지에서 불러와요 · 그림을 누르면 크게 보여요</div>`}
+function openIcn(){$("icnbody").innerHTML=icnHTML();$("sossheet").hidden=true;$("icnsheet").hidden=false}
+$("sIcn").addEventListener("click",openIcn);$("icnClose").addEventListener("click",()=>{$("icnsheet").hidden=true});
+$("icnsheet").addEventListener("click",e=>{if(e.target.id==="icnsheet")$("icnsheet").hidden=true});
+document.addEventListener("click",e=>{if(e.target.closest("[data-icn]")){e.preventDefault();openIcn()}});
 function hoursAt(d,date,a,b){return spNote(d,date)+hoursAt0(d,date,a,b)}
 function hoursAt0(d,date,a,b){
   const sp=hoursOn(d,date);
