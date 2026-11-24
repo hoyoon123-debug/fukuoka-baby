@@ -1340,6 +1340,20 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .icnmore{margin-top:8px}.icnmore summary{cursor:pointer;color:var(--sea);font-weight:600;font-size:14px;padding:6px 0}
 .icnbtn{padding:4px 12px;font-size:13px;margin:2px 0}
 #icnsheet .wrap2{max-height:86vh;overflow:auto}
+/* 구글 지도 정보창: 빈 머리줄·흰 줄 없애고 닫기 버튼은 오른쪽 위에 작게 */
+.gm-style .gm-style-iw-c{padding:0!important;border-radius:14px!important;box-shadow:0 6px 24px rgba(0,0,0,.35)!important}
+.gm-style .gm-style-iw-chr{position:absolute!important;top:0;right:0;z-index:3;height:auto!important;background:transparent!important}
+.gm-style .gm-style-iw-chr button{width:34px!important;height:34px!important}
+.gm-style .gm-style-iw-chr button span{width:18px!important;height:18px!important;margin:8px!important}
+.gm-style .gm-style-iw-d{overflow:auto!important;padding:12px 34px 12px 14px!important;max-height:min(46vh,360px)!important;scrollbar-width:thin;scrollbar-color:var(--line) transparent;background:var(--surface)!important}
+.gm-style .gm-style-iw-d::-webkit-scrollbar{width:4px;background:transparent}
+.gm-style .gm-style-iw-d::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.gm-style .gm-style-iw-d .pop{margin:0}
+#planmap .gm-style .gm-style-iw-d{max-height:180px!important}
+.pmini{display:grid;gap:6px;min-width:170px;font-size:14px}
+.pmini b{font-size:15px;line-height:1.3}
+.pmini .btn{justify-self:start;padding:4px 12px;font-size:13px;min-height:32px}
+#stops .stop.flash{box-shadow:0 0 0 3px var(--sea)!important;transition:box-shadow .3s}
 </style>
 
 <header>
@@ -3363,6 +3377,9 @@ function info(){ if(!gInfo){ gInfo = new google.maps.InfoWindow({maxWidth: 290})
   // 뒤로가기로 닫을 수 있게 기록 (이미 열린 창을 다른 핀으로 바꿀 때는 한 번만)
   if(!popOpen && window.backLayer) backLayer.open({kind: "gpop"});
   return gInfo; }
+document.addEventListener("click", e => { const b = e.target.closest("[data-gocard]"); if(!b) return;
+  const c = document.querySelectorAll("#stops .stop")[+b.dataset.gocard]; window.__closeGPop && window.__closeGPop();
+  if(c){ c.scrollIntoView({behavior: "smooth", block: "center"}); c.classList.add("flash"); setTimeout(() => c.classList.remove("flash"), 1600); } });
 window.__closeGPop = () => { popOpen = false; if(gInfo) gInfo.close(); if(addrMk){ addrMk.setMap(null); addrMk = null; } };
 function openPop(m, mk, d){
   const w = info(), el = document.createElement("div");
@@ -3515,7 +3532,11 @@ window.drawPlanMap = function(S, pts, ds, day){
   ds.forEach((d,i)=>{
     const mk = new google.maps.Marker({map: gPmap, position: {lat: d.lat, lng: d.lng}, title: d.name, zIndex: 100 + i,
       icon: circle("#1f5f8b", 13), label: {text: String(i+1), color: "#fff", fontWeight: "700", fontSize: "13px"}});
-    mk.addListener("click", ()=>openPop(gPmap, mk, d));
+    mk.addListener("click", ()=>{   // 일정 지도는 작아서 짧은 창: 이름·시간 + 카드로 이동
+      const w = info(), el = document.createElement("div"), card = document.querySelectorAll("#stops .stop")[i], tt = card && card.querySelector(".tt");
+      el.innerHTML = `<div class="pop pmini"><b>${i+1}. ${esc(d.name)}</b>${tt?`<div class="meta">${esc(tt.textContent)}</div>`:""}<button type="button" class="btn" data-gocard="${i}">📋 일정 카드 보기</button></div>`;
+      w.setContent(el); w.open({map: gPmap, anchor: mk}); popOpen = true;
+    });
     gPlan.push(mk); bounds.extend(mk.getPosition());
   });
   if(pts.length > 1){ gPmap.fitBounds(bounds, 40); google.maps.event.addListenerOnce(gPmap, "idle", ()=>{ if(gPmap.getZoom() > 16) gPmap.setZoom(16); }); }
