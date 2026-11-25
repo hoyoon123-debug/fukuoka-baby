@@ -1375,7 +1375,20 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
     <div class="row" id="feats"></div>
   </div>
 </header>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>/* 앱이 안 열릴 때 원인을 화면에 보여주고, 저장본을 비워 다시 여는 버튼 */
+(function(){var shown=0;function box(msg){if(shown++)return;var d=document.createElement("div");d.id="bootErr";
+ d.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:99999;background:#2a1215;color:#fff;border:1px solid #e0565b;border-radius:14px;padding:12px 14px;font:14px/1.5 -apple-system,sans-serif";
+ d.innerHTML="<b>⚠ 앱을 여는 중 문제가 생겼어요</b><div style='opacity:.8;font-size:12px;margin:4px 0 8px;word-break:break-all'>"+String(msg).replace(/[<>&]/g,"")+"</div>"+
+  "<button id='bootRe' style='padding:8px 12px;border-radius:10px;border:0;margin-right:6px'>다시 열기</button><button id='bootClr' style='padding:8px 12px;border-radius:10px;border:0'>저장본 비우고 다시 열기</button><div style='opacity:.7;font-size:11px;margin-top:6px'>일정·경비 기록은 지워지지 않아요 · 이 화면을 캡처해서 보내 주세요</div>";
+ (document.body||document.documentElement).appendChild(d);
+ d.querySelector("#bootRe").onclick=function(){location.reload()};
+ d.querySelector("#bootClr").onclick=function(){var p=[];try{if(navigator.serviceWorker)p.push(navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}))}catch(e){}
+  try{if(window.caches)p.push(caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}))}catch(e){}
+  Promise.all(p).then(function(){location.reload()},function(){location.reload()})}}
+ window.__bootErr=box;window.addEventListener("error",function(e){if(e&&e.target&&e.target!==window&&e.target.tagName)return;if(!window.__booted)box((e&&e.message)||"스크립트 오류")});
+ window.addEventListener("unhandledrejection",function(e){if(!window.__booted)box("Promise: "+((e&&e.reason&&e.reason.message)||e.reason))});
+ setTimeout(function(){if(!window.__booted)box("12초가 지나도 화면 준비가 끝나지 않았어요 (인터넷이 느리거나 앱 저장본 문제)")},12000)})();</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" async></script><!-- 지도 예비용: 느린 인터넷에서 화면을 막지 않게 async -->
 <main>
   <div class="wrap">
     <div class="bar">
@@ -3342,6 +3355,7 @@ $("dhBox").addEventListener("click",e=>{if(e.target.closest(".qt0")){e.preventDe
   setTimeout(()=>{try{if(typeof pmap!=="undefined"&&pmap&&pmap.invalidateSize)pmap.invalidateSize()}catch(x){}window.dispatchEvent(new Event("resize"))},60)});
 
 render();
+window.__booted=true;   // 첫 화면 준비 끝 (안 되면 위의 안내 상자가 떠요)
 </script>
 
 <script>window.GMAPS_KEY='AIzaSyAQSBP_Kz8OTwYN4iSzgzmu3KUbrsXKyB4';</script>
