@@ -1364,6 +1364,8 @@ body.toolmode header .row,body.toolmode #q,body.toolmode .bar,body.toolmode .not
 .meform [aria-pressed="true"]{background:var(--sea)!important;color:#fff!important}
 .meform .merow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
 .meform .mpay{display:flex;gap:6px}
+.meform .metf{border:0;border-radius:12px;padding:10px 12px;background:var(--fill);color:var(--ink);font:inherit;font-size:15px;min-height:44px;text-align:left}
+.meform .metf[aria-pressed="true"]::after{content:" ✓"}
 </style>
 
 <header>
@@ -3255,9 +3257,11 @@ function openMEdit(id){const x=((plan.money||{}).items||[]).find(y=>y.id===id);i
     <label>메모 (가게·물건)<input id="meM" maxlength="60" value="${esc(x.m||"")}" placeholder="예: 캐널시티 기저귀"></label>
     <div class="merow"><label>날짜<input type="date" id="meD" value="${esc(x.d||"")}"></label>
       <div class="mpay" id="mePay"><button type="button" data-mepay="cash" aria-pressed="${x.pay!=="card"}">💴 현금</button><button type="button" data-mepay="card" aria-pressed="${x.pay==="card"}">💳 카드</button></div></div>
+    <button type="button" class="metf" id="meTf" aria-pressed="${!!x.tf}">🧾 면세(사후 환급) 대상</button>
     <button class="btn primary" type="submit" style="width:100%">저장</button></form>`)}
 $("iosheetIn").addEventListener("click",e=>{const c=e.target.closest("[data-mecat]");if(c){$("meCats").querySelectorAll("[data-mecat]").forEach(b=>b.setAttribute("aria-pressed",String(b===c)));return}
-  const p=e.target.closest("[data-mepay]");if(p){$("mePay").querySelectorAll("[data-mepay]").forEach(b=>b.setAttribute("aria-pressed",String(b===p)))}});
+  const p=e.target.closest("[data-mepay]");if(p){$("mePay").querySelectorAll("[data-mepay]").forEach(b=>b.setAttribute("aria-pressed",String(b===p)));return}
+  const t=e.target.closest("#meTf");if(t)t.setAttribute("aria-pressed",String(t.getAttribute("aria-pressed")!=="true"))});
 $("iosheetIn").addEventListener("input",e=>{if(e.target.id!=="meY")return;const v=e.target.value.replace(/[^\d]/g,"");const n=v?(+v).toLocaleString():"";if(e.target.value!==n)e.target.value=n});
 $("iosheetIn").addEventListener("submit",e=>{if(e.target.id!=="meForm")return;e.preventDefault();
   const I=(plan.money||{}).items||[],x=I.find(y=>y.id===e.target.dataset.id);if(!x)return;
@@ -3265,6 +3269,7 @@ $("iosheetIn").addEventListener("submit",e=>{if(e.target.id!=="meForm")return;e.
   const old=JSON.stringify(x),c=($("meCats").querySelector('[aria-pressed="true"]')||{}).dataset;
   x.y=y;x.m=$("meM").value.trim().slice(0,60);if(!x.m)delete x.m;if(c&&MCATS[c.mecat])x.c=c.mecat;if(ISO.test($("meD").value))x.d=$("meD").value;
   if($("mePay").querySelector('[data-mepay="card"]').getAttribute("aria-pressed")==="true")x.pay="card";else delete x.pay;
+  if($("meTf").getAttribute("aria-pressed")==="true")x.tf=true;else delete x.tf;
   $("iosheet").hidden=true;saveSoon();renderMoney();
   toast("경비 기록을 고쳤어요",{label:"되돌리기",fn:()=>{const o=JSON.parse(old);Object.keys(x).forEach(k=>delete x[k]);Object.assign(x,o);saveSoon();renderMoney()}})});
 $("mList").addEventListener("keydown",e=>{const t=e.target.closest("[data-medit]");if(t&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openMEdit(t.dataset.medit)}});

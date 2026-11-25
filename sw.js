@@ -1,5 +1,5 @@
 /* 후쿠오카 아기랑 - 오프라인 캐시: 한 번 본 화면·사진은 데이터 없이도 열려요 */
-const C = "fk-v113";
+const C = "fk-v114";
 const S = "fk-static-1";   // 지도 라이브러리·글꼴: 버전이 바뀌어도 지우지 않음 (느린 인터넷에서도 바로 열리게)
 const LIB = ["https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"];
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(Promise.all([
